@@ -9,7 +9,7 @@
     "Discord": "DuperKnight"
   },
   "license": "MIT",
-  "icon": "icon.png",
+  "icon": "assets/dmls/icon.png",
   "environment": "*",
   "entrypoints": {
     "client": [
