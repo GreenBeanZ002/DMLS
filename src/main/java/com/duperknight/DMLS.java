@@ -6,7 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DMLS implements ModInitializer, DedicatedServerModInitializer {
-    public static final String MOD_ID = "dmls";
+    public static final String MOD_ID = "DMLS";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
     @Override
