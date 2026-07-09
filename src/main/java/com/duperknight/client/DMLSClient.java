@@ -4,6 +4,7 @@ import com.duperknight.DMLS;
 import com.duperknight.client.gui.DMLSHomeScreen;
 import com.duperknight.client.modules.ChatAlertsModule;
 import com.duperknight.client.modules.CheckLandsModule;
+import com.duperknight.client.modules.CheckMembersModule;
 import com.duperknight.client.modules.DMLSModule;
 import com.duperknight.client.modules.StaffRank;
 import com.duperknight.client.utils.ChatUtils;
@@ -28,6 +29,7 @@ public class DMLSClient implements ClientModInitializer {
 
     private static final List<DMLSModule> MODULES = List.of(
             new CheckLandsModule(),
+            new CheckMembersModule(),
             new ChatAlertsModule()
     );
 
