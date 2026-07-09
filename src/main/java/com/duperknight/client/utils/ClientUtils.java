@@ -34,4 +34,16 @@ public final class ClientUtils {
             client.getNetworkHandler().sendChatCommand(command);
         }
     }
+
+    /**
+     * Sends a chat message to the server as the player.
+     *
+     * @param client the Minecraft client
+     * @param message the message to send
+     */
+    public static void sendChatMessage(MinecraftClient client, String message) {
+        if (client != null && client.getNetworkHandler() != null) {
+            client.getNetworkHandler().sendChatMessage(message);
+        }
+    }
 }

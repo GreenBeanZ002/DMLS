@@ -7,7 +7,9 @@ import com.duperknight.client.modules.CheckLandsModule;
 import com.duperknight.client.modules.CheckMembersModule;
 import com.duperknight.client.modules.DMLSModule;
 import com.duperknight.client.modules.StaffRank;
+import com.duperknight.client.utils.CannedReplies;
 import com.duperknight.client.utils.ChatUtils;
+import com.duperknight.client.utils.ClientUtils;
 import com.duperknight.client.utils.DMLSConfig;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.api.ClientModInitializer;
@@ -19,6 +21,9 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.command.CommandSource;
+import net.minecraft.text.ClickEvent;
+import net.minecraft.text.HoverEvent;
+import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
 import java.util.List;
@@ -72,6 +77,30 @@ public class DMLSClient implements ClientModInitializer {
                                             ChatUtils.sendClientMessage(client, PREFIX + "Rank set to " + rank.get().displayName() + "§r§7.");
                                             return 1;
                                         })))
+                        .then(ClientCommandManager.literal("help")
+                                .executes(context -> sendHelp(context.getSource().getClient())))
+                        .then(ClientCommandManager.literal("say")
+                                .executes(context -> {
+                                    ChatUtils.sendClientMessage(context.getSource().getClient(),
+                                            PREFIX + "Available replies: §6" + String.join("§7, §6", CannedReplies.names())
+                                                    + "§7. Edit them in §6config/dmls-replies.properties§7.");
+                                    return 1;
+                                })
+                                .then(ClientCommandManager.argument("template", StringArgumentType.word())
+                                        .suggests((context, builder) -> CommandSource.suggestMatching(CannedReplies.names(), builder))
+                                        .executes(context -> {
+                                            MinecraftClient client = context.getSource().getClient();
+                                            String name = StringArgumentType.getString(context, "template");
+                                            Optional<String> reply = CannedReplies.get(name);
+                                            if (reply.isEmpty()) {
+                                                ChatUtils.sendClientMessage(client, PREFIX + "Unknown reply §6" + name
+                                                        + "§7. Available: §6" + String.join("§7, §6", CannedReplies.names()) + "§7.");
+                                                return 0;
+                                            }
+
+                                            ClientUtils.sendChatMessage(client, reply.get());
+                                            return 1;
+                                        })))
                         .then(ClientCommandManager.literal("alerts")
                                 .executes(context -> {
                                     ChatUtils.sendClientMessage(context.getSource().getClient(),
@@ -106,6 +135,26 @@ public class DMLSClient implements ClientModInitializer {
                 openHomeScreen(client);
             }
         });
+    }
+
+    private int sendHelp(MinecraftClient client) {
+        String header = PREFIX;
+        ChatUtils.sendClientMessage(client, header + ChatUtils.separatorForChatWidth(client, header));
+        helpLine(client, "/checklands <ign...>", "Checks which lands the given players are in and their rank in each. Multiple names are checked one after another.");
+        helpLine(client, "/checkmembers <land>", "Lists all members of a land grouped by rank. Click a name to run /checklands on them.");
+        helpLine(client, "/dmls rank [rank]", "Shows or sets your staff rank, which decides what DMLS features you can use.");
+        helpLine(client, "/dmls alerts [on|off|reload]", "Shows or toggles chat alerts. Words are configured in config/dmls-alerts.txt.");
+        helpLine(client, "/dmls say [template]", "Sends a pre-written reply in chat. Configure them in config/dmls-replies.properties.");
+        helpLine(client, "/dmls", "Opens the DMLS menu.");
+        ChatUtils.sendClientMessage(client, "§7" + ChatUtils.separatorForChatWidth(client, ""));
+        return 1;
+    }
+
+    private void helpLine(MinecraftClient client, String command, String description) {
+        String suggested = command.replaceAll(" [<\\[].*", "") + " ";
+        ChatUtils.sendClientMessage(client, Text.literal("§8• §6" + command).styled(style -> style
+                .withClickEvent(new ClickEvent.SuggestCommand(suggested))
+                .withHoverEvent(new HoverEvent.ShowText(Text.literal("§7" + description + "\n§8Click to put the command in your chat bar.")))));
     }
 
     private int openHomeScreen(MinecraftClient client) {
