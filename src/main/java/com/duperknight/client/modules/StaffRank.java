@@ -1,11 +1,11 @@
 package com.duperknight.client.modules;
 
 public enum StaffRank {
-    HELPER("Helper", 0),
-    MODERATOR("Moderator", 1),
-    SENIOR_MODERATOR("Senior Moderator", 2),
-    SUPPORT("Support", 3),
-    ADMIN("Admin", 4);
+    HELPER("§b§lHELPER", 0),
+    MODERATOR("§2§lMODERATOR", 1),
+    SENIOR_MODERATOR("§6§lSR MOD", 2),
+    SUPPORT("§f§lSUPPORT", 3),
+    ADMIN("§4§lADMIN", 4);
 
     private final String displayName;
     private final int level;

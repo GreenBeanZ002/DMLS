@@ -2,8 +2,8 @@ package com.duperknight.client.modules;
 
 import com.duperknight.client.utils.ChatUtils;
 import com.duperknight.client.utils.ClientUtils;
+import com.duperknight.client.utils.MenuCommandQuery;
 import com.duperknight.client.utils.ScreenUtils;
-import com.duperknight.client.utils.ScreenUtils.ScreenSnapshot;
 import com.duperknight.client.utils.TooltipUtils;
 import com.duperknight.client.utils.TooltipUtils.TooltipLine;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -322,8 +322,7 @@ public final class CheckLandsModule extends DMLSModule {
 
         private Stage stage = Stage.WAITING_FOR_LANDS;
         private String currentClaim;
-        private int previousSyncId = -1;
-        private int waitTicks;
+        private MenuCommandQuery activeQuery;
 
         private CheckSession(String ign) {
             this.ign = ign;
@@ -331,19 +330,14 @@ public final class CheckLandsModule extends DMLSModule {
 
         private void start(MinecraftClient client) {
             ChatUtils.sendClientMessage(client, PREFIX + "Checking lands for §6" + ign + "§7...");
-            sendTrackedCommand(client, "la player " + ign);
+            activeQuery = new MenuCommandQuery("la player " + ign, "Player " + ign, MENU_TIMEOUT_TICKS, LAND_LIST_SLOT);
+            activeQuery.start(client);
             stage = Stage.WAITING_FOR_LANDS;
         }
 
         private void tick(MinecraftClient client) {
             if (ClientUtils.isNotConnected(client)) {
                 activeSession = null;
-                return;
-            }
-
-            waitTicks++;
-            if (waitTicks > MENU_TIMEOUT_TICKS) {
-                fail(client, timeoutMessage());
                 return;
             }
 
@@ -364,13 +358,12 @@ public final class CheckLandsModule extends DMLSModule {
         }
 
         private void waitForLands(MinecraftClient client) {
-            String expectedTitle = "Player " + ign;
-            Optional<ScreenSnapshot> snapshot = ScreenUtils.readSlot(client, LAND_LIST_SLOT, expectedTitle, previousSyncId, waitTicks);
-            if (snapshot.isEmpty()) {
+            Optional<MenuCommandQuery.Result> queryResult = tickActiveQuery(client);
+            if (queryResult.isEmpty()) {
                 return;
             }
 
-            Optional<List<String>> parsedLands = parseLands(snapshot.get().tooltip());
+            Optional<List<String>> parsedLands = queryResult.get().tooltip(LAND_LIST_SLOT).flatMap(CheckLandsModule::parseLands);
             if (parsedLands.isEmpty()) {
                 return;
             }
@@ -384,7 +377,6 @@ public final class CheckLandsModule extends DMLSModule {
 
             remainingClaims.addAll(lands);
             stage = Stage.SENDING_NEXT_INFO_COMMAND;
-            waitTicks = 0;
         }
 
         private void sendNextInfoCommand(MinecraftClient client) {
@@ -395,17 +387,19 @@ public final class CheckLandsModule extends DMLSModule {
                 return;
             }
 
-            sendTrackedCommand(client, "la info " + currentClaim);
+            activeQuery = new MenuCommandQuery("la info " + currentClaim, currentClaim, MENU_TIMEOUT_TICKS, PLAYER_LIST_SLOT);
+            activeQuery.start(client);
             stage = Stage.WAITING_FOR_INFO;
         }
 
         private void waitForInfo(MinecraftClient client) {
-            Optional<ScreenSnapshot> snapshot = ScreenUtils.readSlot(client, PLAYER_LIST_SLOT, currentClaim, previousSyncId, waitTicks);
-            if (snapshot.isEmpty()) {
+            Optional<MenuCommandQuery.Result> queryResult = tickActiveQuery(client);
+            if (queryResult.isEmpty()) {
                 return;
             }
 
-            Optional<RankScan> parsedRank = parsePlayerRank(snapshot.get().tooltip(), ign);
+            Optional<RankScan> parsedRank = queryResult.get().tooltip(PLAYER_LIST_SLOT)
+                    .flatMap(tooltip -> parsePlayerRank(tooltip, ign));
             if (parsedRank.isEmpty()) {
                 return;
             }
@@ -422,13 +416,25 @@ public final class CheckLandsModule extends DMLSModule {
             }
 
             stage = Stage.SENDING_NEXT_INFO_COMMAND;
-            waitTicks = 0;
         }
 
-        private void sendTrackedCommand(MinecraftClient client, String command) {
-            previousSyncId = ScreenUtils.currentSyncId(client);
-            waitTicks = 0;
-            ClientUtils.sendCommand(client, command);
+        private Optional<MenuCommandQuery.Result> tickActiveQuery(MinecraftClient client) {
+            if (activeQuery == null) {
+                fail(client, "No active menu query. Stopping.");
+                return Optional.empty();
+            }
+
+            MenuCommandQuery.TickResult tickResult = activeQuery.tick(client);
+            if (tickResult.status() == MenuCommandQuery.Status.TIMED_OUT) {
+                fail(client, timeoutMessage());
+                return Optional.empty();
+            }
+
+            if (tickResult.status() == MenuCommandQuery.Status.WAITING) {
+                return Optional.empty();
+            }
+
+            return tickResult.result();
         }
 
         private void report(MinecraftClient client) {
