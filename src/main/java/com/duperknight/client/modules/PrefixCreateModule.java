@@ -28,7 +28,7 @@ public final class PrefixCreateModule extends DMLSModule {
     private CreateSession activeSession;
 
     public PrefixCreateModule() {
-        super(StaffRank.HELPER);
+        super(StaffRank.SUPPORT);
     }
 
     @Override
