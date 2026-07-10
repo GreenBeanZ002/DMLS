@@ -13,9 +13,11 @@ import com.duperknight.client.utils.ChatUtils;
 import com.duperknight.client.utils.ClientUtils;
 import com.duperknight.client.utils.DMLSConfig;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.MinecraftClient;
@@ -81,28 +83,7 @@ public class DMLSClient implements ClientModInitializer {
                                         })))
                         .then(ClientCommandManager.literal("help")
                                 .executes(context -> sendHelp(context.getSource().getClient())))
-                        .then(ClientCommandManager.literal("say")
-                                .executes(context -> {
-                                    ChatUtils.sendClientMessage(context.getSource().getClient(),
-                                            PREFIX + "Available replies: §6" + String.join("§7, §6", CannedReplies.names())
-                                                    + "§7. Edit them in §6config/dmls-replies.properties§7.");
-                                    return 1;
-                                })
-                                .then(ClientCommandManager.argument("template", StringArgumentType.word())
-                                        .suggests((context, builder) -> CommandSource.suggestMatching(CannedReplies.names(), builder))
-                                        .executes(context -> {
-                                            MinecraftClient client = context.getSource().getClient();
-                                            String name = StringArgumentType.getString(context, "template");
-                                            Optional<String> reply = CannedReplies.get(name);
-                                            if (reply.isEmpty()) {
-                                                ChatUtils.sendClientMessage(client, PREFIX + "Unknown reply §6" + name
-                                                        + "§7. Available: §6" + String.join("§7, §6", CannedReplies.names()) + "§7.");
-                                                return 0;
-                                            }
-
-                                            ClientUtils.sendChatMessage(client, reply.get());
-                                            return 1;
-                                        })))
+                        .then(buildSayCommand())
                         .then(ClientCommandManager.literal("alerts")
                                 .executes(context -> {
                                     ChatUtils.sendClientMessage(context.getSource().getClient(),
@@ -123,6 +104,23 @@ public class DMLSClient implements ClientModInitializer {
                                             return 1;
                                         }))))
         );
+    }
+
+    private LiteralArgumentBuilder<FabricClientCommandSource> buildSayCommand() {
+        LiteralArgumentBuilder<FabricClientCommandSource> say = ClientCommandManager.literal("say")
+                .executes(context -> {
+                    ChatUtils.sendClientMessage(context.getSource().getClient(),
+                            PREFIX + "Available replies: §6" + String.join("§7, §6", CannedReplies.names()) + "§7.");
+                    return 1;
+                });
+
+        for (String name : CannedReplies.names()) {
+            say.then(ClientCommandManager.literal(name).executes(context -> {
+                CannedReplies.get(name).ifPresent(reply -> ClientUtils.sendChatMessage(context.getSource().getClient(), reply));
+                return 1;
+            }));
+        }
+        return say;
     }
 
     private void registerMenuKeybind() {
@@ -147,7 +145,7 @@ public class DMLSClient implements ClientModInitializer {
         helpLine(client, "/checkalts <ign>", "Runs /alts and then /history on every found account, with a punishment summary. Requires Moderator.");
         helpLine(client, "/dmls rank [rank]", "Shows or sets your staff rank, which decides what DMLS features you can use.");
         helpLine(client, "/dmls alerts [on|off|reload]", "Shows or toggles chat alerts. Words are configured in config/dmls-alerts.txt.");
-        helpLine(client, "/dmls say [template]", "Sends a pre-written reply in chat. Configure them in config/dmls-replies.properties.");
+        helpLine(client, "/dmls say [reply]", "Sends a pre-written staff reply in chat.");
         helpLine(client, "/dmls", "Opens the DMLS menu.");
         ChatUtils.sendClientMessage(client, "§7" + ChatUtils.separatorForChatWidth(client, ""));
         return 1;
