@@ -65,7 +65,7 @@ public final class CheckAltsModule extends DMLSModule {
     @Override
     public void register() {
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> dispatcher.register(
-                ClientCommandManager.literal("dmlsalts")
+                ClientCommandManager.literal("dalts")
                         .then(ClientCommandManager.argument("ign", StringArgumentType.word())
                                 .executes(context -> {
                                     submit(context.getSource().getClient(), StringArgumentType.getString(context, "ign").trim());
