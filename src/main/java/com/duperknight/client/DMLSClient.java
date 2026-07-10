@@ -9,6 +9,7 @@ import com.duperknight.client.modules.CheckMembersModule;
 import com.duperknight.client.modules.DMLSModule;
 import com.duperknight.client.modules.DonorPetModule;
 import com.duperknight.client.modules.PrefixCreateModule;
+import com.duperknight.client.modules.PromoWaveModule;
 import com.duperknight.client.modules.StaffRank;
 import com.duperknight.client.modules.XrayRollbackModule;
 import com.duperknight.client.utils.CannedReplies;
@@ -45,6 +46,7 @@ public class DMLSClient implements ClientModInitializer {
             new XrayRollbackModule(),
             new PrefixCreateModule(),
             new DonorPetModule(),
+            new PromoWaveModule(),
             new ChatAlertsModule()
     );
 
@@ -152,6 +154,7 @@ public class DMLSClient implements ClientModInitializer {
         helpLine(client, "/xray <ign>", "Rolls back a confirmed xrayer's ores (30d) and containers (7d), then checks their balance. Requires Sr Mod.");
         helpLine(client, "/prefixlazy <ign> <10|30> <prefixid> <hexcode>", "Creates a prefix and sets its color, player limit and manager in one go. Requires Support.");
         helpLine(client, "/donorpet <ign> <pet>", "Gives a donor the permission for their elite mount pet. Requires Admin.");
+        helpLine(client, "/promowave <rank> <ign1, ign2, ...>", "Promotes a whole wave of staff to the given rank in one go. Requires Admin.");
         helpLine(client, "/dmls rank [rank]", "Shows or sets your staff rank, which decides what DMLS features you can use.");
         helpLine(client, "/dmls alerts [on|off|reload]", "Shows or toggles chat alerts. Words are configured in config/dmls-alerts.txt.");
         helpLine(client, "/dmls say [reply]", "Sends a pre-written staff reply in chat.");

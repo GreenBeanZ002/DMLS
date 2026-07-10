@@ -16,6 +16,7 @@ public final class CannedReplies {
         REPLIES.put("appeal", "You can appeal your punishment by opening an appeal in the Stoneworks Discord.");
         REPLIES.put("help", "If you need staff assistance, please open a ticket in the appropiate category in the Stoneworks Discord.");
         REPLIES.put("invite", "Here's an invite to the Stoneworks Discord: https://discord.gg/stoneworks");
+        REPLIES.put("suicide", "If you are feeling down or suicidal please contact a local suicide hotline: https://en.wikipedia.org/wiki/List_of_suicide_crisis_lines <3");
     }
 
     private CannedReplies() {
