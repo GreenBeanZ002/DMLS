@@ -21,6 +21,10 @@ repositories {
         name = "TerraformersMC"
         url = "https://maven.terraformersmc.com/releases/"
     }
+    maven {
+        name = "DevAuth"
+        url = "https://pkgs.dev.azure.com/djtheredstoner/DevAuth/_packaging/public/maven/v1"
+    }
 }
 
 dependencies {
@@ -34,6 +38,9 @@ dependencies {
     // ModMenu, optional at runtime
     modCompileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
     modLocalRuntime "com.terraformersmc:modmenu:${project.modmenu_version}"
+
+    // DevAuth, dev environment only: real account login via -Ddevauth.enabled=true
+    modLocalRuntime "me.djtheredstoner:DevAuth-fabric:1.2.1"
 }
 
 processResources {
