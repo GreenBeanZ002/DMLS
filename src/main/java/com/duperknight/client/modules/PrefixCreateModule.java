@@ -23,7 +23,6 @@ public final class PrefixCreateModule extends DMLSModule {
     private static final String PREFIX = "§8[§6DMLS - Prefix§8] §7";
     private static final int COMMAND_DELAY_TICKS = 20;
     private static final Pattern USERNAME = Pattern.compile("[A-Za-z0-9_]{3,16}");
-    private static final Pattern HEX_CODE = Pattern.compile("#?[0-9a-fA-F]{6}");
 
     private CreateSession activeSession;
 
@@ -62,7 +61,7 @@ public final class PrefixCreateModule extends DMLSModule {
                                 .then(ClientCommandManager.argument("limit", StringArgumentType.word())
                                         .suggests((context, builder) -> CommandSource.suggestMatching(LIMITS, builder))
                                         .then(ClientCommandManager.argument("prefixid", StringArgumentType.word())
-                                                .then(ClientCommandManager.argument("hexcode", StringArgumentType.word())
+                                                .then(ClientCommandManager.argument("hexcode", StringArgumentType.greedyString())
                                                         .suggests((context, builder) -> CommandSource.suggestMatching(List.of("#"), builder))
                                                         .executes(context -> {
                                                             submit(context.getSource().getClient(),
@@ -102,8 +101,8 @@ public final class PrefixCreateModule extends DMLSModule {
             return;
         }
 
-        if (!HEX_CODE.matcher(hexCode).matches()) {
-            ChatUtils.sendClientMessage(client, PREFIX + "The hex code must be 6 hex digits, like §6#FFAA00§7.");
+        if (hexCode.isEmpty()) {
+            ChatUtils.sendClientMessage(client, PREFIX + "No hex code given.");
             return;
         }
 

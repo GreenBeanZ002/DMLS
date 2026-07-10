@@ -43,7 +43,7 @@ public final class PrefixCreateScreen extends DMLSMenuScreen {
         prefixIdField.setChangedListener(value -> prefixIdField.setSuggestion(value.isEmpty() ? "prefixid" : null));
 
         hexCodeField = addDrawableChild(new TextFieldWidget(textRenderer, formX, y + 68, formWidth / 2 - 4, 20, Text.literal("Hex code")));
-        hexCodeField.setMaxLength(7);
+        hexCodeField.setMaxLength(128);
         hexCodeField.setSuggestion("#FFAA00");
         hexCodeField.setChangedListener(value -> hexCodeField.setSuggestion(value.isEmpty() ? "#FFAA00" : null));
 
