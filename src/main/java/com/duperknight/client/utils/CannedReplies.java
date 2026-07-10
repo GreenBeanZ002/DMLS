@@ -14,7 +14,7 @@ public final class CannedReplies {
     static {
         REPLIES.put("rules", "Please make sure to read the server rules, you can find our rules here: https://docs.google.com/document/d/1raHKuMt59czFlqpvvBPZWHpoagiPiNOiNy9FKO70Olo/edit?tab=t.0");
         REPLIES.put("appeal", "You can appeal your punishment by opening an appeal in the Stoneworks Discord.");
-        REPLIES.put("help", "If you need staff assistance, please open a ticket in the appropiate category in the Stoneworks Discord.");
+        REPLIES.put("help", "If you need staff assistance, please open a ticket in the appropriate ticket category in the Stoneworks Discord.");
         REPLIES.put("invite", "Here's an invite to the Stoneworks Discord: https://discord.gg/stoneworks");
         REPLIES.put("suicide", "If you are feeling down or suicidal please contact a local suicide hotline: https://en.wikipedia.org/wiki/List_of_suicide_crisis_lines <3");
     }

@@ -23,24 +23,25 @@ import java.util.regex.Pattern;
 
 public final class PromoWaveModule extends DMLSModule {
     private static final String PREFIX = "§8[§6DMLS - PromoWave§8] §7";
-    private static final int COMMAND_DELAY_TICKS = 10;
+    private static final int COMMAND_DELAY_TICKS = 20;
     private static final Pattern USERNAME = Pattern.compile("[A-Za-z0-9_]{3,16}");
     private static final Map<String, List<String>> RANK_COMMANDS = new LinkedHashMap<>();
 
     static {
+        // The add always runs before the remove, so a failed command can never leave someone rankless.
         RANK_COMMANDS.put("helper", List.of(
                 "lp user %s parent add helper"));
         RANK_COMMANDS.put("mod", List.of(
-                "lp user %s parent remove helper",
-                "lp user %s parent add mod"));
+                "lp user %s parent add mod",
+                "lp user %s parent remove helper"));
         RANK_COMMANDS.put("sr-mod", List.of(
-                "lp user %s parent remove mod",
-                "lp user %s parent add sr-mod"));
+                "lp user %s parent add sr-mod",
+                "lp user %s parent remove mod"));
         RANK_COMMANDS.put("support", List.of(
                 "lp user %s parent add support"));
         RANK_COMMANDS.put("admin", List.of(
-                "lp user %s parent remove sr-mod",
-                "lp user %s parent add admin"));
+                "lp user %s parent add admin",
+                "lp user %s parent remove sr-mod"));
     }
 
     private PromoSession activeSession;
