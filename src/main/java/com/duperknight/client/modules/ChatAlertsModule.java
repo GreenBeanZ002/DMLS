@@ -25,7 +25,7 @@ public final class ChatAlertsModule extends DMLSModule {
 
     @Override
     public Text displayName() {
-        return Text.literal("Chat Alerts");
+        return Text.translatable("dmls.module.chat_alerts.name");
     }
 
     @Override
@@ -35,7 +35,7 @@ public final class ChatAlertsModule extends DMLSModule {
 
     @Override
     public List<Text> description() {
-        return List.of(Text.literal("Receive an alert when a configured word appears in chat."));
+        return List.of(Text.translatable("dmls.module.chat_alerts.description"));
     }
 
     @Override
@@ -74,8 +74,8 @@ public final class ChatAlertsModule extends DMLSModule {
 
         String raw = ChatUtils.cleanLine(message.getString());
         WORDLIST.findMatch(raw).ifPresent(word -> {
-            ChatUtils.sendClientMessage(client, PREFIX + "Flagged word §c" + word + "§7 detected:");
-            ChatUtils.sendClientMessage(client, "§8> §f" + raw);
+            ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.alerts.flagged", word);
+            ChatUtils.sendTranslatedMessage(client, "", "dmls.chat.alerts.quote", raw);
             client.player.playSound(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 0.5f);
         });
     }

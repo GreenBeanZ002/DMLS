@@ -8,6 +8,7 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.CyclingButtonWidget;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 
 /** Settings local to the Chat Alerts module. */
 public final class ChatAlertsScreen extends DMLSMenuScreen {
@@ -15,7 +16,7 @@ public final class ChatAlertsScreen extends DMLSMenuScreen {
     private Text wordlistStatus;
 
     public ChatAlertsScreen(Screen parent, ChatAlertsModule module) {
-        super(Text.literal("Chat Alerts"), parent);
+        super(Text.translatable("dmls.module.chat_alerts.name"), parent);
         this.module = module;
         wordlistStatus = wordlistStatusText();
     }
@@ -25,10 +26,11 @@ public final class ChatAlertsScreen extends DMLSMenuScreen {
         configureScrollableContent(module, scaled(78));
         int controlWidth = scaled(200);
         int x = width / 2 - controlWidth / 2;
-        addScrollableChild(CyclingButtonWidget.onOffBuilder(DMLSConfig.alertsEnabled())
-                .build(x, contentY(0), controlWidth, STANDARD_BUTTON_HEIGHT, Text.literal("Chat Alerts"),
+        addScrollableChild(CyclingButtonWidget.builder((Boolean value) -> Text.translatable(value ? "dmls.option.on" : "dmls.option.off")
+                        .formatted(value ? Formatting.GREEN : Formatting.RED), DMLSConfig.alertsEnabled()).values(true, false)
+                .build(x, contentY(0), controlWidth, STANDARD_BUTTON_HEIGHT, Text.translatable("dmls.module.chat_alerts.toggle"),
                         (button, value) -> DMLSConfig.setAlertsEnabled(value)), 0);
-        addScrollableChild(ButtonWidget.builder(Text.literal("Reload Alert Wordlist"), button -> {
+        addScrollableChild(ButtonWidget.builder(Text.translatable("dmls.module.chat_alerts.reload"), button -> {
             ChatAlertsModule.reloadWordlist();
             wordlistStatus = wordlistStatusText();
         }).dimensions(x, contentY(scaled(30)), controlWidth, STANDARD_BUTTON_HEIGHT).build(), scaled(30));
@@ -49,6 +51,6 @@ public final class ChatAlertsScreen extends DMLSMenuScreen {
 
     private Text wordlistStatusText() {
         int count = ChatAlertsModule.wordCount();
-        return Text.literal(count + " alert word" + (count == 1 ? "" : "s") + " loaded (config/dmls-alerts.txt)");
+        return Text.translatable(count == 1 ? "dmls.module.chat_alerts.words.one" : "dmls.module.chat_alerts.words.many", count);
     }
 }

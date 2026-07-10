@@ -17,7 +17,7 @@ public final class CheckLandsScreen extends DMLSMenuScreen {
     private Text validationMessage = Text.empty();
 
     public CheckLandsScreen(Screen parent, CheckLandsModule module) {
-        super(Text.literal("Check Lands"), parent);
+        super(Text.translatable("dmls.module.check_lands.name"), parent);
         this.module = module;
     }
 
@@ -27,15 +27,15 @@ public final class CheckLandsScreen extends DMLSMenuScreen {
         int formWidth = Math.min(scaled(360), width - scaled(48));
         int formX = (width - formWidth) / 2;
         ignField = addScrollableChild(new TextFieldWidget(textRenderer, formX, contentY(scaled(14)), formWidth, STANDARD_BUTTON_HEIGHT,
-                Text.literal("Player IGN(s)")), scaled(14));
+                Text.translatable("dmls.field.player_igns")), scaled(14));
         ignField.setMaxLength(512);
-        ignField.setSuggestion("PlayerOne, PlayerTwo");
-        ignField.setChangedListener(value -> ignField.setSuggestion(value.isEmpty() ? "PlayerOne, PlayerTwo" : null));
+        ignField.setSuggestion(Text.translatable("dmls.placeholder.player_names").getString());
+        ignField.setChangedListener(value -> ignField.setSuggestion(value.isEmpty() ? Text.translatable("dmls.placeholder.player_names").getString() : null));
         setInitialFocus(ignField);
 
         addDrawableChild(ButtonWidget.builder(ScreenTexts.BACK, button -> close())
                 .dimensions(leftPairedButtonX(), footerButtonY(), pairedButtonWidth(), STANDARD_BUTTON_HEIGHT).build());
-        submitButton = addDrawableChild(ButtonWidget.builder(Text.literal("Submit"), button -> submit())
+        submitButton = addDrawableChild(ButtonWidget.builder(Text.translatable("dmls.button.submit"), button -> submit())
                 .dimensions(rightPairedButtonX(), footerButtonY(), pairedButtonWidth(), STANDARD_BUTTON_HEIGHT).build());
         submitButton.active = !ClientUtils.isNotConnected(client);
     }
@@ -43,7 +43,7 @@ public final class CheckLandsScreen extends DMLSMenuScreen {
     private void submit() {
         String input = ignField.getText().trim();
         if (input.isEmpty()) {
-            validationMessage = Text.literal("Enter at least one player IGN.");
+            validationMessage = Text.translatable("dmls.validation.player_igns");
             return;
         }
         module.submit(client, input);
@@ -61,7 +61,7 @@ public final class CheckLandsScreen extends DMLSMenuScreen {
         renderModuleHeader(context, module);
         int labelY = contentY(0);
         if (isContentVisible(labelY, textRenderer.fontHeight)) {
-            context.drawTextWithShadow(textRenderer, Text.literal("Player IGN(s):"), ignField.getX(), labelY, 0xFFCCCCCC);
+            context.drawTextWithShadow(textRenderer, Text.translatable("dmls.field.player_igns.label"), ignField.getX(), labelY, 0xFFCCCCCC);
         }
         int validationY = contentY(scaled(48));
         if (!validationMessage.getString().isEmpty() && isContentVisible(validationY, textRenderer.fontHeight)) {

@@ -1,4 +1,167 @@
 {
   "key.category.dmls.dmls": "Duper's Mod for Lazy Staff",
-  "key.dmls.open_menu": "Open DMLS Menu"
+  "key.dmls.open_menu": "Open DMLS Menu",
+
+  "dmls.title.home": "Duper's Mod for Lazy Staff",
+  "dmls.title.options": "Mod Options",
+  "dmls.button.options": "Mod Options...",
+  "dmls.button.exit": "Exit",
+  "dmls.button.submit": "Submit",
+  "dmls.button.create": "Create",
+  "dmls.button.promote": "Promote",
+  "dmls.button.rollback": "Roll Back",
+  "dmls.button.give_pet": "Give Pet",
+  "dmls.message.no_modules": "No modules are available for your selected rank.",
+  "dmls.option.on": "On",
+  "dmls.option.off": "Off",
+  "dmls.option.staff_rank": "Staff Rank",
+
+  "dmls.staff_rank.helper": "HELPER",
+  "dmls.staff_rank.moderator": "MODERATOR",
+  "dmls.staff_rank.senior_moderator": "SR MOD",
+  "dmls.staff_rank.support": "SUPPORT",
+  "dmls.staff_rank.admin": "ADMIN",
+
+  "dmls.module.chat_alerts.name": "Chat Alerts",
+  "dmls.module.chat_alerts.description": "Receive an alert when a configured word appears in chat.",
+  "dmls.module.chat_alerts.toggle": "Chat Alerts",
+  "dmls.module.chat_alerts.reload": "Reload Alert Wordlist",
+  "dmls.module.chat_alerts.words.one": "%s alert word loaded (config/dmls-alerts.txt)",
+  "dmls.module.chat_alerts.words.many": "%s alert words loaded (config/dmls-alerts.txt)",
+
+  "dmls.module.check_alts.name": "Check Alts",
+  "dmls.module.check_alts.description.1": "Run /alts and then /history on every found account.",
+  "dmls.module.check_alts.description.2": "Ends with a punishment summary per account.",
+  "dmls.module.check_lands.name": "Check Lands",
+  "dmls.module.check_lands.description.1": "Check the lands and ranks for one or more players.",
+  "dmls.module.check_lands.description.2": "Separate multiple IGNs with commas or spaces.",
+  "dmls.module.check_members.name": "Check Members",
+  "dmls.module.check_members.description.1": "List all members of a land grouped by rank.",
+  "dmls.module.check_members.description.2": "Click a name in the result to check their lands.",
+  "dmls.module.donor_pet.name": "Donor Pets",
+  "dmls.module.donor_pet.description": "Give a donor the permission for their elite mount pet.",
+  "dmls.module.prefix.name": "Prefix Creation",
+  "dmls.module.prefix.description.1": "Create a formatted prefix, set its player limit",
+  "dmls.module.prefix.description.2": "and manager in one go.",
+  "dmls.module.promo_wave.name": "Promo Wave",
+  "dmls.module.promo_wave.description.1": "Promote a whole wave of staff to a rank in one command.",
+  "dmls.module.promo_wave.description.2": "Separate names with commas or spaces.",
+  "dmls.module.trade_chat.name": "Mute Trade Chat",
+  "dmls.module.trade_chat.description": "Hide trade chat messages beginning with [T] on this client.",
+  "dmls.module.trade_chat.toggle": "Trade Chat Muted",
+  "dmls.module.xray.name": "Xray Rollback",
+  "dmls.module.xray.description.1": "Roll back a confirmed xrayer: ores and tunnels (30d),",
+  "dmls.module.xray.description.2": "containers (7d), then a balance check.",
+  "dmls.module.xray.warning": "This rolls back the player's blocks and containers, use with care.",
+
+  "dmls.field.player_ign": "Player IGN",
+  "dmls.field.player_igns": "Player IGN(s)",
+  "dmls.field.player_ign.label": "Player IGN:",
+  "dmls.field.player_igns.label": "Player IGN(s):",
+  "dmls.field.land_name": "Land name",
+  "dmls.field.land_name.label": "Land name:",
+  "dmls.field.prefix_id": "Prefix ID",
+  "dmls.field.prefix_id.label": "Prefix ID:",
+  "dmls.field.prefix_text": "Prefix text",
+  "dmls.field.prefix_text.label": "Prefix text:",
+  "dmls.field.preview.label": "Preview:",
+  "dmls.field.player_limit": "Player limit",
+  "dmls.field.player_limit.label": "Player limit:",
+  "dmls.field.custom": "Custom",
+  "dmls.field.pet": "Pet",
+  "dmls.field.rank": "Rank",
+  "dmls.prefix.command_length": "Create command: %s/%s",
+
+  "dmls.validation.player_ign": "Enter a player IGN.",
+  "dmls.validation.player_igns": "Enter at least one player IGN.",
+  "dmls.validation.land_name": "Enter a land name."
+  ,"dmls.placeholder.player_name": "PlayerName"
+  ,"dmls.placeholder.player_names": "PlayerOne, PlayerTwo"
+  ,"dmls.placeholder.player_names_many": "PlayerOne, PlayerTwo, PlayerThree"
+  ,"dmls.placeholder.land_name": "LandName"
+  ,"dmls.placeholder.prefix_id": "prefixid"
+  ,"dmls.placeholder.prefix_text": "&aHelper <gold>Team"
+  ,"dmls.chat.rank.current": "§7Your rank is set to %s§r§7. Change it with §6/dmls rank <rank>§7."
+  ,"dmls.chat.rank.unknown": "§7Unknown rank §6%s§7. Options: §6%s§7."
+  ,"dmls.chat.rank.set": "§7Rank set to %s§r§7."
+  ,"dmls.chat.rank.required": "§7This requires %s§r§7 or higher, but your rank is set to %s§r§7. Change it with §6/dmls rank <rank>§7."
+  ,"dmls.chat.alerts.status": "§7Chat alerts are %s§7 with §6%s§7 words loaded. Use §6/dmls alerts <on|off|reload>§7."
+  ,"dmls.chat.alerts.enabled": "§7Chat alerts §aenabled§7."
+  ,"dmls.chat.alerts.disabled": "§7Chat alerts §cdisabled§7."
+  ,"dmls.chat.alerts.reloaded.one": "§7Reloaded §6%s§7 alert word."
+  ,"dmls.chat.alerts.reloaded.many": "§7Reloaded §6%s§7 alert words."
+  ,"dmls.chat.say.available": "§7Available replies: §6%s§7."
+  ,"dmls.help.checklands": "Checks which lands the given players are in and their rank in each. Multiple names are checked one after another."
+  ,"dmls.help.checkmembers": "Lists all members of a land grouped by rank. Click a name to run /checklands on them."
+  ,"dmls.help.checkalts": "Runs /alts and then /history on every found account, with a punishment summary. Requires %s§r."
+  ,"dmls.help.xray": "Rolls back a confirmed xrayer's ores (30d) and containers (7d), then checks their balance. Requires %s§r."
+  ,"dmls.help.prefix": "Creates a formatted prefix and sets its player limit and manager. Requires %s§r."
+  ,"dmls.help.donorpet": "Gives a donor permission for their elite mount pet. Requires %s§r."
+  ,"dmls.help.promowave": "Promotes a whole wave of staff to the given rank. Requires %s§r."
+  ,"dmls.help.rank": "Shows or sets your staff rank, which decides what DMLS features you can use."
+  ,"dmls.help.alerts": "Shows or toggles chat alerts. Words are configured in config/dmls-alerts.txt."
+  ,"dmls.help.say": "Sends a pre-written staff reply in chat."
+  ,"dmls.help.menu": "Opens the DMLS menu."
+  ,"dmls.help.hover": "%s\n§8Click to put the command in your chat bar."
+  ,"dmls.validation.required_rank": "You do not have the required staff rank."
+  ,"dmls.validation.prefix.active": "A prefix creation is still running; wait for it to finish."
+  ,"dmls.validation.prefix.ign": "Enter a valid player IGN."
+  ,"dmls.validation.prefix.limit": "The player limit must be a whole number from 1 to 2147483647."
+  ,"dmls.validation.prefix.id": "Enter a prefix ID."
+  ,"dmls.validation.prefix.text": "Enter prefix text."
+  ,"dmls.validation.prefix.format": "%s"
+  ,"dmls.validation.prefix.command_length": "The create command is %s/%s characters. Ask an admin to create it via console, shorten the prefix ID, ask the player for a smaller prefix by removing text or color, or try a more compact format."
+  ,"dmls.chat.alerts.flagged": "Flagged word §c%s§7 detected:"
+  ,"dmls.chat.alerts.quote": "§8> §f%s"
+  ,"dmls.chat.common.invalid_ign": "No valid username given."
+  ,"dmls.chat.common.invalid_igns": "No valid usernames given."
+  ,"dmls.chat.common.failure": "%s"
+  ,"dmls.chat.donor_pet.unknown": "Unknown pet §6%s§7. Options: §6%s§7."
+  ,"dmls.chat.donor_pet.success": "Gave §6%s§7 the §6%s§7 pet (§8%s§7)."
+  ,"dmls.chat.promo.unknown_rank": "Unknown rank §6%s§7. Options: §6%s§7."
+  ,"dmls.chat.promo.skipping.one": "Skipping invalid name: §6%s§7."
+  ,"dmls.chat.promo.skipping.many": "Skipping invalid names: §6%s§7."
+  ,"dmls.chat.promo.active": "A promotion wave is still running; wait for it to finish."
+  ,"dmls.chat.promo.start.one": "Promoting §6%s§7 player to §6%s§7..."
+  ,"dmls.chat.promo.start.many": "Promoting §6%s§7 players to §6%s§7..."
+  ,"dmls.chat.promo.progress": "Promoting §6%s§7 §8(%s/%s)"
+  ,"dmls.chat.promo.done.one": "Done! Promoted §6%s§7 player to §6%s§7: §6%s§7. Check the LuckPerms output above for errors."
+  ,"dmls.chat.promo.done.many": "Done! Promoted §6%s§7 players to §6%s§7: §6%s§7. Check the LuckPerms output above for errors."
+  ,"dmls.chat.xray.active": "A rollback for §6%s§7 is still running; wait for it to finish."
+  ,"dmls.chat.xray.start": "Starting xray rollback for §6%s§7 (§6%s§7 steps)..."
+  ,"dmls.chat.xray.step": "Step §6%s/%s§7: %s"
+  ,"dmls.chat.xray.result": "§8• %s"
+  ,"dmls.chat.prefix.start": "Creating prefix §6%s§7 for §6%s§7..."
+  ,"dmls.chat.prefix.created.before": "Created prefix §6%s§7 with text "
+  ,"dmls.chat.prefix.created.after": "§7, player limit §6%s§7 and manager §6%s§7. Check the info above to confirm."
+  ,"dmls.chat.check_alts.checking": "Checking alts of §6%s§7..."
+  ,"dmls.chat.check_alts.no_alts": "No known alts; checking history of §6%s§7 only."
+  ,"dmls.chat.check_alts.counts_note": "§8Counts are based on the /history output and may include unrelated lines."
+  ,"dmls.chat.check_lands.queued": "Queued §6%s§7 players: §6%s§7."
+  ,"dmls.chat.check_lands.checking": "Checking lands for §6%s§7..."
+  ,"dmls.chat.check_lands.none": "§6%s§7 is not in any lands."
+  ,"dmls.chat.check_lands.found.one": "Found §6%s§7 land for §6%s§7."
+  ,"dmls.chat.check_lands.found.many": "Found §6%s§7 lands for §6%s§7."
+  ,"dmls.chat.check_members.no_land": "No land name given."
+  ,"dmls.chat.check_members.checking": "Checking members of §6%s§7..."
+  ,"dmls.chat.check_members.truncated": "§8(list truncated by the menu; some members are not shown)"
+  ,"dmls.chat.check_alts.read_failed": "Could not read the §6/alts§7 output; checking history of §6%s§7 only."
+  ,"dmls.chat.check_alts.found_limited": "Found §6%s§7 alts; only checking the first §6%s§7."
+  ,"dmls.chat.check_alts.found.one": "Found §6%s§7 possible alt: §6%s§7."
+  ,"dmls.chat.check_alts.found.many": "Found §6%s§7 possible alts: §6%s§7."
+  ,"dmls.chat.check_alts.hover_history": "§7Click to run §6/history %s"
+  ,"dmls.chat.check_lands.owner": "§4§lOwner§r§7: "
+  ,"dmls.chat.check_lands.admin": "§c§lAdmin§r§7: "
+  ,"dmls.chat.check_lands.member_unknown": "§e§lMember/Unknown§r§7: "
+  ,"dmls.chat.common.none": "None"
+  ,"dmls.chat.check_lands.hover_info": "§7Click to run §6/la info %s"
+  ,"dmls.chat.check_members.hover_lands": "§7Click to run §6/checklands %s"
+  ,"dmls.chat.xray.step.deepslate": "Deepslate ores (30d)"
+  ,"dmls.chat.xray.step.stone": "Stone ores (30d)"
+  ,"dmls.chat.xray.step.containers": "Containers (7d)"
+  ,"dmls.chat.xray.step.balance": "Balance check"
+  ,"dmls.chat.xray.result.success": "§a✔ §7%s"
+  ,"dmls.chat.xray.result.manual": "§e⚠ §7%s §8(no completion message; check manually)"
+  ,"dmls.chat.xray.result.output": "§a✔ §7%s §8(see output above)"
+  ,"dmls.chat.xray.header": "§8[§6DMLS - Xray§8] §7Xray rollback for §6%s§7 done "
 }

@@ -27,16 +27,16 @@ public final class XrayRollbackModule extends DMLSModule {
     private static final Pattern USERNAME = Pattern.compile("[A-Za-z0-9_]{3,16}");
 
     private static final List<Step> STEPS = List.of(
-            new Step("Deepslate ores (30d)",
+            new Step("dmls.chat.xray.step.deepslate",
                     "co rollback u:%s t:30d radius:#global a:block include:deepslate, deepslate_gold_ore, deepslate_emerald_ore, deepslate_diamond_ore, deepslate_iron_ore, deepslate_lapis_ore, deepslate_redstone_ore, deepslate_copper_ore, tuff",
                     true),
-            new Step("Stone ores (30d)",
+            new Step("dmls.chat.xray.step.stone",
                     "co rollback u:%s t:30d radius:#global a:block include:stone, gold_ore, iron_ore, emerald_ore, diamond_ore, redstone_ore, lapis_ore, coal_ore, granite, diorite, andesite, gravel",
                     true),
-            new Step("Containers (7d)",
+            new Step("dmls.chat.xray.step.containers",
                     "co rollback u:%s t:7d radius:#global action:container",
                     true),
-            new Step("Balance check",
+            new Step("dmls.chat.xray.step.balance",
                     "bal %s",
                     false)
     );
@@ -49,7 +49,7 @@ public final class XrayRollbackModule extends DMLSModule {
 
     @Override
     public Text displayName() {
-        return Text.literal("Xray Rollback");
+        return Text.translatable("dmls.module.xray.name");
     }
 
     @Override
@@ -60,8 +60,8 @@ public final class XrayRollbackModule extends DMLSModule {
     @Override
     public List<Text> description() {
         return List.of(
-                Text.literal("Roll back a confirmed xrayer: ores and tunnels (30d),"),
-                Text.literal("containers (7d), then a balance check.")
+                Text.translatable("dmls.module.xray.description.1"),
+                Text.translatable("dmls.module.xray.description.2")
         );
     }
 
@@ -98,13 +98,12 @@ public final class XrayRollbackModule extends DMLSModule {
         }
 
         if (!USERNAME.matcher(ign).matches()) {
-            ChatUtils.sendClientMessage(client, PREFIX + "No valid username given.");
+            ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.common.invalid_ign");
             return;
         }
 
         if (activeSession != null) {
-            ChatUtils.sendClientMessage(client, PREFIX + "A rollback for §6" + activeSession.ign
-                    + "§7 is still running, wait for it to finish.");
+            ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.xray.active", activeSession.ign);
             return;
         }
 
@@ -123,7 +122,7 @@ public final class XrayRollbackModule extends DMLSModule {
 
     private final class RollbackSession {
         private final String ign;
-        private final List<String> results = new ArrayList<>();
+        private final List<Text> results = new ArrayList<>();
 
         private int stepIndex = -1;
         private int waitTicks;
@@ -135,7 +134,7 @@ public final class XrayRollbackModule extends DMLSModule {
         }
 
         private void start(MinecraftClient client) {
-            ChatUtils.sendClientMessage(client, PREFIX + "Starting xray rollback for §6" + ign + "§7 (§6" + STEPS.size() + "§7 steps)...");
+            ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.xray.start", ign, STEPS.size());
             nextStep(client);
         }
 
@@ -155,15 +154,15 @@ public final class XrayRollbackModule extends DMLSModule {
                 if (completionSeen) {
                     // small gap after the completion message before the next command
                     if (postCompletionTicks++ >= COMMAND_GAP_TICKS) {
-                        results.add("§a✔ §7" + step.label());
+                        results.add(Text.translatable("dmls.chat.xray.result.success", Text.translatable(step.label())));
                         nextStep(client);
                     }
                 } else if (waitTicks > ROLLBACK_TIMEOUT_TICKS) {
-                    results.add("§e⚠ §7" + step.label() + " §8(no completion message, check manually)");
+                    results.add(Text.translatable("dmls.chat.xray.result.manual", Text.translatable(step.label())));
                     nextStep(client);
                 }
             } else if (waitTicks > BALANCE_WAIT_TICKS) {
-                results.add("§a✔ §7" + step.label() + " §8(see output above)");
+                results.add(Text.translatable("dmls.chat.xray.result.output", Text.translatable(step.label())));
                 nextStep(client);
             }
         }
@@ -191,15 +190,16 @@ public final class XrayRollbackModule extends DMLSModule {
             waitTicks = 0;
             postCompletionTicks = 0;
             completionSeen = false;
-            ChatUtils.sendClientMessage(client, PREFIX + "Step §6" + (stepIndex + 1) + "/" + STEPS.size() + "§7: " + step.label());
+            ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.xray.step", stepIndex + 1, STEPS.size(),
+                    Text.translatable(step.label()));
             ClientUtils.sendCommand(client, step.commandTemplate().formatted(ign));
         }
 
         private void report(MinecraftClient client) {
-            String header = PREFIX + "Xray rollback for §6" + ign + "§7 done ";
+            String header = Text.translatable("dmls.chat.xray.header", ign).getString();
             ChatUtils.sendClientMessage(client, header + ChatUtils.separatorForChatWidth(client, header));
-            for (String result : results) {
-                ChatUtils.sendClientMessage(client, "§8• " + result);
+            for (Text result : results) {
+                ChatUtils.sendClientMessage(client, result);
             }
             ChatUtils.sendClientMessage(client, "§7" + ChatUtils.separatorForChatWidth(client, ""));
         }

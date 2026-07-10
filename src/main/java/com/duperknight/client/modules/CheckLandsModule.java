@@ -46,7 +46,7 @@ public final class CheckLandsModule extends DMLSModule {
 
     @Override
     public Text displayName() {
-        return Text.literal("Check Lands");
+        return Text.translatable("dmls.module.check_lands.name");
     }
 
     @Override
@@ -57,8 +57,8 @@ public final class CheckLandsModule extends DMLSModule {
     @Override
     public List<Text> description() {
         return List.of(
-                Text.literal("Check the lands and ranks for one or more players."),
-                Text.literal("Separate multiple IGNs with commas or spaces.")
+                Text.translatable("dmls.module.check_lands.description.1"),
+                Text.translatable("dmls.module.check_lands.description.2")
         );
     }
 
@@ -102,14 +102,14 @@ public final class CheckLandsModule extends DMLSModule {
         }
 
         if (igns.isEmpty()) {
-            ChatUtils.sendClientMessage(client, PREFIX + "No valid usernames given.");
+            ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.common.invalid_igns");
             return;
         }
 
         pendingPlayers.clear();
         pendingPlayers.addAll(igns);
         if (igns.size() > 1) {
-            ChatUtils.sendClientMessage(client, PREFIX + "Queued §6" + igns.size() + "§7 players: §6" + String.join("§7, §6", igns) + "§7.");
+            ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.check_lands.queued", igns.size(), String.join(", ", igns));
         }
 
         if (activeSession != null) {
@@ -394,7 +394,7 @@ public final class CheckLandsModule extends DMLSModule {
         }
 
         private void start(MinecraftClient client) {
-            ChatUtils.sendClientMessage(client, PREFIX + "Checking lands for §6" + ign + "§7...");
+            ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.check_lands.checking", ign);
             activeQuery = new MenuCommandQuery("la player " + ign, "Player " + ign, MENU_TIMEOUT_TICKS, LAND_LIST_SLOT);
             activeQuery.start(client);
             stage = Stage.WAITING_FOR_LANDS;
@@ -436,15 +436,16 @@ public final class CheckLandsModule extends DMLSModule {
 
             List<String> lands = parsedLands.get();
             if (lands.isEmpty()) {
-                ChatUtils.sendClientMessage(client, PREFIX + "§6" + ign + "§7 is not in any lands.");
+                ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.check_lands.none", ign);
                 finish(client);
                 return;
             }
 
             remainingClaims.addAll(lands);
             totalClaims = lands.size();
-            ChatUtils.sendClientMessage(client, PREFIX + "Found §6" + totalClaims + "§7 land" + (totalClaims == 1 ? "" : "s")
-                    + " for §6" + ign + "§7.");
+            ChatUtils.sendTranslatedMessage(client, PREFIX,
+                    totalClaims == 1 ? "dmls.chat.check_lands.found.one" : "dmls.chat.check_lands.found.many",
+                    totalClaims, ign);
             stage = Stage.SENDING_NEXT_INFO_COMMAND;
         }
 
@@ -509,13 +510,13 @@ public final class CheckLandsModule extends DMLSModule {
         private void report(MinecraftClient client) {
             String header = PREFIX + "Player §6" + ign + "§7 ";
             ChatUtils.sendClientMessage(client, header + ChatUtils.separatorForChatWidth(client, header));
-            ChatUtils.sendClientMessage(client, Text.literal("§4§lOwner§r§7: ").append(claimsText(ownedClaims)));
-            ChatUtils.sendClientMessage(client, Text.literal("§c§lAdmin§r§7: ").append(claimResultsText(adminClaims)));
+            ChatUtils.sendClientMessage(client, Text.translatable("dmls.chat.check_lands.owner").append(claimsText(ownedClaims)));
+            ChatUtils.sendClientMessage(client, Text.translatable("dmls.chat.check_lands.admin").append(claimResultsText(adminClaims)));
             customRankClaims.stream()
                     .sorted(Comparator.comparingInt((RankClaims rank) -> rank.position).thenComparing(rank -> rank.rank, String.CASE_INSENSITIVE_ORDER))
                     .forEach(rank -> ChatUtils.sendClientMessage(client,
                             Text.literal(rank.formattedRank + "§r§7 (" + ordinal(rank.position) + " rank): ").append(claimResultsText(rank.claims))));
-            ChatUtils.sendClientMessage(client, Text.literal("§e§lMember/Unknown§r§7: ").append(claimsText(memberOrUnknownClaims)));
+            ChatUtils.sendClientMessage(client, Text.translatable("dmls.chat.check_lands.member_unknown").append(claimsText(memberOrUnknownClaims)));
             ChatUtils.sendClientMessage(client, "§7" + ChatUtils.separatorForChatWidth(client, ""));
         }
 
@@ -534,7 +535,7 @@ public final class CheckLandsModule extends DMLSModule {
 
         private MutableText claimsText(List<String> claims) {
             if (claims.isEmpty()) {
-                return Text.literal("None");
+                return Text.translatable("dmls.chat.common.none");
             }
 
             MutableText text = Text.literal("");
@@ -549,7 +550,7 @@ public final class CheckLandsModule extends DMLSModule {
 
         private MutableText claimResultsText(List<ClaimResult> claims) {
             if (claims.isEmpty()) {
-                return Text.literal("None");
+                return Text.translatable("dmls.chat.common.none");
             }
 
             MutableText text = Text.literal("");
@@ -567,7 +568,7 @@ public final class CheckLandsModule extends DMLSModule {
         private MutableText clickableClaim(String claim) {
             return Text.literal("§6" + claim).styled(style -> style
                     .withClickEvent(new ClickEvent.RunCommand("/la info " + claim))
-                    .withHoverEvent(new HoverEvent.ShowText(Text.literal("§7Click to run §6/la info " + claim))));
+                    .withHoverEvent(new HoverEvent.ShowText(Text.translatable("dmls.chat.check_lands.hover_info", claim))));
         }
 
         private Optional<RankStats> findRankStats(List<RankStats> stats, String rank, int position) {

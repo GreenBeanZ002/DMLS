@@ -43,7 +43,7 @@ public final class DonorPetModule extends DMLSModule {
 
     @Override
     public Text displayName() {
-        return Text.literal("Donor Pets");
+        return Text.translatable("dmls.module.donor_pet.name");
     }
 
     @Override
@@ -53,7 +53,7 @@ public final class DonorPetModule extends DMLSModule {
 
     @Override
     public List<Text> description() {
-        return List.of(Text.literal("Give a donor the permission for their elite mount pet."));
+        return List.of(Text.translatable("dmls.module.donor_pet.description"));
     }
 
     @Override
@@ -82,19 +82,17 @@ public final class DonorPetModule extends DMLSModule {
         }
 
         if (!USERNAME.matcher(ign).matches()) {
-            ChatUtils.sendClientMessage(client, PREFIX + "No valid username given.");
+            ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.common.invalid_ign");
             return;
         }
 
         String permission = PET_PERMISSIONS.get(pet);
         if (permission == null) {
-            ChatUtils.sendClientMessage(client, PREFIX + "Unknown pet §6" + pet + "§7. Options: §6"
-                    + String.join("§7, §6", pets()) + "§7.");
+            ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.donor_pet.unknown", pet, String.join(", ", pets()));
             return;
         }
 
         ClientUtils.sendCommand(client, "lp user %s permission set %s true".formatted(ign, permission));
-        ChatUtils.sendClientMessage(client, PREFIX + "Gave §6" + ign + "§7 the §6" + pet + "§7 pet (§8" + permission
-                + "§7). Check the LuckPerms confirmation above.");
+        ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.donor_pet.success", ign, pet, permission);
     }
 }

@@ -30,15 +30,15 @@ public final class DMLSHomeScreen extends DMLSMenuScreen {
     }
 
     public DMLSHomeScreen(List<DMLSModule> registeredModules, Screen parent) {
-        super(Text.literal("Duper's Mod for Lazy Staff"), parent);
+        super(Text.translatable("dmls.title.home"), parent);
         this.registeredModules = List.copyOf(registeredModules);
     }
 
     @Override
     protected void init() {
-        addDrawableChild(ButtonWidget.builder(Text.literal("Mod Options..."), button -> client.setScreen(new DMLSOptionsScreen(this)))
+        addDrawableChild(ButtonWidget.builder(Text.translatable("dmls.button.options"), button -> client.setScreen(new DMLSOptionsScreen(this)))
                 .dimensions(leftPairedButtonX(), footerButtonY(), pairedButtonWidth(), STANDARD_BUTTON_HEIGHT).build());
-        addDrawableChild(ButtonWidget.builder(Text.literal("Exit"), button -> close())
+        addDrawableChild(ButtonWidget.builder(Text.translatable("dmls.button.exit"), button -> close())
                 .dimensions(rightPairedButtonX(), footerButtonY(), pairedButtonWidth(), STANDARD_BUTTON_HEIGHT).build());
     }
 
@@ -56,7 +56,7 @@ public final class DMLSHomeScreen extends DMLSMenuScreen {
         context.disableScissor();
 
         if (visibleModules.isEmpty()) {
-            context.drawCenteredTextWithShadow(textRenderer, Text.literal("No modules are available for your selected rank."),
+            context.drawCenteredTextWithShadow(textRenderer, Text.translatable("dmls.message.no_modules"),
                     width / 2, layout.viewportY() + layout.viewportHeight() / 2 - 4, 0xFFAAAAAA);
         }
         if (layout.scrollable()) {

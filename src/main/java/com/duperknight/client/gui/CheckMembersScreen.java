@@ -17,7 +17,7 @@ public final class CheckMembersScreen extends DMLSMenuScreen {
     private Text validationMessage = Text.empty();
 
     public CheckMembersScreen(Screen parent, CheckMembersModule module) {
-        super(Text.literal("Check Members"), parent);
+        super(Text.translatable("dmls.module.check_members.name"), parent);
         this.module = module;
     }
 
@@ -27,15 +27,15 @@ public final class CheckMembersScreen extends DMLSMenuScreen {
         int formWidth = Math.min(scaled(360), width - scaled(48));
         int formX = (width - formWidth) / 2;
         landField = addScrollableChild(new TextFieldWidget(textRenderer, formX, contentY(scaled(14)), formWidth, STANDARD_BUTTON_HEIGHT,
-                Text.literal("Land name")), scaled(14));
+                Text.translatable("dmls.field.land_name")), scaled(14));
         landField.setMaxLength(64);
-        landField.setSuggestion("LandName");
-        landField.setChangedListener(value -> landField.setSuggestion(value.isEmpty() ? "LandName" : null));
+        landField.setSuggestion(Text.translatable("dmls.placeholder.land_name").getString());
+        landField.setChangedListener(value -> landField.setSuggestion(value.isEmpty() ? Text.translatable("dmls.placeholder.land_name").getString() : null));
         setInitialFocus(landField);
 
         addDrawableChild(ButtonWidget.builder(ScreenTexts.BACK, button -> close())
                 .dimensions(leftPairedButtonX(), footerButtonY(), pairedButtonWidth(), STANDARD_BUTTON_HEIGHT).build());
-        submitButton = addDrawableChild(ButtonWidget.builder(Text.literal("Submit"), button -> submit())
+        submitButton = addDrawableChild(ButtonWidget.builder(Text.translatable("dmls.button.submit"), button -> submit())
                 .dimensions(rightPairedButtonX(), footerButtonY(), pairedButtonWidth(), STANDARD_BUTTON_HEIGHT).build());
         submitButton.active = !ClientUtils.isNotConnected(client);
     }
@@ -43,7 +43,7 @@ public final class CheckMembersScreen extends DMLSMenuScreen {
     private void submit() {
         String input = landField.getText().trim();
         if (input.isEmpty()) {
-            validationMessage = Text.literal("Enter a land name.");
+            validationMessage = Text.translatable("dmls.validation.land_name");
             return;
         }
         module.submit(client, input);
@@ -61,7 +61,7 @@ public final class CheckMembersScreen extends DMLSMenuScreen {
         renderModuleHeader(context, module);
         int labelY = contentY(0);
         if (isContentVisible(labelY, textRenderer.fontHeight)) {
-            context.drawTextWithShadow(textRenderer, Text.literal("Land name:"), landField.getX(), labelY, 0xFFCCCCCC);
+            context.drawTextWithShadow(textRenderer, Text.translatable("dmls.field.land_name.label"), landField.getX(), labelY, 0xFFCCCCCC);
         }
         int validationY = contentY(scaled(48));
         if (!validationMessage.getString().isEmpty() && isContentVisible(validationY, textRenderer.fontHeight)) {

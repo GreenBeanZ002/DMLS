@@ -37,7 +37,7 @@ public final class PrefixCreateModule extends DMLSModule {
 
     @Override
     public Text displayName() {
-        return Text.literal("Prefix Creation");
+        return Text.translatable("dmls.module.prefix.name");
     }
 
     @Override
@@ -48,8 +48,8 @@ public final class PrefixCreateModule extends DMLSModule {
     @Override
     public List<Text> description() {
         return List.of(
-                Text.literal("Create a formatted prefix, set its player limit"),
-                Text.literal("and manager in one go.")
+                Text.translatable("dmls.module.prefix.description.1"),
+                Text.translatable("dmls.module.prefix.description.2")
         );
     }
 
@@ -88,18 +88,18 @@ public final class PrefixCreateModule extends DMLSModule {
     /** Starts the prefix creation. The command and GUI both call this method. */
     public ValidationResult submit(MinecraftClient client, String ign, String limit, String prefixId, String prefixText) {
         if (!hasRequiredRank(client)) {
-            return ValidationResult.error("You do not have the required staff rank.");
+            return ValidationResult.error("dmls.validation.required_rank");
         }
 
         ValidationResult validation = validate(ign, limit, prefixId, prefixText);
         if (!validation.valid()) {
-            ChatUtils.sendClientMessage(client, PREFIX + validation.message());
+            ChatUtils.sendClientMessage(client, Text.literal(PREFIX).append(validation.message()));
             return validation;
         }
 
         if (activeSession != null) {
-            ValidationResult activeSessionError = ValidationResult.error("A prefix creation is still running, wait for it to finish.");
-            ChatUtils.sendClientMessage(client, PREFIX + activeSessionError.message());
+            ValidationResult activeSessionError = ValidationResult.error("dmls.validation.prefix.active");
+            ChatUtils.sendClientMessage(client, Text.literal(PREFIX).append(activeSessionError.message()));
             return activeSessionError;
         }
 
@@ -110,31 +110,30 @@ public final class PrefixCreateModule extends DMLSModule {
 
     public static ValidationResult validate(String ign, String limit, String prefixId, String prefixText) {
         if (!USERNAME.matcher(ign).matches()) {
-            return ValidationResult.error("Enter a valid player IGN.");
+            return ValidationResult.error("dmls.validation.prefix.ign");
         }
 
         Optional<String> resolvedLimit = resolveLimit(limit);
         if (resolvedLimit.isEmpty()) {
-            return ValidationResult.error("The player limit must be a whole number from 1 to 2147483647.");
+            return ValidationResult.error("dmls.validation.prefix.limit");
         }
 
         if (prefixId.isEmpty()) {
-            return ValidationResult.error("Enter a prefix ID.");
+            return ValidationResult.error("dmls.validation.prefix.id");
         }
 
         if (prefixText.isEmpty()) {
-            return ValidationResult.error("Enter prefix text.");
+            return ValidationResult.error("dmls.validation.prefix.text");
         }
 
         PrefixTextFormatter.ParseResult formattedPrefix = PrefixTextFormatter.parse(prefixText);
         if (!formattedPrefix.valid()) {
-            return ValidationResult.error(formattedPrefix.error());
+            return ValidationResult.error("dmls.validation.prefix.format", formattedPrefix.error());
         }
 
         int commandLength = createCommand(prefixId, prefixText).length();
         if (commandLength > MAX_COMMAND_LENGTH) {
-            return ValidationResult.error("The create command is " + commandLength + "/" + MAX_COMMAND_LENGTH
-                    + " characters. Ask an admin to create it via console, shorten the prefix ID, shorten the prefix text or colors, or try a more compact format.");
+            return ValidationResult.error("dmls.validation.prefix.command_length", commandLength, MAX_COMMAND_LENGTH);
         }
 
         return ValidationResult.success(resolvedLimit.get());
@@ -153,17 +152,17 @@ public final class PrefixCreateModule extends DMLSModule {
         return "prefix create %s %s".formatted(prefixId, prefixText);
     }
 
-    public record ValidationResult(String limit, String message) {
+    public record ValidationResult(String limit, Text message) {
         public static ValidationResult success(String limit) {
-            return new ValidationResult(limit, "");
+            return new ValidationResult(limit, Text.empty());
         }
 
-        public static ValidationResult error(String message) {
-            return new ValidationResult("", message);
+        public static ValidationResult error(String translationKey, Object... args) {
+            return new ValidationResult("", Text.translatable(translationKey, args));
         }
 
         public boolean valid() {
-            return message.isEmpty();
+            return message.getString().isEmpty();
         }
     }
 
@@ -191,7 +190,7 @@ public final class PrefixCreateModule extends DMLSModule {
         }
 
         private void start(MinecraftClient client) {
-            ChatUtils.sendClientMessage(client, PREFIX + "Creating prefix §6" + prefixId + "§7 for §6" + ign + "§7...");
+            ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.prefix.start", prefixId, ign);
             ClientUtils.sendCommand(client, commands.get(0));
         }
 
@@ -220,10 +219,10 @@ public final class PrefixCreateModule extends DMLSModule {
         private void report(MinecraftClient client) {
             PrefixTextFormatter.ParseResult formattedPrefix = PrefixTextFormatter.parse(prefixText);
             Text displayedPrefix = formattedPrefix.valid() ? formattedPrefix.preview() : Text.literal(prefixText);
-            ChatUtils.sendClientMessage(client, Text.literal(PREFIX + "Created prefix \u00A76" + prefixId + "\u00A77 with text ")
+            ChatUtils.sendClientMessage(client, Text.literal(PREFIX)
+                    .append(Text.translatable("dmls.chat.prefix.created.before", prefixId))
                     .append(displayedPrefix)
-                    .append(Text.literal("\u00A77, player limit \u00A76" + limit + "\u00A77 and manager \u00A76" + ign
-                            + "\u00A77. Check the info above to confirm.")));
+                    .append(Text.translatable("dmls.chat.prefix.created.after", limit, ign)));
         }
     }
 }

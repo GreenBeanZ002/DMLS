@@ -40,7 +40,7 @@ public final class CheckMembersModule extends DMLSModule {
 
     @Override
     public Text displayName() {
-        return Text.literal("Check Members");
+        return Text.translatable("dmls.module.check_members.name");
     }
 
     @Override
@@ -51,8 +51,8 @@ public final class CheckMembersModule extends DMLSModule {
     @Override
     public List<Text> description() {
         return List.of(
-                Text.literal("List all members of a land grouped by rank."),
-                Text.literal("Click a name in the result to check their lands.")
+                Text.translatable("dmls.module.check_members.description.1"),
+                Text.translatable("dmls.module.check_members.description.2")
         );
     }
 
@@ -86,7 +86,7 @@ public final class CheckMembersModule extends DMLSModule {
         }
 
         if (land.isEmpty()) {
-            ChatUtils.sendClientMessage(client, PREFIX + "No land name given.");
+            ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.check_members.no_land");
             return;
         }
 
@@ -195,7 +195,7 @@ public final class CheckMembersModule extends DMLSModule {
         }
 
         private void start(MinecraftClient client) {
-            ChatUtils.sendClientMessage(client, PREFIX + "Checking members of §6" + land + "§7...");
+            ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.check_members.checking", land);
             activeQuery = new MenuCommandQuery("la info " + land, land, MENU_TIMEOUT_TICKS, PLAYER_LIST_SLOT);
             activeQuery.start(client);
         }
@@ -239,7 +239,7 @@ public final class CheckMembersModule extends DMLSModule {
                 ChatUtils.sendClientMessage(client, line);
             }
             if (scan.truncated()) {
-                ChatUtils.sendClientMessage(client, "§8(list truncated by the menu, some members are not shown)");
+                ChatUtils.sendTranslatedMessage(client, "", "dmls.chat.check_members.truncated");
             }
             ChatUtils.sendClientMessage(client, "§7" + ChatUtils.separatorForChatWidth(client, ""));
         }
@@ -247,7 +247,7 @@ public final class CheckMembersModule extends DMLSModule {
         private MutableText clickablePlayer(String playerName) {
             return Text.literal("§6" + playerName).styled(style -> style
                     .withClickEvent(new ClickEvent.RunCommand("/checklands " + playerName))
-                    .withHoverEvent(new HoverEvent.ShowText(Text.literal("§7Click to run §6/checklands " + playerName))));
+                .withHoverEvent(new HoverEvent.ShowText(Text.translatable("dmls.chat.check_members.hover_lands", playerName))));
         }
 
         private void fail(MinecraftClient client, String reason) {

@@ -40,7 +40,7 @@ public final class CheckAltsModule extends DMLSModule {
 
     @Override
     public Text displayName() {
-        return Text.literal("Check Alts");
+        return Text.translatable("dmls.module.check_alts.name");
     }
 
     @Override
@@ -51,8 +51,8 @@ public final class CheckAltsModule extends DMLSModule {
     @Override
     public List<Text> description() {
         return List.of(
-                Text.literal("Run /alts and then /history on every found account."),
-                Text.literal("Ends with a punishment summary per account.")
+                Text.translatable("dmls.module.check_alts.description.1"),
+                Text.translatable("dmls.module.check_alts.description.2")
         );
     }
 
@@ -89,7 +89,7 @@ public final class CheckAltsModule extends DMLSModule {
         }
 
         if (!USERNAME.matcher(ign).matches()) {
-            ChatUtils.sendClientMessage(client, PREFIX + "No valid username given.");
+            ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.common.invalid_ign");
             return;
         }
 
@@ -147,7 +147,7 @@ public final class CheckAltsModule extends DMLSModule {
         }
 
         private void start(MinecraftClient client) {
-            ChatUtils.sendClientMessage(client, PREFIX + "Checking alts of §6" + ign + "§7...");
+            ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.check_alts.checking", ign);
             ClientUtils.sendCommand(client, "alts " + ign);
         }
 
@@ -161,8 +161,7 @@ public final class CheckAltsModule extends DMLSModule {
             switch (stage) {
                 case WAITING_FOR_ALTS -> {
                     if (waitTicks > ALTS_TIMEOUT_TICKS) {
-                        ChatUtils.sendClientMessage(client, PREFIX + "Could not read the §6/alts§7 output, checking history of §6"
-                                + ign + "§7 only.");
+                        ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.check_alts.read_failed", ign);
                         beginHistoryChecks(client, List.of());
                     }
                 }
@@ -190,7 +189,7 @@ public final class CheckAltsModule extends DMLSModule {
 
             MinecraftClient client = MinecraftClient.getInstance();
             if (lower.contains("no known alts") || lower.contains("no alts") || lower.contains("no other accounts")) {
-                ChatUtils.sendClientMessage(client, PREFIX + "No known alts, checking history of §6" + ign + "§7 only.");
+                ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.check_alts.no_alts", ign);
                 beginHistoryChecks(client, List.of());
                 return;
             }
@@ -214,12 +213,12 @@ public final class CheckAltsModule extends DMLSModule {
             }
 
             if (alts.size() > MAX_ACCOUNTS - 1) {
-                ChatUtils.sendClientMessage(client, PREFIX + "Found §6" + alts.size() + "§7 alts, only checking the first §6"
-                        + (MAX_ACCOUNTS - 1) + "§7.");
+                ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.check_alts.found_limited", alts.size(), MAX_ACCOUNTS - 1);
                 alts = alts.subList(0, MAX_ACCOUNTS - 1);
             } else {
-                ChatUtils.sendClientMessage(client, PREFIX + "Found §6" + alts.size() + "§7 possible alt"
-                        + (alts.size() == 1 ? "" : "s") + ": §6" + String.join("§7, §6", alts) + "§7.");
+                ChatUtils.sendTranslatedMessage(client, PREFIX,
+                        alts.size() == 1 ? "dmls.chat.check_alts.found.one" : "dmls.chat.check_alts.found.many",
+                        alts.size(), String.join(", ", alts));
             }
 
             beginHistoryChecks(client, alts);
@@ -288,14 +287,14 @@ public final class CheckAltsModule extends DMLSModule {
                 }
                 ChatUtils.sendClientMessage(client, line);
             }
-            ChatUtils.sendClientMessage(client, "§8Counts are based on the /history output and may include unrelated lines.");
+            ChatUtils.sendTranslatedMessage(client, "", "dmls.chat.check_alts.counts_note");
             ChatUtils.sendClientMessage(client, "§7" + ChatUtils.separatorForChatWidth(client, ""));
         }
 
         private MutableText clickableName(String name) {
             return Text.literal("§6" + name).styled(style -> style
                     .withClickEvent(new ClickEvent.RunCommand("/history " + name))
-                    .withHoverEvent(new HoverEvent.ShowText(Text.literal("§7Click to run §6/history " + name))));
+                    .withHoverEvent(new HoverEvent.ShowText(Text.translatable("dmls.chat.check_alts.hover_history", name))));
         }
 
         private void cancel(MinecraftClient client, String reason) {

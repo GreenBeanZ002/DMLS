@@ -37,6 +37,11 @@ public final class ChatUtils {
         }
     }
 
+    /** Sends a translated message after a module's formatted chat prefix. */
+    public static void sendTranslatedMessage(MinecraftClient client, String prefix, String translationKey, Object... args) {
+        sendClientMessage(client, Text.literal(prefix).append(Text.translatable(translationKey, args)));
+    }
+
     /**
      * Cleans a line of text by stripping formatting codes and trimming whitespace.
      *

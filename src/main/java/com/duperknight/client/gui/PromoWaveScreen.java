@@ -19,7 +19,7 @@ public final class PromoWaveScreen extends DMLSMenuScreen {
     private Text validationMessage = Text.empty();
 
     public PromoWaveScreen(Screen parent, PromoWaveModule module) {
-        super(Text.literal("Promo Wave"), parent);
+        super(Text.translatable("dmls.module.promo_wave.name"), parent);
         this.module = module;
     }
 
@@ -29,20 +29,20 @@ public final class PromoWaveScreen extends DMLSMenuScreen {
         int formWidth = Math.min(scaled(360), width - scaled(48));
         int formX = (width - formWidth) / 2;
         ignsField = addScrollableChild(new TextFieldWidget(textRenderer, formX, contentY(scaled(14)), formWidth, STANDARD_BUTTON_HEIGHT,
-                Text.literal("Player IGN(s)")), scaled(14));
+                Text.translatable("dmls.field.player_igns")), scaled(14));
         ignsField.setMaxLength(1024);
-        ignsField.setSuggestion("PlayerOne, PlayerTwo, PlayerThree");
-        ignsField.setChangedListener(value -> ignsField.setSuggestion(value.isEmpty() ? "PlayerOne, PlayerTwo, PlayerThree" : null));
+        ignsField.setSuggestion(Text.translatable("dmls.placeholder.player_names_many").getString());
+        ignsField.setChangedListener(value -> ignsField.setSuggestion(value.isEmpty() ? Text.translatable("dmls.placeholder.player_names_many").getString() : null));
         setInitialFocus(ignsField);
 
         addScrollableChild(CyclingButtonWidget.builder((String value) -> Text.literal(value), rank)
                 .values(PromoWaveModule.ranks())
                 .build(formX, contentY(scaled(48)), formWidth, STANDARD_BUTTON_HEIGHT,
-                        Text.literal("Rank"), (button, value) -> rank = value), scaled(48));
+                        Text.translatable("dmls.field.rank"), (button, value) -> rank = value), scaled(48));
 
         addDrawableChild(ButtonWidget.builder(ScreenTexts.BACK, button -> close())
                 .dimensions(leftPairedButtonX(), footerButtonY(), pairedButtonWidth(), STANDARD_BUTTON_HEIGHT).build());
-        submitButton = addDrawableChild(ButtonWidget.builder(Text.literal("Promote"), button -> submit())
+        submitButton = addDrawableChild(ButtonWidget.builder(Text.translatable("dmls.button.promote"), button -> submit())
                 .dimensions(rightPairedButtonX(), footerButtonY(), pairedButtonWidth(), STANDARD_BUTTON_HEIGHT).build());
         submitButton.active = !ClientUtils.isNotConnected(client);
     }
@@ -50,7 +50,7 @@ public final class PromoWaveScreen extends DMLSMenuScreen {
     private void submit() {
         String input = ignsField.getText().trim();
         if (input.isEmpty()) {
-            validationMessage = Text.literal("Enter at least one player IGN.");
+            validationMessage = Text.translatable("dmls.validation.player_igns");
             return;
         }
         module.submit(client, rank, input);
@@ -68,7 +68,7 @@ public final class PromoWaveScreen extends DMLSMenuScreen {
         renderModuleHeader(context, module);
         int labelY = contentY(0);
         if (isContentVisible(labelY, textRenderer.fontHeight)) {
-            context.drawTextWithShadow(textRenderer, Text.literal("Player IGN(s):"), ignsField.getX(), labelY, 0xFFCCCCCC);
+            context.drawTextWithShadow(textRenderer, Text.translatable("dmls.field.player_igns.label"), ignsField.getX(), labelY, 0xFFCCCCCC);
         }
         int validationY = contentY(scaled(80));
         if (!validationMessage.getString().isEmpty() && isContentVisible(validationY, textRenderer.fontHeight)) {

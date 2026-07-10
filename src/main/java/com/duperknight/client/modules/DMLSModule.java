@@ -62,9 +62,8 @@ public abstract class DMLSModule {
             return true;
         }
 
-        ChatUtils.sendClientMessage(client, PREFIX + "This requires " + minimumStaffRank.displayName()
-                + "§r§7 or higher, but your rank is set to " + currentRank.displayName()
-                + "§r§7. Change it with §6/dmls rank <rank>§7.");
+        ChatUtils.sendClientMessage(client, Text.literal(PREFIX).append(Text.translatable("dmls.chat.rank.required",
+                minimumStaffRank.displayName(), currentRank.displayName())));
         return false;
     }
 

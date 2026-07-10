@@ -17,7 +17,7 @@ public final class CheckAltsScreen extends DMLSMenuScreen {
     private Text validationMessage = Text.empty();
 
     public CheckAltsScreen(Screen parent, CheckAltsModule module) {
-        super(Text.literal("Check Alts"), parent);
+        super(Text.translatable("dmls.module.check_alts.name"), parent);
         this.module = module;
     }
 
@@ -27,15 +27,15 @@ public final class CheckAltsScreen extends DMLSMenuScreen {
         int formWidth = Math.min(scaled(360), width - scaled(48));
         int formX = (width - formWidth) / 2;
         ignField = addScrollableChild(new TextFieldWidget(textRenderer, formX, contentY(scaled(14)), formWidth, STANDARD_BUTTON_HEIGHT,
-                Text.literal("Player IGN")), scaled(14));
+                Text.translatable("dmls.field.player_ign")), scaled(14));
         ignField.setMaxLength(16);
-        ignField.setSuggestion("PlayerName");
-        ignField.setChangedListener(value -> ignField.setSuggestion(value.isEmpty() ? "PlayerName" : null));
+        ignField.setSuggestion(Text.translatable("dmls.placeholder.player_name").getString());
+        ignField.setChangedListener(value -> ignField.setSuggestion(value.isEmpty() ? Text.translatable("dmls.placeholder.player_name").getString() : null));
         setInitialFocus(ignField);
 
         addDrawableChild(ButtonWidget.builder(ScreenTexts.BACK, button -> close())
                 .dimensions(leftPairedButtonX(), footerButtonY(), pairedButtonWidth(), STANDARD_BUTTON_HEIGHT).build());
-        submitButton = addDrawableChild(ButtonWidget.builder(Text.literal("Submit"), button -> submit())
+        submitButton = addDrawableChild(ButtonWidget.builder(Text.translatable("dmls.button.submit"), button -> submit())
                 .dimensions(rightPairedButtonX(), footerButtonY(), pairedButtonWidth(), STANDARD_BUTTON_HEIGHT).build());
         submitButton.active = !ClientUtils.isNotConnected(client);
     }
@@ -43,7 +43,7 @@ public final class CheckAltsScreen extends DMLSMenuScreen {
     private void submit() {
         String input = ignField.getText().trim();
         if (input.isEmpty()) {
-            validationMessage = Text.literal("Enter a player IGN.");
+            validationMessage = Text.translatable("dmls.validation.player_ign");
             return;
         }
         module.submit(client, input);
@@ -61,7 +61,7 @@ public final class CheckAltsScreen extends DMLSMenuScreen {
         renderModuleHeader(context, module);
         int labelY = contentY(0);
         if (isContentVisible(labelY, textRenderer.fontHeight)) {
-            context.drawTextWithShadow(textRenderer, Text.literal("Player IGN:"), ignField.getX(), labelY, 0xFFCCCCCC);
+            context.drawTextWithShadow(textRenderer, Text.translatable("dmls.field.player_ign.label"), ignField.getX(), labelY, 0xFFCCCCCC);
         }
         int validationY = contentY(scaled(48));
         if (!validationMessage.getString().isEmpty() && isContentVisible(validationY, textRenderer.fontHeight)) {

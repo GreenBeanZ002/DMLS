@@ -59,7 +59,7 @@ public final class PromoWaveModule extends DMLSModule {
 
     @Override
     public Text displayName() {
-        return Text.literal("Promo Wave");
+        return Text.translatable("dmls.module.promo_wave.name");
     }
 
     @Override
@@ -70,8 +70,8 @@ public final class PromoWaveModule extends DMLSModule {
     @Override
     public List<Text> description() {
         return List.of(
-                Text.literal("Promote a whole wave of staff to a rank in one command."),
-                Text.literal("Separate names with commas or spaces.")
+                Text.translatable("dmls.module.promo_wave.description.1"),
+                Text.translatable("dmls.module.promo_wave.description.2")
         );
     }
 
@@ -110,8 +110,7 @@ public final class PromoWaveModule extends DMLSModule {
 
         List<String> commandsPerPlayer = RANK_COMMANDS.get(rank);
         if (commandsPerPlayer == null) {
-            ChatUtils.sendClientMessage(client, PREFIX + "Unknown rank §6" + rank + "§7. Options: §6"
-                    + String.join("§7, §6", ranks()) + "§7.");
+            ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.promo.unknown_rank", rank, String.join(", ", ranks()));
             return;
         }
 
@@ -129,17 +128,18 @@ public final class PromoWaveModule extends DMLSModule {
         }
 
         if (!skipped.isEmpty()) {
-            ChatUtils.sendClientMessage(client, PREFIX + "Skipping invalid name" + (skipped.size() == 1 ? "" : "s")
-                    + ": §6" + String.join("§7, §6", skipped) + "§7.");
+            ChatUtils.sendTranslatedMessage(client, PREFIX,
+                    skipped.size() == 1 ? "dmls.chat.promo.skipping.one" : "dmls.chat.promo.skipping.many",
+                    String.join(", ", skipped));
         }
 
         if (igns.isEmpty()) {
-            ChatUtils.sendClientMessage(client, PREFIX + "No valid usernames given.");
+            ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.common.invalid_igns");
             return;
         }
 
         if (activeSession != null) {
-            ChatUtils.sendClientMessage(client, PREFIX + "A promotion wave is still running, wait for it to finish.");
+            ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.promo.active");
             return;
         }
 
@@ -169,8 +169,8 @@ public final class PromoWaveModule extends DMLSModule {
         }
 
         private void start(MinecraftClient client) {
-            ChatUtils.sendClientMessage(client, PREFIX + "Promoting §6" + igns.size() + "§7 player"
-                    + (igns.size() == 1 ? "" : "s") + " to §6" + rank + "§7...");
+            ChatUtils.sendTranslatedMessage(client, PREFIX,
+                    igns.size() == 1 ? "dmls.chat.promo.start.one" : "dmls.chat.promo.start.many", igns.size(), rank);
             sendNext(client);
         }
 
@@ -196,8 +196,8 @@ public final class PromoWaveModule extends DMLSModule {
             }
 
             if (commandIndexWithinPlayer == 0) {
-                ChatUtils.sendClientMessage(client, PREFIX + "Promoting §6" + igns.get(playerIndex)
-                        + "§7 §8(" + (playerIndex + 1) + "/" + igns.size() + ")");
+                ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.promo.progress",
+                        igns.get(playerIndex), playerIndex + 1, igns.size());
             }
 
             ClientUtils.sendCommand(client, command);
@@ -209,9 +209,9 @@ public final class PromoWaveModule extends DMLSModule {
         }
 
         private void report(MinecraftClient client) {
-            ChatUtils.sendClientMessage(client, PREFIX + "Done! Promoted §6" + igns.size() + "§7 player"
-                    + (igns.size() == 1 ? "" : "s") + " to §6" + rank + "§7: §6" + String.join("§7, §6", igns)
-                    + "§7. Check the LuckPerms output above for errors.");
+            ChatUtils.sendTranslatedMessage(client, PREFIX,
+                    igns.size() == 1 ? "dmls.chat.promo.done.one" : "dmls.chat.promo.done.many",
+                    igns.size(), rank, String.join(", ", igns));
         }
     }
 }

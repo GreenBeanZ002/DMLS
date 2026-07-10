@@ -22,12 +22,14 @@ public final class DMLSConfig {
 
     private static final String RANK_KEY = "staffRank";
     private static final String ALERTS_KEY = "chatAlerts";
+    private static final String TRADE_CHAT_MUTED_KEY = "tradeChatMuted";
     private static final Path CONFIG_PATH = FabricLoader.getInstance().getConfigDir().resolve("dmls.properties");
     private static final StaffRank DEFAULT_RANK = StaffRank.HELPER;
 
     private static boolean loaded;
     private static StaffRank staffRank = DEFAULT_RANK;
     private static boolean alertsEnabled = true;
+    private static boolean tradeChatMuted;
 
     private DMLSConfig() {
     }
@@ -51,6 +53,17 @@ public final class DMLSConfig {
     public static void setAlertsEnabled(boolean enabled) {
         ensureLoaded();
         alertsEnabled = enabled;
+        save();
+    }
+
+    public static boolean tradeChatMuted() {
+        ensureLoaded();
+        return tradeChatMuted;
+    }
+
+    public static void setTradeChatMuted(boolean muted) {
+        ensureLoaded();
+        tradeChatMuted = muted;
         save();
     }
 
@@ -95,12 +108,14 @@ public final class DMLSConfig {
 
         staffRank = parseRank(properties.getProperty(RANK_KEY, "")).orElse(DEFAULT_RANK);
         alertsEnabled = Boolean.parseBoolean(properties.getProperty(ALERTS_KEY, "true"));
+        tradeChatMuted = Boolean.parseBoolean(properties.getProperty(TRADE_CHAT_MUTED_KEY, "false"));
     }
 
     private static void save() {
         Properties properties = new Properties();
         properties.setProperty(RANK_KEY, staffRank.name());
         properties.setProperty(ALERTS_KEY, Boolean.toString(alertsEnabled));
+        properties.setProperty(TRADE_CHAT_MUTED_KEY, Boolean.toString(tradeChatMuted));
         try (OutputStream out = Files.newOutputStream(CONFIG_PATH)) {
             properties.store(out, "DMLS settings");
         } catch (IOException e) {
