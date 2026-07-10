@@ -4,6 +4,12 @@ import com.duperknight.client.gui.PrefixCreateScreen;
 import com.duperknight.client.utils.ChatUtils;
 import com.duperknight.client.utils.ClientUtils;
 import com.duperknight.client.utils.PrefixTextFormatter;
+import com.duperknight.client.utils.InputValidators;
+import com.duperknight.client.utils.ServerGuard;
+import com.duperknight.client.message.MessageOrigin;
+import com.duperknight.client.message.ServerMessage;
+import com.duperknight.client.message.ServerMessageRouter;
+import com.duperknight.client.parser.PrefixResponseParser;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
@@ -18,6 +24,7 @@ import net.minecraft.text.Text;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
+import java.util.EnumSet;
 
 public final class PrefixCreateModule extends DMLSModule {
     public static final int MAX_COMMAND_LENGTH = 256;
@@ -27,7 +34,7 @@ public final class PrefixCreateModule extends DMLSModule {
 
     private static final String PREFIX = "§8[§6DMLS - Prefix§8] §7";
     private static final int COMMAND_DELAY_TICKS = 20;
-    private static final Pattern USERNAME = Pattern.compile("[A-Za-z0-9_]{3,16}");
+    private static final int RESPONSE_TIMEOUT_TICKS = 20 * 10;
 
     private CreateSession activeSession;
 
@@ -83,11 +90,16 @@ public final class PrefixCreateModule extends DMLSModule {
                 activeSession.tick(client);
             }
         });
+        ServerMessageRouter.subscribe(EnumSet.of(MessageOrigin.SERVER_SYSTEM), this::handleServerMessage);
+    }
+
+    private void handleServerMessage(ServerMessage message) {
+        if (activeSession != null) activeSession.handleServerMessage(message.cleanText());
     }
 
     /** Starts the prefix creation. The command and GUI both call this method. */
     public ValidationResult submit(MinecraftClient client, String ign, String limit, String prefixId, String prefixText) {
-        if (!hasRequiredRank(client)) {
+        if (!canRunPrivilegedOperation(client)) {
             return ValidationResult.error("dmls.validation.required_rank");
         }
 
@@ -109,7 +121,7 @@ public final class PrefixCreateModule extends DMLSModule {
     }
 
     public static ValidationResult validate(String ign, String limit, String prefixId, String prefixText) {
-        if (!USERNAME.matcher(ign).matches()) {
+        if (!InputValidators.isUsername(ign)) {
             return ValidationResult.error("dmls.validation.prefix.ign");
         }
 
@@ -118,7 +130,7 @@ public final class PrefixCreateModule extends DMLSModule {
             return ValidationResult.error("dmls.validation.prefix.limit");
         }
 
-        if (prefixId.isEmpty()) {
+        if (!InputValidators.isPrefixId(prefixId)) {
             return ValidationResult.error("dmls.validation.prefix.id");
         }
 
@@ -131,9 +143,10 @@ public final class PrefixCreateModule extends DMLSModule {
             return ValidationResult.error("dmls.validation.prefix.format", formattedPrefix.error());
         }
 
-        int commandLength = createCommand(prefixId, prefixText).length();
-        if (commandLength > MAX_COMMAND_LENGTH) {
-            return ValidationResult.error("dmls.validation.prefix.command_length", commandLength, MAX_COMMAND_LENGTH);
+        for (String command : commands(ign, resolvedLimit.get(), prefixId, prefixText)) {
+            if (command.length() > MAX_COMMAND_LENGTH) {
+                return ValidationResult.error("dmls.validation.prefix.command_length", command.length(), MAX_COMMAND_LENGTH);
+            }
         }
 
         return ValidationResult.success(resolvedLimit.get());
@@ -150,6 +163,14 @@ public final class PrefixCreateModule extends DMLSModule {
 
     public static String createCommand(String prefixId, String prefixText) {
         return "prefix create %s %s".formatted(prefixId, prefixText);
+    }
+
+    public static List<String> commands(String ign, String limit, String prefixId, String prefixText) {
+        return List.of(
+                createCommand(prefixId, prefixText),
+                "prefix x setlimit %s %s".formatted(prefixId, limit),
+                "prefix x setmanager %s %s".formatted(prefixId, ign),
+                "prefix x info %s".formatted(prefixId));
     }
 
     public record ValidationResult(String limit, Text message) {
@@ -172,6 +193,7 @@ public final class PrefixCreateModule extends DMLSModule {
         private final String prefixId;
         private final String prefixText;
         private final List<String> commands;
+        private final String serverIdentity;
 
         private int commandIndex;
         private int waitTicks;
@@ -181,48 +203,61 @@ public final class PrefixCreateModule extends DMLSModule {
             this.limit = limit;
             this.prefixId = prefixId;
             this.prefixText = prefixText;
-            this.commands = List.of(
-                    createCommand(prefixId, prefixText),
-                    "prefix x setlimit %s %s".formatted(prefixId, limit),
-                    "prefix x setmanager %s %s".formatted(prefixId, ign),
-                    "prefix x info %s".formatted(prefixId)
-            );
+            this.commands = commands(ign, limit, prefixId, prefixText);
+            this.serverIdentity = ServerGuard.connectionIdentity(MinecraftClient.getInstance());
         }
 
         private void start(MinecraftClient client) {
             ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.prefix.start", prefixId, ign);
-            ClientUtils.sendCommand(client, commands.get(0));
+            sendCurrentCommand(client);
         }
 
         private void tick(MinecraftClient client) {
-            if (ClientUtils.isNotConnected(client)) {
-                activeSession = null;
+            if (ClientUtils.isNotConnected(client) || !serverIdentity.equals(ServerGuard.connectionIdentity(client))) {
+                cancel(client);
                 return;
             }
 
-            waitTicks++;
-            if (waitTicks < COMMAND_DELAY_TICKS) {
-                return;
+            if (++waitTicks > RESPONSE_TIMEOUT_TICKS) {
+                finish(client, "dmls.chat.prefix.timed_out.before", "dmls.chat.prefix.timed_out.after");
             }
-
-            waitTicks = 0;
-            commandIndex++;
-            if (commandIndex >= commands.size()) {
-                report(client);
-                activeSession = null;
-                return;
-            }
-
-            ClientUtils.sendCommand(client, commands.get(commandIndex));
         }
 
-        private void report(MinecraftClient client) {
+        private void handleServerMessage(String message) {
+            PrefixResponseParser.Command command = PrefixResponseParser.Command.values()[commandIndex];
+            switch (PrefixResponseParser.parse(command, prefixId, ign, limit, message)) {
+                case CONFIRMED -> {
+                    commandIndex++;
+                    if (commandIndex >= commands.size()) finish(client(), "dmls.chat.prefix.confirmed.before", "dmls.chat.prefix.confirmed.after");
+                    else sendCurrentCommand(client());
+                }
+                case REJECTED -> finish(client(), "dmls.chat.prefix.rejected.before", "dmls.chat.prefix.rejected.after");
+                case UNRELATED -> { }
+            }
+        }
+
+        private void sendCurrentCommand(MinecraftClient client) {
+            waitTicks = 0;
+            if (!ClientUtils.sendCommand(client, commands.get(commandIndex))) cancel(client);
+        }
+
+        private MinecraftClient client() {
+            return MinecraftClient.getInstance();
+        }
+
+        private void finish(MinecraftClient client, String beforeKey, String afterKey) {
             PrefixTextFormatter.ParseResult formattedPrefix = PrefixTextFormatter.parse(prefixText);
             Text displayedPrefix = formattedPrefix.valid() ? formattedPrefix.preview() : Text.literal(prefixText);
             ChatUtils.sendClientMessage(client, Text.literal(PREFIX)
-                    .append(Text.translatable("dmls.chat.prefix.created.before", prefixId))
+                    .append(ChatUtils.translated(beforeKey, prefixId))
                     .append(displayedPrefix)
-                    .append(Text.translatable("dmls.chat.prefix.created.after", limit, ign)));
+                    .append(ChatUtils.translated(afterKey, limit, ign)));
+            if (activeSession == this) activeSession = null;
+        }
+
+        private void cancel(MinecraftClient client) {
+            ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.prefix.cancelled");
+            if (activeSession == this) activeSession = null;
         }
     }
 }

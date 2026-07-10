@@ -27,6 +27,9 @@ public final class MenuCommandQuery {
     private int previousSyncId = -1;
     private int waitTicks;
     private boolean started;
+    private boolean completed;
+    private String serverIdentity = "";
+    private TickResult terminalResult;
 
     /**
      * Creates a query that sends a command, waits for a matching menu title, and reads
@@ -62,7 +65,11 @@ public final class MenuCommandQuery {
         previousSyncId = ScreenUtils.currentSyncId(client);
         waitTicks = 0;
         started = true;
-        ClientUtils.sendCommand(client, command);
+        serverIdentity = ServerGuard.connectionIdentity(client);
+        if (!ClientUtils.sendCommand(client, command)) {
+            completed = true;
+            terminalResult = TickResult.cancelled();
+        }
     }
 
     /**
@@ -75,10 +82,16 @@ public final class MenuCommandQuery {
         if (!started) {
             start(client);
         }
+        if (completed) return terminalResult;
+        if (!serverIdentity.equals(ServerGuard.connectionIdentity(client))) {
+            completed = true;
+            return terminalResult = TickResult.cancelled();
+        }
 
         waitTicks++;
         if (waitTicks > timeoutTicks) {
-            return TickResult.timedOut();
+            completed = true;
+            return terminalResult = TickResult.timedOut();
         }
 
         Map<Integer, List<TooltipLine>> slotTooltips = new LinkedHashMap<>();
@@ -93,7 +106,8 @@ public final class MenuCommandQuery {
             slotTooltips.put(slotIndex, snapshot.get().tooltip());
         }
 
-        return TickResult.ready(new Result(command, title == null ? expectedTitle : title, slotTooltips));
+        completed = true;
+        return terminalResult = TickResult.ready(new Result(command, title == null ? expectedTitle : title, slotTooltips));
     }
 
     /**
@@ -102,7 +116,8 @@ public final class MenuCommandQuery {
     public enum Status {
         WAITING,
         READY,
-        TIMED_OUT
+        TIMED_OUT,
+        CANCELLED
     }
 
     /**
@@ -128,6 +143,10 @@ public final class MenuCommandQuery {
          */
         private static TickResult timedOut() {
             return new TickResult(Status.TIMED_OUT, Optional.empty());
+        }
+
+        private static TickResult cancelled() {
+            return new TickResult(Status.CANCELLED, Optional.empty());
         }
 
         /**

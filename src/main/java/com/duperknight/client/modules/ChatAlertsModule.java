@@ -5,7 +5,9 @@ import com.duperknight.client.utils.ChatUtils;
 import com.duperknight.client.utils.ClientUtils;
 import com.duperknight.client.utils.DMLSConfig;
 import com.duperknight.client.gui.ChatAlertsScreen;
-import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
+import com.duperknight.client.message.MessageOrigin;
+import com.duperknight.client.message.ServerMessage;
+import com.duperknight.client.message.ServerMessageRouter;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.item.ItemStack;
@@ -14,6 +16,7 @@ import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 
 import java.util.List;
+import java.util.EnumSet;
 
 public final class ChatAlertsModule extends DMLSModule {
     private static final String PREFIX = "§8[§6DMLS - Alerts§8] §7";
@@ -46,12 +49,7 @@ public final class ChatAlertsModule extends DMLSModule {
     @Override
     public void register() {
         WORDLIST.load();
-        ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
-            if (!overlay) {
-                check(message);
-            }
-        });
-        ClientReceiveMessageEvents.CHAT.register((message, signedMessage, sender, params, receptionTimestamp) -> check(message));
+        ServerMessageRouter.subscribe(EnumSet.of(MessageOrigin.PLAYER_CHAT, MessageOrigin.SERVER_SYSTEM), this::check);
     }
 
     public static int reloadWordlist() {
@@ -62,7 +60,7 @@ public final class ChatAlertsModule extends DMLSModule {
         return WORDLIST.size();
     }
 
-    private void check(Text message) {
+    private void check(ServerMessage message) {
         if (!DMLSConfig.alertsEnabled()) {
             return;
         }
@@ -72,7 +70,7 @@ public final class ChatAlertsModule extends DMLSModule {
             return;
         }
 
-        String raw = ChatUtils.cleanLine(message.getString());
+        String raw = message.cleanText();
         WORDLIST.findMatch(raw).ifPresent(word -> {
             ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.alerts.flagged", word);
             ChatUtils.sendTranslatedMessage(client, "", "dmls.chat.alerts.quote", raw);

@@ -3,6 +3,12 @@ package com.duperknight.client.modules;
 import com.duperknight.client.gui.PromoWaveScreen;
 import com.duperknight.client.utils.ChatUtils;
 import com.duperknight.client.utils.ClientUtils;
+import com.duperknight.client.utils.ServerGuard;
+import com.duperknight.client.utils.InputValidators;
+import com.duperknight.client.message.MessageOrigin;
+import com.duperknight.client.message.ServerMessage;
+import com.duperknight.client.message.ServerMessageRouter;
+import com.duperknight.client.parser.LuckPermsResponseParser;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
@@ -20,13 +26,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.regex.Pattern;
+import java.util.EnumSet;
 
 public final class PromoWaveModule extends DMLSModule {
     private static final String PREFIX = "§8[§6DMLS - PromoWave§8] §7";
     // LuckPerms silently ignores commands that arrive too quickly ("is spamming LuckPerms commands"),
     // so leave a generous gap between them.
     private static final int COMMAND_DELAY_TICKS = 20 * 3;
-    private static final Pattern USERNAME = Pattern.compile("[A-Za-z0-9_]{3,16}");
+    private static final int RESPONSE_TIMEOUT_TICKS = 20 * 10;
     private static final Map<String, List<String>> RANK_COMMANDS = new LinkedHashMap<>();
 
     static {
@@ -100,11 +107,16 @@ public final class PromoWaveModule extends DMLSModule {
                 activeSession.tick(client);
             }
         });
+        ServerMessageRouter.subscribe(EnumSet.of(MessageOrigin.SERVER_SYSTEM), this::handleServerMessage);
+    }
+
+    private void handleServerMessage(ServerMessage message) {
+        if (activeSession != null) activeSession.handleServerMessage(message.cleanText());
     }
 
     /** Starts a promotion wave. The command and GUI both call this method. */
     public void submit(MinecraftClient client, String rank, String input) {
-        if (!hasRequiredRank(client)) {
+        if (!canRunPrivilegedOperation(client)) {
             return;
         }
 
@@ -116,16 +128,7 @@ public final class PromoWaveModule extends DMLSModule {
 
         List<String> igns = new ArrayList<>();
         List<String> skipped = new ArrayList<>();
-        for (String ign : input.trim().split("[,\\s]+")) {
-            if (ign.isEmpty()) {
-                continue;
-            }
-            if (!USERNAME.matcher(ign).matches()) {
-                skipped.add(ign);
-            } else if (igns.stream().noneMatch(ign::equalsIgnoreCase)) {
-                igns.add(ign);
-            }
-        }
+        igns.addAll(InputValidators.uniqueUsernames(input, skipped));
 
         if (!skipped.isEmpty()) {
             ChatUtils.sendTranslatedMessage(client, PREFIX,
@@ -156,11 +159,18 @@ public final class PromoWaveModule extends DMLSModule {
         private int playerIndex;
         private int commandIndexWithinPlayer;
         private int waitTicks;
+        private final String serverIdentity;
+        private final List<String> dispatchedPlayers = new ArrayList<>();
+        private boolean awaitingResponse;
+        private String awaitingIgn;
+        private String awaitingGroup;
+        private LuckPermsResponseParser.Action awaitingAction;
 
         private PromoSession(String rank, List<String> commandsPerPlayer, List<String> igns) {
             this.rank = rank;
             this.commandsPerPlayer = commandsPerPlayer;
             this.igns = igns;
+            this.serverIdentity = ServerGuard.connectionIdentity(MinecraftClient.getInstance());
             for (String ign : igns) {
                 for (String template : commandsPerPlayer) {
                     remainingCommands.add(template.formatted(ign));
@@ -175,13 +185,15 @@ public final class PromoWaveModule extends DMLSModule {
         }
 
         private void tick(MinecraftClient client) {
-            if (ClientUtils.isNotConnected(client)) {
-                activeSession = null;
+            if (ClientUtils.isNotConnected(client) || !serverIdentity.equals(ServerGuard.connectionIdentity(client))) {
+                cancel(client);
                 return;
             }
 
             waitTicks++;
-            if (waitTicks >= COMMAND_DELAY_TICKS) {
+            if (awaitingResponse && waitTicks >= RESPONSE_TIMEOUT_TICKS) {
+                cancel(client);
+            } else if (!awaitingResponse && waitTicks >= COMMAND_DELAY_TICKS) {
                 sendNext(client);
             }
         }
@@ -200,9 +212,29 @@ public final class PromoWaveModule extends DMLSModule {
                         igns.get(playerIndex), playerIndex + 1, igns.size());
             }
 
-            ClientUtils.sendCommand(client, command);
+            String template = commandsPerPlayer.get(commandIndexWithinPlayer);
+            awaitingIgn = igns.get(playerIndex);
+            awaitingAction = template.contains(" parent add ")
+                    ? LuckPermsResponseParser.Action.ADD : LuckPermsResponseParser.Action.REMOVE;
+            String marker = awaitingAction == LuckPermsResponseParser.Action.ADD ? " parent add " : " parent remove ";
+            awaitingGroup = template.substring(template.indexOf(marker) + marker.length());
+            if (!ClientUtils.sendCommand(client, command)) {
+                cancel(client);
+                return;
+            }
+            awaitingResponse = true;
+        }
+
+        private void handleServerMessage(String message) {
+            if (!awaitingResponse || LuckPermsResponseParser.parseParentChange(
+                    awaitingAction, awaitingIgn, awaitingGroup, message) != LuckPermsResponseParser.Result.CONFIRMED) {
+                return;
+            }
+            awaitingResponse = false;
+            waitTicks = 0;
             commandIndexWithinPlayer++;
             if (commandIndexWithinPlayer >= commandsPerPlayer.size()) {
+                dispatchedPlayers.add(igns.get(playerIndex));
                 commandIndexWithinPlayer = 0;
                 playerIndex++;
             }
@@ -210,8 +242,14 @@ public final class PromoWaveModule extends DMLSModule {
 
         private void report(MinecraftClient client) {
             ChatUtils.sendTranslatedMessage(client, PREFIX,
-                    igns.size() == 1 ? "dmls.chat.promo.done.one" : "dmls.chat.promo.done.many",
-                    igns.size(), rank, String.join(", ", igns));
+                    igns.size() == 1 ? "dmls.chat.promo.confirmed.one" : "dmls.chat.promo.confirmed.many",
+                    dispatchedPlayers.size(), rank, String.join(", ", dispatchedPlayers));
+        }
+
+        private void cancel(MinecraftClient client) {
+            ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.promo.cancelled",
+                    dispatchedPlayers.size(), igns.size());
+            if (activeSession == this) activeSession = null;
         }
     }
 }

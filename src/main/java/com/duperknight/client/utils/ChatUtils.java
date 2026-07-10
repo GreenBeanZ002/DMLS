@@ -3,6 +3,7 @@ package com.duperknight.client.utils;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.hud.ChatHud;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 
 import java.util.regex.Pattern;
 
@@ -32,14 +33,27 @@ public final class ChatUtils {
      * @param message the message to send
      */
     public static void sendClientMessage(MinecraftClient client, Text message) {
-        if (client != null && client.player != null) {
-            client.player.sendMessage(message, false);
+        if (client != null && client.inGameHud != null) {
+            // Add directly to the HUD. ClientPlayerEntity#sendMessage fires GAME receive
+            // callbacks and made local DMLS notifications look like server messages.
+            client.inGameHud.getChatHud().addMessage(message);
         }
     }
 
     /** Sends a translated message after a module's formatted chat prefix. */
     public static void sendTranslatedMessage(MinecraftClient client, String prefix, String translationKey, Object... args) {
-        sendClientMessage(client, Text.literal(prefix).append(Text.translatable(translationKey, args)));
+        sendClientMessage(client, Text.literal(prefix).append(translated(translationKey, args)));
+    }
+
+    /** Gray DMLS prose with non-Text placeholders highlighted in gold. */
+    public static Text translated(String translationKey, Object... args) {
+        Object[] styledArgs = new Object[args.length];
+        for (int index = 0; index < args.length; index++) {
+            styledArgs[index] = args[index] instanceof Text text
+                    ? text
+                    : Text.literal(String.valueOf(args[index])).formatted(Formatting.GOLD);
+        }
+        return Text.translatable(translationKey, styledArgs).formatted(Formatting.GRAY);
     }
 
     /**

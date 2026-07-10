@@ -19,10 +19,13 @@ public final class DMLSOptionsScreen extends DMLSMenuScreen {
     protected void init() {
         int controlWidth = scaled(200);
         int x = width / 2 - controlWidth / 2;
-        int y = height / 2 - scaled(22);
+        int y = height / 2 - scaled(36);
         addDrawableChild(CyclingButtonWidget.builder(StaffRank::displayName, DMLSConfig.staffRank())
                 .values(StaffRank.values())
                 .build(x, y, controlWidth, STANDARD_BUTTON_HEIGHT, Text.translatable("dmls.option.staff_rank"), (button, value) -> DMLSConfig.setStaffRank(value)));
+        addDrawableChild(ButtonWidget.builder(Text.translatable("dmls.option.allowed_servers"),
+                        button -> client.setScreen(new AllowedServersScreen(this)))
+                .dimensions(x, y + scaled(30), controlWidth, STANDARD_BUTTON_HEIGHT).build());
         addDrawableChild(ButtonWidget.builder(ScreenTexts.BACK, button -> close())
                 .dimensions(width / 2 - scaled(75), footerButtonY(), scaled(150), STANDARD_BUTTON_HEIGHT).build());
     }

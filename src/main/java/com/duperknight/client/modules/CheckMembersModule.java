@@ -81,7 +81,7 @@ public final class CheckMembersModule extends DMLSModule {
 
     /** Starts a member check for the given land. The command and GUI both call this method. */
     public void submit(MinecraftClient client, String land) {
-        if (!hasRequiredRank(client)) {
+        if (!canRunPrivilegedOperation(client)) {
             return;
         }
 
@@ -209,6 +209,10 @@ public final class CheckMembersModule extends DMLSModule {
             MenuCommandQuery.TickResult tickResult = activeQuery.tick(client);
             if (tickResult.status() == MenuCommandQuery.Status.TIMED_OUT) {
                 fail(client, "Timed out waiting for §6/la info " + land + "§7. Stopping.");
+                return;
+            }
+            if (tickResult.status() == MenuCommandQuery.Status.CANCELLED) {
+                fail(client, Text.translatable("dmls.chat.session.cancelled").getString());
                 return;
             }
 

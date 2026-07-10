@@ -29,10 +29,12 @@ public final class ClientUtils {
      * @param client the Minecraft client
      * @param command the command to send
      */
-    public static void sendCommand(MinecraftClient client, String command) {
-        if (client != null && client.getNetworkHandler() != null) {
+    public static boolean sendCommand(MinecraftClient client, String command) {
+        if (ServerGuard.check(client).allowed() && client.getNetworkHandler() != null) {
             client.getNetworkHandler().sendChatCommand(command);
+            return true;
         }
+        return false;
     }
 
     /**

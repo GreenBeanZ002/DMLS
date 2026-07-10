@@ -7,7 +7,11 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
+import com.duperknight.client.message.MessageOrigin;
+import com.duperknight.client.message.ServerMessage;
+import com.duperknight.client.message.ServerMessageRouter;
+import com.duperknight.client.parser.HistoryOutputParser;
+import com.duperknight.client.utils.ServerGuard;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.item.ItemStack;
@@ -24,6 +28,7 @@ import java.util.Locale;
 import java.util.Queue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.EnumSet;
 
 public final class CheckAltsModule extends DMLSModule {
     private static final String PREFIX = "§8[§6DMLS - CheckAlts§8] §7";
@@ -81,13 +86,12 @@ public final class CheckAltsModule extends DMLSModule {
             }
         });
 
-        ClientReceiveMessageEvents.GAME.register((message, overlay) -> handleServerMessage(message.getString()));
-        ClientReceiveMessageEvents.CHAT.register((message, signedMessage, sender, params, receptionTimestamp) -> handleServerMessage(message.getString()));
+        ServerMessageRouter.subscribe(EnumSet.of(MessageOrigin.SERVER_SYSTEM), this::handleServerMessage);
     }
 
     /** Starts an alt check for the given player. The command and GUI both call this method. */
     public void submit(MinecraftClient client, String ign) {
-        if (!hasRequiredRank(client)) {
+        if (!canRunPrivilegedOperation(client)) {
             return;
         }
 
@@ -108,16 +112,9 @@ public final class CheckAltsModule extends DMLSModule {
         activeSession.start(client);
     }
 
-    private void handleServerMessage(String message) {
-        String cleanMessage = ChatUtils.cleanLine(message);
-        // ClientPlayerEntity#sendMessage also fires the GAME receive event. Ignore
-        // DMLS output so status messages cannot be parsed recursively as server output.
-        if (cleanMessage.startsWith("[DMLS")) {
-            return;
-        }
-
+    private void handleServerMessage(ServerMessage message) {
         if (activeSession != null) {
-            activeSession.handleServerMessage(cleanMessage);
+            activeSession.handleServerMessage(message.cleanText());
         }
     }
 
@@ -132,13 +129,14 @@ public final class CheckAltsModule extends DMLSModule {
         private int mutes;
         private int warns;
         private int kicks;
+        private HistoryOutputParser.Status status = HistoryOutputParser.Status.UNKNOWN;
 
         private PunishmentStats(String name) {
             this.name = name;
         }
 
         private boolean isClean() {
-            return bans == 0 && mutes == 0 && warns == 0 && kicks == 0;
+            return status == HistoryOutputParser.Status.CLEAN;
         }
     }
 
@@ -154,9 +152,13 @@ public final class CheckAltsModule extends DMLSModule {
         private boolean readingAltsList;
         private int altsListQuietTicks;
         private final List<String> collectedAlts = new ArrayList<>();
+        private HistoryOutputParser historyParser;
+        private final String serverIdentity;
+        private final List<String> skippedAccounts = new ArrayList<>();
 
         private CheckSession(String ign) {
             this.ign = ign;
+            this.serverIdentity = ServerGuard.connectionIdentity(MinecraftClient.getInstance());
         }
 
         private void start(MinecraftClient client) {
@@ -165,8 +167,8 @@ public final class CheckAltsModule extends DMLSModule {
         }
 
         private void tick(MinecraftClient client) {
-            if (ClientUtils.isNotConnected(client)) {
-                activeSession = null;
+            if (ClientUtils.isNotConnected(client) || !serverIdentity.equals(ServerGuard.connectionIdentity(client))) {
+                cancel(client, Text.translatable("dmls.chat.session.cancelled").getString());
                 return;
             }
 
@@ -182,7 +184,7 @@ public final class CheckAltsModule extends DMLSModule {
                 }
                 case WAITING_FOR_HISTORY -> {
                     if (waitTicks > HISTORY_WINDOW_TICKS) {
-                        results.add(currentStats);
+                        finishCurrentHistory();
                         sendNextHistoryCommand(client);
                     }
                 }
@@ -274,6 +276,7 @@ public final class CheckAltsModule extends DMLSModule {
         private void announceAltsAndBeginHistory(MinecraftClient client, List<String> alts) {
 
             if (alts.size() > MAX_ACCOUNTS - 1) {
+                skippedAccounts.addAll(alts.subList(MAX_ACCOUNTS - 1, alts.size()));
                 ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.check_alts.found_limited", alts.size(), MAX_ACCOUNTS - 1);
                 alts = alts.subList(0, MAX_ACCOUNTS - 1);
             } else {
@@ -286,16 +289,24 @@ public final class CheckAltsModule extends DMLSModule {
         }
 
         private void handleHistoryMessage(String message) {
-            String lower = message.toLowerCase(Locale.ROOT);
-            if (lower.contains("ban")) {
-                currentStats.bans++;
-            } else if (lower.contains("mute")) {
-                currentStats.mutes++;
-            } else if (lower.contains("warn")) {
-                currentStats.warns++;
-            } else if (lower.contains("kick")) {
-                currentStats.kicks++;
+            HistoryOutputParser.Event event = historyParser.accept(message);
+            if (event == HistoryOutputParser.Event.RECOGNIZED) {
+                waitTicks = 0;
             }
+            if (event == HistoryOutputParser.Event.COMPLETE || event == HistoryOutputParser.Event.FAILED) {
+                finishCurrentHistory();
+                sendNextHistoryCommand(MinecraftClient.getInstance());
+            }
+        }
+
+        private void finishCurrentHistory() {
+            HistoryOutputParser.Result parsed = historyParser.result();
+            currentStats.status = parsed.status();
+            currentStats.bans = parsed.bans();
+            currentStats.mutes = parsed.mutes();
+            currentStats.warns = parsed.warns();
+            currentStats.kicks = parsed.kicks();
+            results.add(currentStats);
         }
 
         private void beginHistoryChecks(MinecraftClient client, List<String> alts) {
@@ -321,6 +332,7 @@ public final class CheckAltsModule extends DMLSModule {
             }
 
             currentStats = new PunishmentStats(next);
+            historyParser = new HistoryOutputParser(next);
             waitTicks = 0;
             stage = Stage.WAITING_FOR_HISTORY;
             ClientUtils.sendCommand(client, "history " + next);
@@ -333,6 +345,10 @@ public final class CheckAltsModule extends DMLSModule {
                 MutableText line = Text.literal("§8• ").append(clickableName(stats.name)).append("§7: ");
                 if (stats.isClean()) {
                     line.append("§aclean");
+                } else if (stats.status == HistoryOutputParser.Status.NEVER_JOINED) {
+                    line.append(Text.translatable("dmls.chat.check_alts.never_joined"));
+                } else if (stats.status == HistoryOutputParser.Status.UNKNOWN) {
+                    line.append(Text.translatable("dmls.chat.check_alts.unknown"));
                 } else {
                     List<String> parts = new ArrayList<>();
                     if (stats.bans > 0) {
@@ -352,6 +368,9 @@ public final class CheckAltsModule extends DMLSModule {
                 ChatUtils.sendClientMessage(client, line);
             }
             ChatUtils.sendTranslatedMessage(client, "", "dmls.chat.check_alts.counts_note");
+            if (!skippedAccounts.isEmpty()) {
+                ChatUtils.sendTranslatedMessage(client, "", "dmls.chat.check_alts.skipped", String.join(", ", skippedAccounts));
+            }
             ChatUtils.sendClientMessage(client, "§7" + ChatUtils.separatorForChatWidth(client, ""));
         }
 

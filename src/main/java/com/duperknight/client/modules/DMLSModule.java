@@ -2,6 +2,7 @@ package com.duperknight.client.modules;
 
 import com.duperknight.client.utils.ChatUtils;
 import com.duperknight.client.utils.DMLSConfig;
+import com.duperknight.client.utils.ServerGuard;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.item.ItemStack;
@@ -62,14 +63,28 @@ public abstract class DMLSModule {
             return true;
         }
 
-        ChatUtils.sendClientMessage(client, Text.literal(PREFIX).append(Text.translatable("dmls.chat.rank.required",
-                minimumStaffRank.displayName(), currentRank.displayName())));
+        ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.rank.required",
+                minimumStaffRank.displayName(), currentRank.displayName());
+        return false;
+    }
+
+    /** The selected rank controls visibility only; the server remains authoritative. */
+    protected boolean canRunPrivilegedOperation(MinecraftClient client) {
+        if (!hasRequiredRank(client)) return false;
+        ServerGuard.GuardResult guard = ServerGuard.check(client);
+        if (guard.allowed()) return true;
+        ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.server_guard.blocked",
+                guard.reason(), guard.address());
         return false;
     }
 
     /** Returns whether the selected staff rank may use this module without producing chat output. */
     public final boolean isAvailableToSelectedRank() {
         return DMLSConfig.staffRank().isAtLeast(minimumStaffRank);
+    }
+
+    public final boolean isVisibleForSelectedRank() {
+        return isAvailableToSelectedRank();
     }
 
     /**

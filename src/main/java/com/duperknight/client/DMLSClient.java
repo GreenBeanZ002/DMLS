@@ -18,6 +18,7 @@ import com.duperknight.client.utils.ChatUtils;
 import com.duperknight.client.utils.ClientUtils;
 import com.duperknight.client.utils.DMLSConfig;
 import com.duperknight.client.utils.UpdateChecker;
+import com.duperknight.client.message.ServerMessageRouter;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.api.ClientModInitializer;
@@ -57,6 +58,7 @@ public class DMLSClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         DMLS.LOGGER.info("Initializing DMLS client, you are a lazy staff member!");
+        ServerMessageRouter.register();
         registerDmlsCommand();
         registerMenuKeybind();
         UpdateChecker.register();
@@ -73,8 +75,8 @@ public class DMLSClient implements ClientModInitializer {
                         .executes(context -> openHomeScreen(context.getSource().getClient()))
                         .then(ClientCommandManager.literal("rank")
                                 .executes(context -> {
-                                    ChatUtils.sendClientMessage(context.getSource().getClient(), Text.literal(PREFIX)
-                                            .append(Text.translatable("dmls.chat.rank.current", DMLSConfig.staffRank().displayName())));
+                                    ChatUtils.sendTranslatedMessage(context.getSource().getClient(), PREFIX,
+                                            "dmls.chat.rank.current", DMLSConfig.staffRank().displayName());
                                     return 1;
                                 })
                                 .then(ClientCommandManager.argument("rank", StringArgumentType.greedyString())
@@ -84,25 +86,64 @@ public class DMLSClient implements ClientModInitializer {
                                             String input = StringArgumentType.getString(context, "rank");
                                             Optional<StaffRank> rank = DMLSConfig.parseRank(input);
                                             if (rank.isEmpty()) {
-                                                ChatUtils.sendClientMessage(client, Text.literal(PREFIX).append(Text.translatable(
-                                                        "dmls.chat.rank.unknown", input, String.join(", ", DMLSConfig.RANK_SUGGESTIONS))));
+                                                ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.rank.unknown",
+                                                        input, String.join(", ", DMLSConfig.RANK_SUGGESTIONS));
                                                 return 0;
                                             }
 
                                             DMLSConfig.setStaffRank(rank.get());
-                                            ChatUtils.sendClientMessage(client, Text.literal(PREFIX)
-                                                    .append(Text.translatable("dmls.chat.rank.set", rank.get().displayName())));
+                                            ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.rank.set", rank.get().displayName());
                                             return 1;
                                         })))
                         .then(ClientCommandManager.literal("help")
                                 .executes(context -> sendHelp(context.getSource().getClient())))
+                        .then(ClientCommandManager.literal("lands")
+                                .then(ClientCommandManager.argument("igns", StringArgumentType.greedyString()).executes(context -> {
+                                    module(CheckLandsModule.class).submit(context.getSource().getClient(), StringArgumentType.getString(context, "igns")); return 1;
+                                })))
+                        .then(ClientCommandManager.literal("members")
+                                .then(ClientCommandManager.argument("land", StringArgumentType.greedyString()).executes(context -> {
+                                    module(CheckMembersModule.class).submit(context.getSource().getClient(), StringArgumentType.getString(context, "land")); return 1;
+                                })))
+                        .then(ClientCommandManager.literal("alts")
+                                .then(ClientCommandManager.argument("ign", StringArgumentType.word()).executes(context -> {
+                                    module(CheckAltsModule.class).submit(context.getSource().getClient(), StringArgumentType.getString(context, "ign")); return 1;
+                                })))
+                        .then(ClientCommandManager.literal("xray")
+                                .then(ClientCommandManager.literal("cancel").executes(context -> {
+                                    module(XrayRollbackModule.class).cancel(context.getSource().getClient()); return 1;
+                                }))
+                                .then(ClientCommandManager.argument("ign", StringArgumentType.word()).executes(context -> {
+                                    module(XrayRollbackModule.class).submit(context.getSource().getClient(), StringArgumentType.getString(context, "ign")); return 1;
+                                })))
+                        .then(ClientCommandManager.literal("prefix")
+                                .then(ClientCommandManager.argument("ign", StringArgumentType.word())
+                                        .then(ClientCommandManager.argument("limit", StringArgumentType.word())
+                                                .then(ClientCommandManager.argument("prefixid", StringArgumentType.word())
+                                                        .then(ClientCommandManager.argument("prefixtext", StringArgumentType.greedyString()).executes(context -> {
+                                                            module(PrefixCreateModule.class).submit(context.getSource().getClient(),
+                                                                    StringArgumentType.getString(context, "ign"), StringArgumentType.getString(context, "limit"),
+                                                                    StringArgumentType.getString(context, "prefixid"), StringArgumentType.getString(context, "prefixtext")); return 1;
+                                                        })))))
+                        .then(ClientCommandManager.literal("donorpet")
+                                .then(ClientCommandManager.argument("ign", StringArgumentType.word())
+                                        .then(ClientCommandManager.argument("pet", StringArgumentType.word()).executes(context -> {
+                                            module(DonorPetModule.class).submit(context.getSource().getClient(),
+                                                    StringArgumentType.getString(context, "ign"), StringArgumentType.getString(context, "pet")); return 1;
+                                        }))))
+                        .then(ClientCommandManager.literal("promowave")
+                                .then(ClientCommandManager.argument("rank", StringArgumentType.word())
+                                        .then(ClientCommandManager.argument("igns", StringArgumentType.greedyString()).executes(context -> {
+                                            module(PromoWaveModule.class).submit(context.getSource().getClient(),
+                                                    StringArgumentType.getString(context, "rank"), StringArgumentType.getString(context, "igns")); return 1;
+                                        }))))
                         .then(buildSayCommand())
                         .then(ClientCommandManager.literal("alerts")
                                 .executes(context -> {
                                     Text state = Text.translatable(DMLSConfig.alertsEnabled() ? "dmls.option.on" : "dmls.option.off")
                                             .formatted(DMLSConfig.alertsEnabled() ? Formatting.GREEN : Formatting.RED);
-                                    ChatUtils.sendClientMessage(context.getSource().getClient(), Text.literal(PREFIX)
-                                            .append(Text.translatable("dmls.chat.alerts.status", state, ChatAlertsModule.wordCount())));
+                                    ChatUtils.sendTranslatedMessage(context.getSource().getClient(), PREFIX,
+                                            "dmls.chat.alerts.status", state, ChatAlertsModule.wordCount());
                                     return 1;
                                 })
                                 .then(ClientCommandManager.literal("on")
@@ -112,18 +153,22 @@ public class DMLSClient implements ClientModInitializer {
                                 .then(ClientCommandManager.literal("reload")
                                         .executes(context -> {
                                             int count = ChatAlertsModule.reloadWordlist();
-                                            ChatUtils.sendClientMessage(context.getSource().getClient(), Text.literal(PREFIX).append(Text.translatable(
-                                                    count == 1 ? "dmls.chat.alerts.reloaded.one" : "dmls.chat.alerts.reloaded.many", count)));
+                                            ChatUtils.sendTranslatedMessage(context.getSource().getClient(), PREFIX,
+                                                    count == 1 ? "dmls.chat.alerts.reloaded.one" : "dmls.chat.alerts.reloaded.many", count);
                                             return 1;
                                         }))))
-        );
+        ));
+    }
+
+    private static <T extends DMLSModule> T module(Class<T> type) {
+        return MODULES.stream().filter(type::isInstance).map(type::cast).findFirst().orElseThrow();
     }
 
     private LiteralArgumentBuilder<FabricClientCommandSource> buildSayCommand() {
         LiteralArgumentBuilder<FabricClientCommandSource> say = ClientCommandManager.literal("say")
                 .executes(context -> {
-                    ChatUtils.sendClientMessage(context.getSource().getClient(), Text.literal(PREFIX)
-                            .append(Text.translatable("dmls.chat.say.available", String.join(", ", CannedReplies.names()))));
+                    ChatUtils.sendTranslatedMessage(context.getSource().getClient(), PREFIX,
+                            "dmls.chat.say.available", String.join(", ", CannedReplies.names()));
                     return 1;
                 });
 
@@ -153,13 +198,13 @@ public class DMLSClient implements ClientModInitializer {
     private int sendHelp(MinecraftClient client) {
         String header = PREFIX;
         ChatUtils.sendClientMessage(client, header + ChatUtils.separatorForChatWidth(client, header));
-        helpLine(client, "/checklands <ign...>", Text.translatable("dmls.help.checklands"));
-        helpLine(client, "/checkmembers <land>", Text.translatable("dmls.help.checkmembers"));
-        helpLine(client, "/dalts <ign>", Text.translatable("dmls.help.checkalts", StaffRank.MODERATOR.displayName()));
-        helpLine(client, "/xray <ign>", Text.translatable("dmls.help.xray", StaffRank.SENIOR_MODERATOR.displayName()));
-        helpLine(client, "/prefixlazy <ign> <limit> <prefixid> <prefixtext>", Text.translatable("dmls.help.prefix", StaffRank.SUPPORT.displayName()));
-        helpLine(client, "/donorpet <ign> <pet>", Text.translatable("dmls.help.donorpet", StaffRank.ADMIN.displayName()));
-        helpLine(client, "/promowave <rank> <ign1, ign2, ...>", Text.translatable("dmls.help.promowave", StaffRank.ADMIN.displayName()));
+        helpLine(client, "/dmls lands <ign...>", Text.translatable("dmls.help.checklands"));
+        helpLine(client, "/dmls members <land>", Text.translatable("dmls.help.checkmembers"));
+        helpLine(client, "/dmls alts <ign>", Text.translatable("dmls.help.checkalts", StaffRank.MODERATOR.displayName()));
+        helpLine(client, "/dmls xray <ign|cancel>", Text.translatable("dmls.help.xray", StaffRank.SENIOR_MODERATOR.displayName()));
+        helpLine(client, "/dmls prefix <ign> <limit> <prefixid> <prefixtext>", Text.translatable("dmls.help.prefix", StaffRank.SUPPORT.displayName()));
+        helpLine(client, "/dmls donorpet <ign> <pet>", Text.translatable("dmls.help.donorpet", StaffRank.ADMIN.displayName()));
+        helpLine(client, "/dmls promowave <rank> <ign1, ign2, ...>", Text.translatable("dmls.help.promowave", StaffRank.ADMIN.displayName()));
         helpLine(client, "/dmls rank [rank]", Text.translatable("dmls.help.rank"));
         helpLine(client, "/dmls alerts [on|off|reload]", Text.translatable("dmls.help.alerts"));
         helpLine(client, "/dmls say [reply]", Text.translatable("dmls.help.say"));
@@ -183,8 +228,8 @@ public class DMLSClient implements ClientModInitializer {
 
     private int setAlertsEnabled(MinecraftClient client, boolean enabled) {
         DMLSConfig.setAlertsEnabled(enabled);
-        ChatUtils.sendClientMessage(client, Text.literal(PREFIX).append(Text.translatable(
-                enabled ? "dmls.chat.alerts.enabled" : "dmls.chat.alerts.disabled")));
+        ChatUtils.sendTranslatedMessage(client, PREFIX,
+                enabled ? "dmls.chat.alerts.enabled" : "dmls.chat.alerts.disabled");
         return 1;
     }
 }

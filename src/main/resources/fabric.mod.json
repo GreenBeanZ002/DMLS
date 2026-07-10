@@ -11,13 +11,10 @@
   },
   "license": "MIT",
   "icon": "assets/dmls/icon.png",
-  "environment": "*",
+  "environment": "client",
   "entrypoints": {
     "client": [
       "com.duperknight.client.DMLSClient"
-    ],
-    "main": [
-      "com.duperknight.DMLS"
     ],
     "modmenu": [
       "com.duperknight.client.gui.ModMenuIntegration"

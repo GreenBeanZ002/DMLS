@@ -81,11 +81,16 @@ abstract class DMLSMenuScreen extends Screen {
 
     /** Sets up a naturally spaced module form that can scroll without moving its footer buttons. */
     protected void configureScrollableContent(DMLSModule module, int contentHeight) {
-        scrollableWidgets.clear();
         int descriptionWidth = Math.min(scaled(360), width - scaled(32));
         int descriptionBottom = HEADER_HEIGHT + scaled(34)
                 + descriptionHeight(wrappedDescription(module, descriptionWidth).size());
-        contentViewportTop = descriptionBottom + scaled(10);
+        configureScrollableContent(descriptionBottom + scaled(10), contentHeight);
+    }
+
+    /** Configures scrolling for non-module settings screens. */
+    protected void configureScrollableContent(int viewportTop, int contentHeight) {
+        scrollableWidgets.clear();
+        contentViewportTop = viewportTop;
         contentViewportBottom = Math.max(contentViewportTop + 1, height - FOOTER_TOP_OFFSET - scaled(8));
         maxContentScroll = Math.max(0, contentHeight - (contentViewportBottom - contentViewportTop));
         contentScrollOffset = Math.clamp(contentScrollOffset, 0, maxContentScroll);

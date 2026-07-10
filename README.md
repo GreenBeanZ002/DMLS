@@ -1,25 +1,51 @@
-# DMLS - Duper's Mod for Lazy Staff
-My plan is to one day merge all the other mods into a single one. This one. The previous commands from DSST will be reimplemented into this new 1.21.11 compatible rework.
+# DMLS — Duper's Mod for Lazy Staff
 
-## Homescreen
-| Interface | Details |
-| :--- | :--- |
-| ![Homescreen](https://cdn.modrinth.com/data/cached_images/af12098e50177929a5d46a91c8a5b5f94a62c293_0.webp) | Accessible via user defined hotkey or `/dmls` command |
+DMLS is a client-only Fabric mod for Stoneworks staff workflows on Minecraft 1.21.11. It sends privileged commands but never grants or detects server permission.
 
-## Available modules
+## Install and configure
 
-| Module Visual | Command & Usage |
-| :--- | :--- |
-| **Prefix Creation**<br>![Prefix Creation Screen](https://cdn.modrinth.com/data/cached_images/51ac31083b37e8d90e580ec121dbe723a7ef6e92_0.webp) | `/prefixlazy <ign> <limit> <prefixid> <prefixtext>` |
-| **Check Lands (a player is in)**<br>![Check Lands Screen](https://cdn.modrinth.com/data/cached_images/1b8c5fe0223981d6540bbaa78c9e60c37b139585_0.webp) | `/checklands <ign1, ign2, ...>` |
-| **Check Members (a claim has)**<br>![Check Members Screen](https://cdn.modrinth.com/data/cached_images/326b7ef252df4615ce8bb671b5e7931c394af54c_0.webp) | `/checkmembers <land>` |
-| **(Advanced) Check Alts**<br>![Check Alts Screen](https://cdn.modrinth.com/data/cached_images/5b79ad9e18312ed5574dd6025aaac20e7015bb0b_0.webp) | `/checkalts <ign>` |
-| **Xray Rollback**<br>![Xray Rollback Screen](https://cdn.modrinth.com/data/cached_images/517170af62567b4d3df29127b442f2492b05e6e1_0.webp) | `/xray <ign>` |
-| **Donor Pets**<br>![Donor Pets Screen](https://cdn.modrinth.com/data/cached_images/4e81037e4610813c576d743c8c4a37cd1793d646_0.webp) | `/donorpet <ign> <pet>` |
-| **Promo Wave**<br>![Promo Wave Screen](https://cdn.modrinth.com/data/cached_images/ab884f9e2e518ad10a87f89a73b706c21af40c60_0.webp) | `/promowave <rank> <ign1, ign2, ...>` |
-| **Chat Alerts (W.I.P)**<br>![Chat Alerts Screen](https://cdn.modrinth.com/data/cached_images/bccff155b0c9d725b9548be1236b4adde8a38d3f_0.webp) | `/dmls alerts [on\|off\|reload]` |
-| **Mute Trade Chat**<br>![Mute Trade Chat Screen](https://cdn.modrinth.com/data/cached_images/0bc1170a9e89a1db26c1c2c06bb0a7cdbf514b3a_0.webp) | *None* |
+1. Install Fabric Loader, Fabric API, and this mod's JAR on the client. Mod Menu is optional.
+2. Start Minecraft once to create `config/dmls.properties`. `play.stoneworks.gg` is allowed by default.
+3. Add or remove proxy addresses from **Mod Options → Allowed Servers**. Exact `host[:port]` and explicit `*.host[:port]` rules are supported. The same list remains available as the comma-separated `allowedServers` property for manual administration.
+4. Select a staff rank in Mod Options or with `/dmls rank`. This selection only controls which modules DMLS displays. The server remains authoritative and may reject every command.
+5. Put alert words, one per line, in `config/dmls-alerts.txt`, then run `/dmls alerts reload`.
 
----
+Allowlist matching is case-insensitive, normalizes the default port, supports exact hosts, and supports only explicit `*.` subdomain rules. Substring matching is not used. Privileged queues re-check the current connection before each command and cancel on disconnect or server change.
 
-> **Note:** This mod sends commands to the server. Ensure you have the correct Staff Rank selected, the mod will automatically hide the modules you don't have the necessary permissions to execute the underlying commands (e.g., CoreProtect commands, prefix management commands, gamerule changes).
+## Commands
+
+The canonical command root is `/dmls`:
+
+- `/dmls lands <ign...>`
+- `/dmls members <land>`
+- `/dmls alts <ign>`
+- `/dmls xray <ign>` and `/dmls xray cancel`
+- `/dmls prefix <ign> <limit> <prefixid> <prefixtext>`
+- `/dmls donorpet <ign> <pet>`
+- `/dmls promowave <rank> <ign...>`
+- `/dmls alerts [on|off|reload]`
+- `/dmls rank [rank]`
+- `/dmls help`
+
+Legacy aliases (`/checklands`, `/checkmembers`, `/dalts`, `/xray`, `/prefixlazy`, `/donorpet`, and `/promowave`) remain temporarily for compatibility. They are deprecated because generic client commands can shadow server commands and will be removed in the next breaking release. The old documentation's `/checkalts` spelling was incorrect; the implemented legacy alias is `/dalts`.
+
+## Safety and result wording
+
+- DMLS-local notifications bypass Fabric's incoming server-message callbacks, preventing chat-alert recursion.
+- Response workflows consume only the origins they explicitly accept. Ordinary player chat is not parsed as private command output.
+- Xray rollback aborts on timeout, rejection, disconnect, or server change. It never sends the next destructive rollback after an ambiguous timeout.
+- “Sent” or “dispatched” means the client transmitted a command. It does **not** mean the server applied it. “Confirmed” is reserved for a recognized server response.
+- Check Alts reports `unknown` when no recognized `/history` header or explicit empty response was observed. A timeout is never shown as a clean history.
+
+The exact live Stoneworks `/history` output is not present in this repository. Its parser is intentionally isolated and narrowly anchored; anonymized examples of headers, records, empty results, failures, and end markers are needed to verify or extend it. CoreProtect matching is likewise limited to the existing `Rollback complete` response, optionally prefixed with `[CoreProtect]`. It cannot correlate that response to a username, so only the actively waiting system-response step can consume it.
+
+## Development
+
+Java 21 is required. Run:
+
+```text
+./gradlew clean test
+./gradlew build
+```
+
+CI validates the Gradle wrapper, builds, tests, and uploads test reports on failure. The produced mod is client-only and packages `LICENSE.txt`.

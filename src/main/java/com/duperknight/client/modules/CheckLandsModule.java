@@ -11,7 +11,9 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
+import com.duperknight.client.message.MessageOrigin;
+import com.duperknight.client.message.ServerMessage;
+import com.duperknight.client.message.ServerMessageRouter;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.item.ItemStack;
@@ -29,6 +31,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.regex.Pattern;
+import java.util.EnumSet;
 
 public final class CheckLandsModule extends DMLSModule {
     private static final String PREFIX = "§8[§6DMLS - CheckLands§8] §7";
@@ -85,13 +88,12 @@ public final class CheckLandsModule extends DMLSModule {
             }
         });
 
-        ClientReceiveMessageEvents.GAME.register((message, overlay) -> handleServerMessage(message));
-        ClientReceiveMessageEvents.CHAT.register((message, signedMessage, sender, params, receptionTimestamp) -> handleServerMessage(message));
+        ServerMessageRouter.subscribe(EnumSet.of(MessageOrigin.SERVER_SYSTEM), this::handleServerMessage);
     }
 
     /** Starts a single or batch land check. The command and GUI both call this method. */
     public void submit(MinecraftClient client, String input) {
-        if (!hasRequiredRank(client)) {
+        if (!canRunPrivilegedOperation(client)) {
             return;
         }
         List<String> igns = new ArrayList<>();
@@ -130,9 +132,9 @@ public final class CheckLandsModule extends DMLSModule {
         activeSession.start(client);
     }
 
-    private void handleServerMessage(Text message) {
+    private void handleServerMessage(ServerMessage message) {
         if (activeSession != null) {
-            activeSession.handleServerMessage(ChatUtils.cleanLine(message.getString()));
+            activeSession.handleServerMessage(message.cleanText());
         }
     }
 
@@ -499,6 +501,10 @@ public final class CheckLandsModule extends DMLSModule {
                 fail(client, timeoutMessage());
                 return Optional.empty();
             }
+            if (tickResult.status() == MenuCommandQuery.Status.CANCELLED) {
+                fail(client, Text.translatable("dmls.chat.session.cancelled").getString());
+                return Optional.empty();
+            }
 
             if (tickResult.status() == MenuCommandQuery.Status.WAITING) {
                 return Optional.empty();
@@ -524,8 +530,8 @@ public final class CheckLandsModule extends DMLSModule {
             for (RankClaims existingRank : customRankClaims) {
                 if (existingRank.rank.equalsIgnoreCase(rank.customRank()) && existingRank.position == rank.position()) {
                     existingRank.addClaim(claim, stats);
-                    return;
-                }
+                return;
+            }
             }
 
             RankClaims claims = new RankClaims(rank.customRank(), rank.formattedCustomRank(), rank.position());

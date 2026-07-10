@@ -4,9 +4,11 @@
 
   "dmls.title.home": "Duper's Mod for Lazy Staff",
   "dmls.title.options": "Mod Options",
+  "dmls.title.allowed_servers": "Allowed Servers",
   "dmls.button.options": "Mod Options...",
   "dmls.button.exit": "Exit",
   "dmls.button.submit": "Submit",
+  "dmls.button.add": "Add",
   "dmls.button.create": "Create",
   "dmls.button.promote": "Promote",
   "dmls.button.rollback": "Roll Back",
@@ -16,6 +18,9 @@
   "dmls.option.on": "On",
   "dmls.option.off": "Off",
   "dmls.option.staff_rank": "Staff Rank",
+  "dmls.option.allowed_servers": "Allowed Servers...",
+  "dmls.option.allowed_servers.description": "Stoneworks commands run only on these exact hosts or explicit *.host rules. Click an existing entry to remove it.",
+  "dmls.option.allowed_servers.remove": "Remove: %s",
 
   "dmls.staff_rank.helper": "HELPER",
   "dmls.staff_rank.moderator": "MODERATOR",
@@ -60,6 +65,7 @@
   "dmls.field.player_ign.label": "Player IGN:",
   "dmls.field.player_igns.label": "Player IGN(s):",
   "dmls.field.land_name": "Land name",
+  "dmls.field.server_address": "Server address",
   "dmls.field.land_name.label": "Land name:",
   "dmls.field.prefix_id": "Prefix ID",
   "dmls.field.prefix_id.label": "Prefix ID:",
@@ -76,10 +82,13 @@
   "dmls.validation.player_ign": "Enter a player IGN.",
   "dmls.validation.player_igns": "Enter at least one player IGN.",
   "dmls.validation.land_name": "Enter a land name."
+  ,"dmls.validation.server_address": "Enter a valid host[:port] or *.host[:port] rule. URLs, paths and whitespace are not allowed."
+  ,"dmls.validation.server_duplicate": "That server rule is already allowed."
   ,"dmls.placeholder.player_name": "PlayerName"
   ,"dmls.placeholder.player_names": "PlayerOne, PlayerTwo"
   ,"dmls.placeholder.player_names_many": "PlayerOne, PlayerTwo, PlayerThree"
   ,"dmls.placeholder.land_name": "LandName"
+  ,"dmls.placeholder.server_address": "play.stoneworks.gg or *.proxy.example.org:25565"
   ,"dmls.placeholder.prefix_id": "prefixid"
   ,"dmls.placeholder.prefix_text": "&aHelper <gold>Team"
   ,"dmls.chat.rank.current": "§7Your rank is set to %s§r§7. Change it with §6/dmls rank <rank>§7."
@@ -99,12 +108,12 @@
   ,"dmls.help.prefix": "Creates a formatted prefix and sets its player limit and manager. Requires %s§r."
   ,"dmls.help.donorpet": "Gives a donor permission for their elite mount pet. Requires %s§r."
   ,"dmls.help.promowave": "Promotes a whole wave of staff to the given rank. Requires %s§r."
-  ,"dmls.help.rank": "Shows or sets your staff rank, which decides what DMLS features you can use."
+  ,"dmls.help.rank": "Shows or sets the local rank used to display modules; it does not grant or detect server permissions."
   ,"dmls.help.alerts": "Shows or toggles chat alerts. Words are configured in config/dmls-alerts.txt."
   ,"dmls.help.say": "Sends a pre-written staff reply in chat."
   ,"dmls.help.menu": "Opens the DMLS menu."
   ,"dmls.help.hover": "%s\n§8Click to put the command in your chat bar."
-  ,"dmls.validation.required_rank": "You do not have the required staff rank."
+  ,"dmls.validation.required_rank": "This module is hidden for the locally selected rank; server permissions are authoritative."
   ,"dmls.validation.prefix.active": "A prefix creation is still running; wait for it to finish."
   ,"dmls.validation.prefix.ign": "Enter a valid player IGN."
   ,"dmls.validation.prefix.limit": "The player limit must be a whole number from 1 to 2147483647."
@@ -137,7 +146,7 @@
   ,"dmls.chat.prefix.created.after": "§7, player limit §6%s§7 and manager §6%s§7. Check the info above to confirm."
   ,"dmls.chat.check_alts.checking": "Checking alts of §6%s§7..."
   ,"dmls.chat.check_alts.no_alts": "No known alts; checking history of §6%s§7 only."
-  ,"dmls.chat.check_alts.counts_note": "§8Counts are based on the /history output and may include unrelated lines."
+  ,"dmls.chat.check_alts.counts_note": "§8Only recognized records after a matching /history header are counted."
   ,"dmls.chat.check_lands.queued": "Queued §6%s§7 players: §6%s§7."
   ,"dmls.chat.check_lands.checking": "Checking lands for §6%s§7..."
   ,"dmls.chat.check_lands.none": "§6%s§7 is not in any lands."
@@ -163,6 +172,38 @@
   ,"dmls.chat.xray.step.balance": "Balance check"
   ,"dmls.chat.xray.result.success": "§a✔ §7%s"
   ,"dmls.chat.xray.result.manual": "§e⚠ §7%s §8(no completion message; check manually)"
-  ,"dmls.chat.xray.result.output": "§a✔ §7%s §8(see output above)"
-  ,"dmls.chat.xray.header": "§8[§6DMLS - Xray§8] §7Xray rollback for §6%s§7 done "
+  ,"dmls.chat.xray.result.output": "§8• §7%s §8(command sent; output unverified)"
+  ,"dmls.chat.xray.result.balance_confirmed": "§a✔ §7%s §8(balance response confirmed)"
+  ,"dmls.chat.xray.result.balance_rejected": "§c✘ §7%s §8(player not found)"
+  ,"dmls.chat.xray.header": "§8[§6DMLS - Xray§8] §7Xray rollback report for §6%s§7 "
+  ,"dmls.chat.xray.result.timed_out": "§c✘ §7%s §8(timed out; session aborted)"
+  ,"dmls.chat.xray.result.rejected": "§c✘ §7%s §8(server rejected; session aborted)"
+  ,"dmls.chat.xray.result.cancelled": "§e⚠ §7%s §8(cancelled; completion unverified)"
+  ,"dmls.chat.xray.cancelled.user": "Rollback cancelled. No further commands will be sent."
+  ,"dmls.chat.xray.cancelled.connection": "Rollback cancelled because the connection or server changed."
+  ,"dmls.chat.check_alts.unknown": "§eunknown (no recognized history response)"
+  ,"dmls.chat.check_alts.parse_failed": "§cparse failed"
+  ,"dmls.chat.check_alts.never_joined": "§ehas not joined before"
+  ,"dmls.chat.check_alts.skipped": "§8Skipped because of the account limit: %s"
+  ,"dmls.chat.server_guard.blocked": "Stoneworks command blocked (%s): §6%s§7. Configure allowedServers in config/dmls.properties."
+  ,"dmls.chat.command.not_sent": "Command was not sent because the connection or allowed server changed."
+  ,"dmls.chat.donor_pet.sent": "Permission command sent for §6%s§7 / §6%s§7 (§8%s§7); server confirmation was not observed."
+  ,"dmls.chat.donor_pet.waiting": "Permission command sent for §6%s§7 / §6%s§7; waiting for LuckPerms confirmation."
+  ,"dmls.chat.donor_pet.confirmed": "Confirmed pet permission for §6%s§7 / §6%s§7 (§8%s§7)."
+  ,"dmls.chat.donor_pet.active": "A donor-pet permission command is already awaiting confirmation."
+  ,"dmls.chat.prefix.dispatched.before": "Dispatched prefix commands for §6%s§7 with text "
+  ,"dmls.chat.prefix.dispatched.after": "§7, player limit §6%s§7 and manager §6%s§7. Verify the server output."
+  ,"dmls.chat.prefix.confirmed.before": "Confirmed prefix §6%s§7 with text "
+  ,"dmls.chat.prefix.confirmed.after": "§7, player limit §6%s§7 and manager §6%s§7."
+  ,"dmls.chat.prefix.rejected.before": "Stopped prefix creation for §6%s§7 after a rejected command; its requested text was "
+  ,"dmls.chat.prefix.rejected.after": "§7, requested limit §6%s§7 and manager §6%s§7. No further prefix commands were sent."
+  ,"dmls.chat.prefix.timed_out.before": "Stopped prefix creation for §6%s§7 because a command response timed out; its requested text was "
+  ,"dmls.chat.prefix.timed_out.after": "§7, requested limit §6%s§7 and manager §6%s§7. No further prefix commands were sent."
+  ,"dmls.chat.prefix.cancelled": "Prefix sequence cancelled because the connection or allowed server changed."
+  ,"dmls.chat.promo.dispatched.one": "Dispatched commands for §6%s§7 player toward §6%s§7: §6%s§7. Verify LuckPerms output."
+  ,"dmls.chat.promo.dispatched.many": "Dispatched commands for §6%s§7 players toward §6%s§7: §6%s§7. Verify LuckPerms output."
+  ,"dmls.chat.promo.confirmed.one": "Confirmed promotion commands for §6%s§7 player to §6%s§7: §6%s§7."
+  ,"dmls.chat.promo.confirmed.many": "Confirmed promotion commands for §6%s§7 players to §6%s§7: §6%s§7."
+  ,"dmls.chat.promo.cancelled": "Promotion wave cancelled after §6%s/%s§7 players; remaining commands were not sent."
+  ,"dmls.chat.session.cancelled": "Session cancelled because the connection or allowed server changed."
 }
