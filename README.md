@@ -6,9 +6,8 @@ DMLS is a client-only Fabric mod for Stoneworks staff workflows on Minecraft 1.2
 
 1. Install Fabric Loader, Fabric API, and this mod's JAR on the client. Mod Menu is optional.
 2. Start Minecraft once to create `config/dmls.properties`. `play.stoneworks.gg` is allowed by default.
-3. Add or remove proxy addresses from **Mod Options → Allowed Servers**. Exact `host[:port]` and explicit `*.host[:port]` rules are supported. The same list remains available as the comma-separated `allowedServers` property for manual administration.
-4. Select a staff rank in Mod Options or with `/dmls rank`. This selection only controls which modules DMLS displays. The server remains authoritative and may reject every command.
-5. Put alert words, one per line, in `config/dmls-alerts.txt`, then run `/dmls alerts reload`.
+3. Select a staff rank in Mod Options or with `/dmls rank`. This selection only controls which modules DMLS displays. The server remains authoritative and may reject every command.
+4. Put alert words, one per line, in `config/dmls-alerts.txt`, then run `/dmls alerts reload`.
 
 Allowlist matching is case-insensitive, normalizes the default port, supports exact hosts, and supports only explicit `*.` subdomain rules. Substring matching is not used. Privileged queues re-check the current connection before each command and cancel on disconnect or server change.
 
