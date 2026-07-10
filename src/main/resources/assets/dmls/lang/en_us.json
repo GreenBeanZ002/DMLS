@@ -8,6 +8,8 @@
   "dmls.button.options": "Mod Options...",
   "dmls.button.exit": "Exit",
   "dmls.button.submit": "Submit",
+  "dmls.button.lookup": "Look Up",
+  "dmls.button.copy": "Copy",
   "dmls.button.add": "Add",
   "dmls.button.create": "Create",
   "dmls.button.promote": "Promote",
@@ -59,6 +61,9 @@
   "dmls.module.xray.description.1": "Roll back a confirmed xrayer: ores and tunnels (30d),",
   "dmls.module.xray.description.2": "containers (7d), then a balance check.",
   "dmls.module.xray.warning": "This rolls back the player's blocks and containers, use with care.",
+  "dmls.module.uuid.name": "UUID Lookup",
+  "dmls.module.uuid.description.1": "Look up as many as 10 Minecraft UUIDs using Mojang's API.",
+  "dmls.module.uuid.description.2": "Separate usernames with commas or spaces; results can be copied.",
 
   "dmls.field.player_ign": "Player IGN",
   "dmls.field.player_igns": "Player IGN(s)",
@@ -104,6 +109,7 @@
   ,"dmls.help.checklands": "Checks which lands the given players are in and their rank in each. Multiple names are checked one after another."
   ,"dmls.help.checkmembers": "Lists all members of a land grouped by rank. Click a name to run /checklands on them."
   ,"dmls.help.checkalts": "Runs /alts and then /history on every found account, with a punishment summary. Requires %s§r."
+  ,"dmls.help.uuid": "Looks up one or more Minecraft usernames using Mojang's bulk profile API."
   ,"dmls.help.xray": "Rolls back a confirmed xrayer's ores (30d) and containers (7d), then checks their balance. Requires %s§r."
   ,"dmls.help.prefix": "Creates a formatted prefix and sets its player limit and manager. Requires %s§r."
   ,"dmls.help.donorpet": "Gives a donor permission for their elite mount pet. Requires %s§r."
@@ -206,4 +212,20 @@
   ,"dmls.chat.promo.confirmed.many": "Confirmed promotion commands for §6%s§7 players to §6%s§7: §6%s§7."
   ,"dmls.chat.promo.cancelled": "Promotion wave cancelled after §6%s/%s§7 players; remaining commands were not sent."
   ,"dmls.chat.session.cancelled": "Session cancelled because the connection or allowed server changed."
+  ,"dmls.chat.uuid.active": "A UUID lookup is already running."
+  ,"dmls.chat.uuid.looking_up.one": "Looking up §6%s§7 Minecraft profile with Mojang..."
+  ,"dmls.chat.uuid.looking_up.many": "Looking up §6%s§7 Minecraft profiles with Mojang..."
+  ,"dmls.chat.uuid.header": "UUID lookup"
+  ,"dmls.chat.uuid.not_found_short": "not found"
+  ,"dmls.chat.uuid.invalid_names": "Invalid usernames: §6%s§7."
+  ,"dmls.chat.uuid.too_many": "Enter at most §6%s§7 usernames per lookup."
+  ,"dmls.chat.uuid.result": "§6%s§7: %s"
+  ,"dmls.chat.uuid.copy": "Click to copy UUID"
+  ,"dmls.chat.uuid.not_found": "No Mojang profile was found for §6%s§7."
+  ,"dmls.chat.uuid.rate_limited": "Mojang is rate limiting UUID lookups. Please try again shortly."
+  ,"dmls.chat.uuid.error": "The Mojang UUID lookup failed. Please try again."
+  ,"dmls.validation.uuid.invalid_names": "Invalid usernames: %s"
+  ,"dmls.validation.uuid.too_many": "Enter at most %s usernames per lookup."
+  ,"dmls.screen.uuid.looking_up": "Looking up profiles with Mojang..."
+  ,"dmls.screen.uuid.not_found": "%s: not found"
 }

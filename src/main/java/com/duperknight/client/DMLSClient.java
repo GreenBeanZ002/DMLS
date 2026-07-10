@@ -13,6 +13,7 @@ import com.duperknight.client.modules.PromoWaveModule;
 import com.duperknight.client.modules.StaffRank;
 import com.duperknight.client.modules.TradeChatMuteModule;
 import com.duperknight.client.modules.XrayRollbackModule;
+import com.duperknight.client.modules.UuidLookupModule;
 import com.duperknight.client.utils.CannedReplies;
 import com.duperknight.client.utils.ChatUtils;
 import com.duperknight.client.utils.ClientUtils;
@@ -51,6 +52,7 @@ public class DMLSClient implements ClientModInitializer {
             new PrefixCreateModule(),
             new DonorPetModule(),
             new PromoWaveModule(),
+            new UuidLookupModule(),
             new ChatAlertsModule(),
             new TradeChatMuteModule()
     );
@@ -108,6 +110,11 @@ public class DMLSClient implements ClientModInitializer {
                         .then(ClientCommandManager.literal("alts")
                                 .then(ClientCommandManager.argument("ign", StringArgumentType.word()).executes(context -> {
                                     module(CheckAltsModule.class).submit(context.getSource().getClient(), StringArgumentType.getString(context, "ign")); return 1;
+                                })))
+                        .then(ClientCommandManager.literal("uuid")
+                                .then(ClientCommandManager.argument("usernames", StringArgumentType.greedyString()).executes(context -> {
+                                    module(UuidLookupModule.class).submit(context.getSource().getClient(),
+                                            StringArgumentType.getString(context, "usernames")); return 1;
                                 })))
                         .then(ClientCommandManager.literal("xray")
                                 .then(ClientCommandManager.literal("cancel").executes(context -> {
@@ -201,6 +208,7 @@ public class DMLSClient implements ClientModInitializer {
         helpLine(client, "/dmls lands <ign...>", Text.translatable("dmls.help.checklands"));
         helpLine(client, "/dmls members <land>", Text.translatable("dmls.help.checkmembers"));
         helpLine(client, "/dmls alts <ign>", Text.translatable("dmls.help.checkalts", StaffRank.MODERATOR.displayName()));
+        helpLine(client, "/dmls uuid <username...>", Text.translatable("dmls.help.uuid"));
         helpLine(client, "/dmls xray <ign|cancel>", Text.translatable("dmls.help.xray", StaffRank.SENIOR_MODERATOR.displayName()));
         helpLine(client, "/dmls prefix <ign> <limit> <prefixid> <prefixtext>", Text.translatable("dmls.help.prefix", StaffRank.SUPPORT.displayName()));
         helpLine(client, "/dmls donorpet <ign> <pet>", Text.translatable("dmls.help.donorpet", StaffRank.ADMIN.displayName()));
