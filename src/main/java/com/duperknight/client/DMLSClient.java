@@ -9,6 +9,7 @@ import com.duperknight.client.modules.ChatReplayModule;
 import com.duperknight.client.modules.CheckAltsModule;
 import com.duperknight.client.modules.CheckLandsModule;
 import com.duperknight.client.modules.CheckMembersModule;
+import com.duperknight.client.modules.ContainerScanModule;
 import com.duperknight.client.modules.CoreProtectBuilderModule;
 import com.duperknight.client.modules.DMLSModule;
 import com.duperknight.client.modules.DemoWaveModule;
@@ -68,7 +69,8 @@ public class DMLSClient implements ClientModInitializer {
             new ChatReplayModule(),
             new GreeterModule(),
             new LocationsModule(),
-            new CoreProtectBuilderModule()
+            new CoreProtectBuilderModule(),
+            new ContainerScanModule()
     );
 
     @Override
@@ -169,6 +171,15 @@ public class DMLSClient implements ClientModInitializer {
                                     module(ActivityWaveModule.class).submit(context.getSource().getClient(),
                                             StringArgumentType.getString(context, "igns")); return 1;
                                 })))
+                        .then(ClientCommandManager.literal("containers")
+                                .then(ClientCommandManager.argument("ign", StringArgumentType.word())
+                                        .then(ClientCommandManager.argument("time", StringArgumentType.word())
+                                                .then(ClientCommandManager.argument("radius", StringArgumentType.word()).executes(context -> {
+                                                    module(ContainerScanModule.class).submit(context.getSource().getClient(),
+                                                            StringArgumentType.getString(context, "ign"),
+                                                            StringArgumentType.getString(context, "time"),
+                                                            StringArgumentType.getString(context, "radius")); return 1;
+                                                })))))
                         .then(ClientCommandManager.literal("co")
                                 .executes(context -> {
                                     module(CoreProtectBuilderModule.class).openScreenDeferred(context.getSource().getClient());
@@ -338,6 +349,7 @@ public class DMLSClient implements ClientModInitializer {
         helpLine(client, "/dmls greet <ign>", Text.translatable("dmls.help.greet"));
         helpLine(client, "/dmls loc <save|tp|del|list> [name]", Text.translatable("dmls.help.loc"));
         helpLine(client, "/dmls co", Text.translatable("dmls.help.co", StaffRank.SENIOR_MODERATOR.displayName()));
+        helpLine(client, "/dmls containers <ign|*> <time> <radius>", Text.translatable("dmls.help.containers", StaffRank.MODERATOR.displayName()));
         helpLine(client, "/dmls brb <duration|off>", Text.translatable("dmls.help.brb"));
         helpLine(client, "/dmls dnd <on|off>", Text.translatable("dmls.help.dnd"));
         helpLine(client, "/dmls say [reply]", Text.translatable("dmls.help.say"));
