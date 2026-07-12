@@ -1,6 +1,6 @@
 package com.duperknight.client.modules;
 
-import com.duperknight.client.gui.TradeChatMuteScreen;
+import com.duperknight.client.gui.ChatSpamMuteScreen;
 import com.duperknight.client.utils.ChatUtils;
 import com.duperknight.client.utils.DMLSConfig;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
@@ -12,15 +12,15 @@ import net.minecraft.text.Text;
 
 import java.util.List;
 
-/** Client-side filter for trade chat messages that operators cannot mute normally. */
-public final class TradeChatMuteModule extends DMLSModule {
-    public TradeChatMuteModule() {
+/** Client-side filter for repetitive trade chat and server messages. */
+public final class ChatSpamMuteModule extends DMLSModule {
+    public ChatSpamMuteModule() {
         super(StaffRank.ADMIN);
     }
 
     @Override
     public Text displayName() {
-        return Text.translatable("dmls.module.trade_chat.name");
+        return Text.translatable("dmls.module.chat_spam.name");
     }
 
     @Override
@@ -30,12 +30,12 @@ public final class TradeChatMuteModule extends DMLSModule {
 
     @Override
     public List<Text> description() {
-        return List.of(Text.translatable("dmls.module.trade_chat.description"));
+        return List.of(Text.translatable("dmls.module.chat_spam.description"));
     }
 
     @Override
     public void openScreen(MinecraftClient client, Screen parent) {
-        client.setScreen(new TradeChatMuteScreen(parent, this));
+        client.setScreen(new ChatSpamMuteScreen(parent, this));
     }
 
     @Override
@@ -45,12 +45,20 @@ public final class TradeChatMuteModule extends DMLSModule {
     }
 
     private boolean shouldHide(Text message) {
-        return DMLSConfig.tradeChatMuted()
-                && DMLSConfig.staffRank().isAtLeast(StaffRank.ADMIN)
-                && startsWithTradePrefix(ChatUtils.cleanLine(message.getString()));
+        if (!DMLSConfig.staffRank().isAtLeast(StaffRank.ADMIN)) {
+            return false;
+        }
+
+        String cleanMessage = ChatUtils.cleanLine(message.getString());
+        return (DMLSConfig.tradeChatMuted() && startsWithTradePrefix(cleanMessage))
+                || (DMLSConfig.serverMessagesMuted() && startsWithServerPrefix(cleanMessage));
     }
 
     static boolean startsWithTradePrefix(String message) {
         return message.startsWith("[T]");
+    }
+
+    static boolean startsWithServerPrefix(String message) {
+        return message.startsWith("[Server: ");
     }
 }

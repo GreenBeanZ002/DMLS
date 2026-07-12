@@ -23,6 +23,7 @@ public final class DMLSConfig {
     private static final String RANK_KEY = "staffRank";
     private static final String ALERTS_KEY = "chatAlerts";
     private static final String TRADE_CHAT_MUTED_KEY = "tradeChatMuted";
+    private static final String SERVER_MESSAGES_MUTED_KEY = "serverMessagesMuted";
     private static final String ALLOWED_SERVERS_KEY = "allowedServers";
     private static final Path CONFIG_PATH = FabricLoader.getInstance().getConfigDir().resolve("dmls.properties");
     private static final StaffRank DEFAULT_RANK = StaffRank.HELPER;
@@ -31,6 +32,7 @@ public final class DMLSConfig {
     private static StaffRank staffRank = DEFAULT_RANK;
     private static boolean alertsEnabled = true;
     private static boolean tradeChatMuted;
+    private static boolean serverMessagesMuted;
     private static List<String> allowedServers = ServerGuard.DEFAULT_ALLOWED_SERVERS;
 
     private DMLSConfig() {
@@ -66,6 +68,17 @@ public final class DMLSConfig {
     public static void setTradeChatMuted(boolean muted) {
         ensureLoaded();
         tradeChatMuted = muted;
+        save();
+    }
+
+    public static boolean serverMessagesMuted() {
+        ensureLoaded();
+        return serverMessagesMuted;
+    }
+
+    public static void setServerMessagesMuted(boolean muted) {
+        ensureLoaded();
+        serverMessagesMuted = muted;
         save();
     }
 
@@ -126,6 +139,7 @@ public final class DMLSConfig {
         staffRank = parseRank(properties.getProperty(RANK_KEY, "")).orElse(DEFAULT_RANK);
         alertsEnabled = Boolean.parseBoolean(properties.getProperty(ALERTS_KEY, "true"));
         tradeChatMuted = Boolean.parseBoolean(properties.getProperty(TRADE_CHAT_MUTED_KEY, "false"));
+        serverMessagesMuted = Boolean.parseBoolean(properties.getProperty(SERVER_MESSAGES_MUTED_KEY, "false"));
         if (properties.containsKey(ALLOWED_SERVERS_KEY)) {
             allowedServers = java.util.Arrays.stream(properties.getProperty(ALLOWED_SERVERS_KEY, "").split(","))
                     .map(ServerGuard::normalizeRule)
@@ -142,6 +156,7 @@ public final class DMLSConfig {
         properties.setProperty(RANK_KEY, staffRank.name());
         properties.setProperty(ALERTS_KEY, Boolean.toString(alertsEnabled));
         properties.setProperty(TRADE_CHAT_MUTED_KEY, Boolean.toString(tradeChatMuted));
+        properties.setProperty(SERVER_MESSAGES_MUTED_KEY, Boolean.toString(serverMessagesMuted));
         properties.setProperty(ALLOWED_SERVERS_KEY, String.join(",", allowedServers));
         try (OutputStream out = Files.newOutputStream(CONFIG_PATH)) {
             properties.store(out, "DMLS settings");

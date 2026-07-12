@@ -11,7 +11,7 @@ import com.duperknight.client.modules.DonorPetModule;
 import com.duperknight.client.modules.PrefixCreateModule;
 import com.duperknight.client.modules.PromoWaveModule;
 import com.duperknight.client.modules.StaffRank;
-import com.duperknight.client.modules.TradeChatMuteModule;
+import com.duperknight.client.modules.ChatSpamMuteModule;
 import com.duperknight.client.modules.XrayRollbackModule;
 import com.duperknight.client.modules.UuidLookupModule;
 import com.duperknight.client.utils.CannedReplies;
@@ -54,7 +54,7 @@ public class DMLSClient implements ClientModInitializer {
             new PromoWaveModule(),
             new UuidLookupModule(),
             new ChatAlertsModule(),
-            new TradeChatMuteModule()
+                new ChatSpamMuteModule()
     );
 
     @Override
