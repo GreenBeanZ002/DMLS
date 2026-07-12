@@ -238,7 +238,17 @@ public final class PrefixCreateModule extends DMLSModule {
 
         private void sendCurrentCommand(MinecraftClient client) {
             waitTicks = 0;
-            if (!ClientUtils.sendCommand(client, commands.get(commandIndex))) cancel(client);
+            if (!ClientUtils.sendCommand(client, commands.get(commandIndex))) {
+                cancel(client);
+                return;
+            }
+
+            if (com.duperknight.client.utils.DMLSConfig.dryRun()) {
+                // nothing will confirm in dry run, so walk through the remaining commands
+                commandIndex++;
+                if (commandIndex >= commands.size()) finish(client, "dmls.chat.prefix.confirmed.before", "dmls.chat.prefix.confirmed.after");
+                else sendCurrentCommand(client);
+            }
         }
 
         private MinecraftClient client() {

@@ -109,6 +109,9 @@ public final class DonorPetModule extends DMLSModule {
         }
 
         if (ClientUtils.sendCommand(client, "lp user %s permission set %s true".formatted(ign, permission))) {
+            if (com.duperknight.client.utils.DMLSConfig.dryRun()) {
+                return;
+            }
             pendingPermission = new PendingPermission(ign, pet, permission, ServerGuard.connectionIdentity(client));
             ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.donor_pet.waiting", ign, pet);
         } else {

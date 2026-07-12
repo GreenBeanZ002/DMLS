@@ -163,6 +163,16 @@ public class DMLSClient implements ClientModInitializer {
                                     module(ActivityWaveModule.class).submit(context.getSource().getClient(),
                                             StringArgumentType.getString(context, "igns")); return 1;
                                 })))
+                        .then(ClientCommandManager.literal("dryrun")
+                                .executes(context -> {
+                                    ChatUtils.sendTranslatedMessage(context.getSource().getClient(), PREFIX,
+                                            DMLSConfig.dryRun() ? "dmls.chat.dry_run.status.on" : "dmls.chat.dry_run.status.off");
+                                    return 1;
+                                })
+                                .then(ClientCommandManager.literal("on")
+                                        .executes(context -> setDryRun(context.getSource().getClient(), true)))
+                                .then(ClientCommandManager.literal("off")
+                                        .executes(context -> setDryRun(context.getSource().getClient(), false))))
                         .then(ClientCommandManager.literal("chatlog")
                                 .executes(context -> {
                                     module(ChatReplayModule.class).openScreenWithFilter(context.getSource().getClient(), "");
@@ -275,6 +285,7 @@ public class DMLSClient implements ClientModInitializer {
         helpLine(client, "/dmls rank [rank]", Text.translatable("dmls.help.rank"));
         helpLine(client, "/dmls alerts [on|off|reload]", Text.translatable("dmls.help.alerts"));
         helpLine(client, "/dmls chatlog [filter]", Text.translatable("dmls.help.chatlog"));
+        helpLine(client, "/dmls dryrun <on|off>", Text.translatable("dmls.help.dryrun", StaffRank.ADMIN.displayName()));
         helpLine(client, "/dmls brb <duration|off>", Text.translatable("dmls.help.brb"));
         helpLine(client, "/dmls dnd <on|off>", Text.translatable("dmls.help.dnd"));
         helpLine(client, "/dmls say [reply]", Text.translatable("dmls.help.say"));
@@ -293,6 +304,19 @@ public class DMLSClient implements ClientModInitializer {
     private int openHomeScreen(MinecraftClient client) {
         // next tick, otherwise the closing chat screen overrides it
         client.send(() -> client.setScreen(new DMLSHomeScreen(MODULES)));
+        return 1;
+    }
+
+    private int setDryRun(MinecraftClient client, boolean enabled) {
+        if (!DMLSConfig.staffRank().isAtLeast(StaffRank.ADMIN)) {
+            ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.rank.required",
+                    StaffRank.ADMIN.displayName(), DMLSConfig.staffRank().displayName());
+            return 0;
+        }
+
+        DMLSConfig.setDryRun(enabled);
+        ChatUtils.sendTranslatedMessage(client, PREFIX,
+                enabled ? "dmls.chat.dry_run.enabled" : "dmls.chat.dry_run.disabled");
         return 1;
     }
 

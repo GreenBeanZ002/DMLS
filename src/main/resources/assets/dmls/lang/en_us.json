@@ -289,4 +289,11 @@
   ,"dmls.placeholder.filter": "Player or text"
   ,"dmls.screen.chat_replay.empty": "No chat captured yet this session."
   ,"dmls.help.chatlog": "Opens a scrollable log of this session's chat with a player or text filter."
+  ,"dmls.chat.dry_run.would_run": "Would run: %s"
+  ,"dmls.chat.dry_run.would_say": "Would say: %s"
+  ,"dmls.chat.dry_run.status.on": "Dry run is on: DMLS prints commands instead of running them."
+  ,"dmls.chat.dry_run.status.off": "Dry run is off, commands run for real."
+  ,"dmls.chat.dry_run.enabled": "Dry run enabled: DMLS prints every command instead of running it. Resets when the game restarts."
+  ,"dmls.chat.dry_run.disabled": "Dry run disabled, commands run for real again."
+  ,"dmls.help.dryrun": "Toggles dry run mode where DMLS prints every command instead of running it. Requires %s."
 }

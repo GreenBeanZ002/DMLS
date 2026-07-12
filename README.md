@@ -31,6 +31,7 @@ The canonical command root is `/dmls`:
 - `/dmls dnd <on|off>` — auto-replies that you are busy until turned off
 - `/dmls say [reply]`
 - `/dmls rank [rank]`
+- `/dmls dryrun <on|off>` — prints every DMLS command instead of running it, for safe testing; not persisted, resets on restart. Menu-based checks (lands, members) time out in dry run since no menu opens.
 - `/dmls help`
 
 

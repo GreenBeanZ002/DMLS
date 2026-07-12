@@ -185,6 +185,13 @@ public final class DemoWaveModule extends DMLSModule {
                 return;
             }
             awaitingResponse = true;
+
+            if (com.duperknight.client.utils.DMLSConfig.dryRun()) {
+                // nothing will confirm in dry run, so advance as if it did
+                awaitingResponse = false;
+                dispatchedPlayers.add(awaitingIgn);
+                playerIndex++;
+            }
         }
 
         private void handleServerMessage(String message) {

@@ -210,6 +210,12 @@ public final class ActivityWaveModule extends DMLSModule {
             if (!ClientUtils.sendCommand(client, "activity " + ign)) {
                 ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.command.not_sent");
                 activeSession = null;
+                return;
+            }
+
+            if (com.duperknight.client.utils.DMLSConfig.dryRun()) {
+                // no response will arrive in dry run, so just pace through the wave
+                inGap = true;
             }
         }
 

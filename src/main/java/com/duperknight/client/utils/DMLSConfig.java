@@ -34,6 +34,9 @@ public final class DMLSConfig {
     private static boolean tradeChatMuted;
     private static boolean serverMessagesMuted;
     private static List<String> allowedServers = ServerGuard.DEFAULT_ALLOWED_SERVERS;
+    // Deliberately not persisted: the game always starts live, so a forgotten
+    // dry run can never suppress real commands in a later session.
+    private static boolean dryRun;
 
     private DMLSConfig() {
     }
@@ -80,6 +83,15 @@ public final class DMLSConfig {
         ensureLoaded();
         serverMessagesMuted = muted;
         save();
+    }
+
+    /** While enabled, DMLS prints every command instead of running it. Not persisted. */
+    public static boolean dryRun() {
+        return dryRun;
+    }
+
+    public static void setDryRun(boolean enabled) {
+        dryRun = enabled;
     }
 
     public static List<String> allowedServers() {

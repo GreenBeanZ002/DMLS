@@ -223,6 +223,17 @@ public final class PromoWaveModule extends DMLSModule {
                 return;
             }
             awaitingResponse = true;
+
+            if (com.duperknight.client.utils.DMLSConfig.dryRun()) {
+                // nothing will confirm in dry run, so advance as if it did
+                awaitingResponse = false;
+                commandIndexWithinPlayer++;
+                if (commandIndexWithinPlayer >= commandsPerPlayer.size()) {
+                    dispatchedPlayers.add(igns.get(playerIndex));
+                    commandIndexWithinPlayer = 0;
+                    playerIndex++;
+                }
+            }
         }
 
         private void handleServerMessage(String message) {

@@ -6,6 +6,8 @@ import net.minecraft.client.MinecraftClient;
  * Utility methods for interacting with the Minecraft client.
  */
 public final class ClientUtils {
+    private static final String DRY_RUN_PREFIX = "§8[§6DMLS - DryRun§8] §7";
+
     private ClientUtils() {
     }
 
@@ -31,6 +33,10 @@ public final class ClientUtils {
      */
     public static boolean sendCommand(MinecraftClient client, String command) {
         if (ServerGuard.check(client).allowed() && client.getNetworkHandler() != null) {
+            if (DMLSConfig.dryRun()) {
+                ChatUtils.sendTranslatedMessage(client, DRY_RUN_PREFIX, "dmls.chat.dry_run.would_run", "/" + command);
+                return true;
+            }
             client.getNetworkHandler().sendChatCommand(command);
             return true;
         }
@@ -45,6 +51,10 @@ public final class ClientUtils {
      */
     public static void sendChatMessage(MinecraftClient client, String message) {
         if (client != null && client.getNetworkHandler() != null) {
+            if (DMLSConfig.dryRun()) {
+                ChatUtils.sendTranslatedMessage(client, DRY_RUN_PREFIX, "dmls.chat.dry_run.would_say", message);
+                return;
+            }
             client.getNetworkHandler().sendChatMessage(message);
         }
     }
