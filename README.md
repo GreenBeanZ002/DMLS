@@ -27,6 +27,8 @@ The canonical command root is `/dmls`:
 - `/dmls activity <ign...>` — runs `/activity` for every listed staff member and summarizes the hours, sorted
 - `/dmls alerts [on|off|reload]`
 - `/dmls chatlog [filter]` — scrollable log of this session's chat, filterable by player or text
+- `/dmls greet <ign>` — sends the public welcome message; the greeter module offers this as a click when someone joins for the first time
+- `/dmls loc <save|tp|del|list> [name]` — saves named locations client-side (stored in `config/dmls-locations.properties`) and teleports back via `/tp x y z`
 - `/dmls brb <duration|off>` — auto-replies to private messages while you are AFK, e.g. `5m`, `30s`, `1h`
 - `/dmls dnd <on|off>` — auto-replies that you are busy until turned off
 - `/dmls say [reply]`

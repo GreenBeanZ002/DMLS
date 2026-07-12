@@ -12,6 +12,8 @@ import com.duperknight.client.modules.CheckMembersModule;
 import com.duperknight.client.modules.DMLSModule;
 import com.duperknight.client.modules.DemoWaveModule;
 import com.duperknight.client.modules.DonorPetModule;
+import com.duperknight.client.modules.GreeterModule;
+import com.duperknight.client.modules.LocationsModule;
 import com.duperknight.client.modules.PrefixCreateModule;
 import com.duperknight.client.modules.PromoWaveModule;
 import com.duperknight.client.modules.StaffRank;
@@ -62,7 +64,9 @@ public class DMLSClient implements ClientModInitializer {
             new ChatSpamMuteModule(),
             new AwayModule(),
             new ActivityWaveModule(),
-            new ChatReplayModule()
+            new ChatReplayModule(),
+            new GreeterModule(),
+            new LocationsModule()
     );
 
     @Override
@@ -163,6 +167,44 @@ public class DMLSClient implements ClientModInitializer {
                                     module(ActivityWaveModule.class).submit(context.getSource().getClient(),
                                             StringArgumentType.getString(context, "igns")); return 1;
                                 })))
+                        .then(ClientCommandManager.literal("greet")
+                                .then(ClientCommandManager.argument("ign", StringArgumentType.word()).executes(context -> {
+                                    module(GreeterModule.class).greet(context.getSource().getClient(),
+                                            StringArgumentType.getString(context, "ign").trim()); return 1;
+                                })))
+                        .then(ClientCommandManager.literal("greeter")
+                                .then(ClientCommandManager.literal("on").executes(context -> {
+                                    module(GreeterModule.class).setEnabled(context.getSource().getClient(), true); return 1;
+                                }))
+                                .then(ClientCommandManager.literal("off").executes(context -> {
+                                    module(GreeterModule.class).setEnabled(context.getSource().getClient(), false); return 1;
+                                })))
+                        .then(ClientCommandManager.literal("loc")
+                                .executes(context -> {
+                                    module(LocationsModule.class).list(context.getSource().getClient()); return 1;
+                                })
+                                .then(ClientCommandManager.literal("list").executes(context -> {
+                                    module(LocationsModule.class).list(context.getSource().getClient()); return 1;
+                                }))
+                                .then(ClientCommandManager.literal("save")
+                                        .then(ClientCommandManager.argument("name", StringArgumentType.greedyString()).executes(context -> {
+                                            module(LocationsModule.class).save(context.getSource().getClient(),
+                                                    StringArgumentType.getString(context, "name")); return 1;
+                                        })))
+                                .then(ClientCommandManager.literal("tp")
+                                        .then(ClientCommandManager.argument("name", StringArgumentType.greedyString())
+                                                .suggests((context, builder) -> CommandSource.suggestMatching(module(LocationsModule.class).names(), builder))
+                                                .executes(context -> {
+                                                    module(LocationsModule.class).teleport(context.getSource().getClient(),
+                                                            StringArgumentType.getString(context, "name")); return 1;
+                                                })))
+                                .then(ClientCommandManager.literal("del")
+                                        .then(ClientCommandManager.argument("name", StringArgumentType.greedyString())
+                                                .suggests((context, builder) -> CommandSource.suggestMatching(module(LocationsModule.class).names(), builder))
+                                                .executes(context -> {
+                                                    module(LocationsModule.class).delete(context.getSource().getClient(),
+                                                            StringArgumentType.getString(context, "name")); return 1;
+                                                }))))
                         .then(ClientCommandManager.literal("dryrun")
                                 .executes(context -> {
                                     ChatUtils.sendTranslatedMessage(context.getSource().getClient(), PREFIX,
@@ -286,6 +328,8 @@ public class DMLSClient implements ClientModInitializer {
         helpLine(client, "/dmls alerts [on|off|reload]", Text.translatable("dmls.help.alerts"));
         helpLine(client, "/dmls chatlog [filter]", Text.translatable("dmls.help.chatlog"));
         helpLine(client, "/dmls dryrun <on|off>", Text.translatable("dmls.help.dryrun", StaffRank.ADMIN.displayName()));
+        helpLine(client, "/dmls greet <ign>", Text.translatable("dmls.help.greet"));
+        helpLine(client, "/dmls loc <save|tp|del|list> [name]", Text.translatable("dmls.help.loc"));
         helpLine(client, "/dmls brb <duration|off>", Text.translatable("dmls.help.brb"));
         helpLine(client, "/dmls dnd <on|off>", Text.translatable("dmls.help.dnd"));
         helpLine(client, "/dmls say [reply]", Text.translatable("dmls.help.say"));
