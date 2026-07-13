@@ -23,8 +23,21 @@ The canonical command root is `/dmls`:
 - `/dmls prefix <ign> <limit> <prefixid> <prefixtext>`
 - `/dmls donorpet <ign> <pet>`
 - `/dmls promowave <rank> <ign...>`
+- `/dmls demowave <rank> <ign...>` — removes the given staff rank from every listed player
+- `/dmls activity <ign...>` — runs `/activity` for every listed staff member and summarizes the hours, sorted
 - `/dmls alerts [on|off|reload]`
+- `/dmls chatlog [filter]` — scrollable log of this session's chat, filterable by player or text
+- `/dmls greet <ign>` — sends the public welcome message; the greeter module offers this as a click when someone joins for the first time
+- `/dmls loc <save|tp|del|list> [name]` — saves named locations client-side (stored in `config/dmls-locations.properties`) and teleports back via `/tp x y z`
+- `/dmls co` — opens a form that composes CoreProtect lookup/rollback/restore commands with validation and a live preview
+- `/dmls containers <ign|*> <time> <radius>` — runs a CoreProtect container lookup around you, chains through the result pages, and summarizes who took and added what
+- `/dmls griefs <ign|*> <time> <radius>` — same as containers, but for block activity: summarizes who broke and placed what
+- `/dmls punish` — searchable rulebook browser with each rule's ban ladder, plus a ban-log composer that copies the Stoneworks ban format to the clipboard
+- `/dmls brb <duration|off>` — auto-replies to private messages while you are AFK, e.g. `5m`, `30s`, `1h`
+- `/dmls dnd <on|off>` — auto-replies that you are busy until turned off
+- `/dmls say [reply]`
 - `/dmls rank [rank]`
+- `/dmls dryrun <on|off>` — prints every DMLS command instead of running it, for safe testing; not persisted, resets on restart. Menu-based checks (lands, members) time out in dry run since no menu opens.
 - `/dmls help`
 
 

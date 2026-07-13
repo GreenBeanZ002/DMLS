@@ -2,15 +2,25 @@ package com.duperknight.client;
 
 import com.duperknight.DMLS;
 import com.duperknight.client.gui.DMLSHomeScreen;
+import com.duperknight.client.modules.ActivityWaveModule;
+import com.duperknight.client.modules.AwayModule;
 import com.duperknight.client.modules.ChatAlertsModule;
+import com.duperknight.client.modules.ChatReplayModule;
 import com.duperknight.client.modules.CheckAltsModule;
 import com.duperknight.client.modules.CheckLandsModule;
 import com.duperknight.client.modules.CheckMembersModule;
+import com.duperknight.client.modules.ContainerScanModule;
+import com.duperknight.client.modules.CoreProtectBuilderModule;
 import com.duperknight.client.modules.DMLSModule;
+import com.duperknight.client.modules.DemoWaveModule;
 import com.duperknight.client.modules.DonorPetModule;
 import com.duperknight.client.modules.EventProtectModule;
+import com.duperknight.client.modules.GreeterModule;
+import com.duperknight.client.modules.GriefScanModule;
+import com.duperknight.client.modules.LocationsModule;
 import com.duperknight.client.modules.PrefixCreateModule;
 import com.duperknight.client.modules.PromoWaveModule;
+import com.duperknight.client.modules.PunishmentHelperModule;
 import com.duperknight.client.modules.StaffRank;
 import com.duperknight.client.modules.ChatSpamMuteModule;
 import com.duperknight.client.modules.XrayRollbackModule;
@@ -54,9 +64,19 @@ public class DMLSClient implements ClientModInitializer {
             new DonorPetModule(),
             new EventProtectModule(),
             new PromoWaveModule(),
+            new DemoWaveModule(),
             new UuidLookupModule(),
             new ChatAlertsModule(),
-                new ChatSpamMuteModule()
+            new ChatSpamMuteModule(),
+            new AwayModule(),
+            new ActivityWaveModule(),
+            new ChatReplayModule(),
+            new GreeterModule(),
+            new LocationsModule(),
+            new CoreProtectBuilderModule(),
+            new ContainerScanModule(),
+            new GriefScanModule(),
+            new PunishmentHelperModule()
     );
 
     @Override
@@ -146,6 +166,138 @@ public class DMLSClient implements ClientModInitializer {
                                             module(PromoWaveModule.class).submit(context.getSource().getClient(),
                                                     StringArgumentType.getString(context, "rank"), StringArgumentType.getString(context, "igns")); return 1;
                                         }))))
+                        .then(ClientCommandManager.literal("demowave")
+                                .then(ClientCommandManager.argument("rank", StringArgumentType.word())
+                                        .then(ClientCommandManager.argument("igns", StringArgumentType.greedyString()).executes(context -> {
+                                            module(DemoWaveModule.class).submit(context.getSource().getClient(),
+                                                    StringArgumentType.getString(context, "rank"), StringArgumentType.getString(context, "igns")); return 1;
+                                        }))))
+                        .then(ClientCommandManager.literal("activity")
+                                .then(ClientCommandManager.argument("igns", StringArgumentType.greedyString()).executes(context -> {
+                                    module(ActivityWaveModule.class).submit(context.getSource().getClient(),
+                                            StringArgumentType.getString(context, "igns")); return 1;
+                                })))
+                        .then(ClientCommandManager.literal("containers")
+                                .then(ClientCommandManager.literal("cancel").executes(context -> {
+                                    module(ContainerScanModule.class).cancel(context.getSource().getClient()); return 1;
+                                }))
+                                .then(ClientCommandManager.argument("ign", StringArgumentType.word())
+                                        .then(ClientCommandManager.argument("time", StringArgumentType.word())
+                                                .then(ClientCommandManager.argument("radius", StringArgumentType.word()).executes(context -> {
+                                                    module(ContainerScanModule.class).submit(context.getSource().getClient(),
+                                                            StringArgumentType.getString(context, "ign"),
+                                                            StringArgumentType.getString(context, "time"),
+                                                            StringArgumentType.getString(context, "radius")); return 1;
+                                                })))))
+                        .then(ClientCommandManager.literal("griefs")
+                                .then(ClientCommandManager.literal("cancel").executes(context -> {
+                                    module(GriefScanModule.class).cancel(context.getSource().getClient()); return 1;
+                                }))
+                                .then(ClientCommandManager.argument("ign", StringArgumentType.word())
+                                        .then(ClientCommandManager.argument("time", StringArgumentType.word())
+                                                .then(ClientCommandManager.argument("radius", StringArgumentType.word()).executes(context -> {
+                                                    module(GriefScanModule.class).submit(context.getSource().getClient(),
+                                                            StringArgumentType.getString(context, "ign"),
+                                                            StringArgumentType.getString(context, "time"),
+                                                            StringArgumentType.getString(context, "radius")); return 1;
+                                                })))))
+                        .then(ClientCommandManager.literal("co")
+                                .executes(context -> {
+                                    module(CoreProtectBuilderModule.class).openScreenDeferred(context.getSource().getClient());
+                                    return 1;
+                                }))
+                        .then(ClientCommandManager.literal("punish")
+                                .executes(context -> {
+                                    MinecraftClient client = context.getSource().getClient();
+                                    client.send(() -> client.setScreen(new com.duperknight.client.gui.PunishmentHelperScreen(null, module(PunishmentHelperModule.class))));
+                                    return 1;
+                                }))
+                        .then(ClientCommandManager.literal("greet")
+                                .then(ClientCommandManager.argument("ign", StringArgumentType.word()).executes(context -> {
+                                    module(GreeterModule.class).greet(context.getSource().getClient(),
+                                            StringArgumentType.getString(context, "ign").trim()); return 1;
+                                })))
+                        .then(ClientCommandManager.literal("greeter")
+                                .then(ClientCommandManager.literal("on").executes(context -> {
+                                    module(GreeterModule.class).setEnabled(context.getSource().getClient(), true); return 1;
+                                }))
+                                .then(ClientCommandManager.literal("off").executes(context -> {
+                                    module(GreeterModule.class).setEnabled(context.getSource().getClient(), false); return 1;
+                                })))
+                        .then(ClientCommandManager.literal("loc")
+                                .executes(context -> {
+                                    module(LocationsModule.class).list(context.getSource().getClient()); return 1;
+                                })
+                                .then(ClientCommandManager.literal("list").executes(context -> {
+                                    module(LocationsModule.class).list(context.getSource().getClient()); return 1;
+                                }))
+                                .then(ClientCommandManager.literal("save")
+                                        .then(ClientCommandManager.argument("name", StringArgumentType.greedyString()).executes(context -> {
+                                            module(LocationsModule.class).save(context.getSource().getClient(),
+                                                    StringArgumentType.getString(context, "name")); return 1;
+                                        })))
+                                .then(ClientCommandManager.literal("tp")
+                                        .then(ClientCommandManager.argument("name", StringArgumentType.greedyString())
+                                                .suggests((context, builder) -> CommandSource.suggestMatching(module(LocationsModule.class).names(), builder))
+                                                .executes(context -> {
+                                                    module(LocationsModule.class).teleport(context.getSource().getClient(),
+                                                            StringArgumentType.getString(context, "name")); return 1;
+                                                })))
+                                .then(ClientCommandManager.literal("del")
+                                        .then(ClientCommandManager.argument("name", StringArgumentType.greedyString())
+                                                .suggests((context, builder) -> CommandSource.suggestMatching(module(LocationsModule.class).names(), builder))
+                                                .executes(context -> {
+                                                    module(LocationsModule.class).delete(context.getSource().getClient(),
+                                                            StringArgumentType.getString(context, "name")); return 1;
+                                                }))))
+                        .then(ClientCommandManager.literal("dryrun")
+                                .executes(context -> {
+                                    ChatUtils.sendTranslatedMessage(context.getSource().getClient(), PREFIX,
+                                            DMLSConfig.dryRun() ? "dmls.chat.dry_run.status.on" : "dmls.chat.dry_run.status.off");
+                                    return 1;
+                                })
+                                .then(ClientCommandManager.literal("on")
+                                        .executes(context -> setDryRun(context.getSource().getClient(), true)))
+                                .then(ClientCommandManager.literal("off")
+                                        .executes(context -> setDryRun(context.getSource().getClient(), false))))
+                        .then(ClientCommandManager.literal("chatlog")
+                                .executes(context -> {
+                                    module(ChatReplayModule.class).openScreenWithFilter(context.getSource().getClient(), "");
+                                    return 1;
+                                })
+                                .then(ClientCommandManager.argument("filter", StringArgumentType.greedyString()).executes(context -> {
+                                    module(ChatReplayModule.class).openScreenWithFilter(context.getSource().getClient(),
+                                            StringArgumentType.getString(context, "filter")); return 1;
+                                })))
+                        .then(ClientCommandManager.literal("brb")
+                                .executes(context -> {
+                                    module(AwayModule.class).status(context.getSource().getClient());
+                                    return 1;
+                                })
+                                .then(ClientCommandManager.literal("off").executes(context -> {
+                                    module(AwayModule.class).disable(context.getSource().getClient());
+                                    return 1;
+                                }))
+                                .then(ClientCommandManager.argument("duration", StringArgumentType.word())
+                                        .suggests((context, builder) -> CommandSource.suggestMatching(List.of("5m", "15m", "30m", "1h"), builder))
+                                        .executes(context -> {
+                                            module(AwayModule.class).startBrb(context.getSource().getClient(),
+                                                    StringArgumentType.getString(context, "duration"));
+                                            return 1;
+                                        })))
+                        .then(ClientCommandManager.literal("dnd")
+                                .executes(context -> {
+                                    module(AwayModule.class).status(context.getSource().getClient());
+                                    return 1;
+                                })
+                                .then(ClientCommandManager.literal("on").executes(context -> {
+                                    module(AwayModule.class).setDnd(context.getSource().getClient(), true);
+                                    return 1;
+                                }))
+                                .then(ClientCommandManager.literal("off").executes(context -> {
+                                    module(AwayModule.class).setDnd(context.getSource().getClient(), false);
+                                    return 1;
+                                })))
                         .then(buildSayCommand())
                         .then(ClientCommandManager.literal("alerts")
                                 .executes(context -> {
@@ -215,8 +367,20 @@ public class DMLSClient implements ClientModInitializer {
         helpLine(client, "/dmls prefix <ign> <limit> <prefixid> <prefixtext>", Text.translatable("dmls.help.prefix", StaffRank.SUPPORT.displayName()));
         helpLine(client, "/dmls donorpet <ign> <pet>", Text.translatable("dmls.help.donorpet", StaffRank.ADMIN.displayName()));
         helpLine(client, "/dmls promowave <rank> <ign1, ign2, ...>", Text.translatable("dmls.help.promowave", StaffRank.ADMIN.displayName()));
+        helpLine(client, "/dmls demowave <rank> <ign1, ign2, ...>", Text.translatable("dmls.help.demowave", StaffRank.ADMIN.displayName()));
+        helpLine(client, "/dmls activity <ign1, ign2, ...>", Text.translatable("dmls.help.activity", StaffRank.ADMIN.displayName()));
         helpLine(client, "/dmls rank [rank]", Text.translatable("dmls.help.rank"));
         helpLine(client, "/dmls alerts [on|off|reload]", Text.translatable("dmls.help.alerts"));
+        helpLine(client, "/dmls chatlog [filter]", Text.translatable("dmls.help.chatlog"));
+        helpLine(client, "/dmls dryrun <on|off>", Text.translatable("dmls.help.dryrun", StaffRank.ADMIN.displayName()));
+        helpLine(client, "/dmls greet <ign>", Text.translatable("dmls.help.greet"));
+        helpLine(client, "/dmls loc <save|tp|del|list> [name]", Text.translatable("dmls.help.loc"));
+        helpLine(client, "/dmls punish", Text.translatable("dmls.help.punish"));
+        helpLine(client, "/dmls co", Text.translatable("dmls.help.co", StaffRank.SENIOR_MODERATOR.displayName()));
+        helpLine(client, "/dmls containers <ign|*> <time> <radius>", Text.translatable("dmls.help.containers", StaffRank.MODERATOR.displayName()));
+        helpLine(client, "/dmls griefs <ign|*> <time> <radius>", Text.translatable("dmls.help.griefs", StaffRank.MODERATOR.displayName()));
+        helpLine(client, "/dmls brb <duration|off>", Text.translatable("dmls.help.brb"));
+        helpLine(client, "/dmls dnd <on|off>", Text.translatable("dmls.help.dnd"));
         helpLine(client, "/dmls say [reply]", Text.translatable("dmls.help.say"));
         helpLine(client, "/dmls", Text.translatable("dmls.help.menu"));
         ChatUtils.sendClientMessage(client, "§7" + ChatUtils.separatorForChatWidth(client, ""));
@@ -233,6 +397,19 @@ public class DMLSClient implements ClientModInitializer {
     private int openHomeScreen(MinecraftClient client) {
         // next tick, otherwise the closing chat screen overrides it
         client.send(() -> client.setScreen(new DMLSHomeScreen(MODULES)));
+        return 1;
+    }
+
+    private int setDryRun(MinecraftClient client, boolean enabled) {
+        if (!DMLSConfig.staffRank().isAtLeast(StaffRank.ADMIN)) {
+            ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.rank.required",
+                    StaffRank.ADMIN.displayName(), DMLSConfig.staffRank().displayName());
+            return 0;
+        }
+
+        DMLSConfig.setDryRun(enabled);
+        ChatUtils.sendTranslatedMessage(client, PREFIX,
+                enabled ? "dmls.chat.dry_run.enabled" : "dmls.chat.dry_run.disabled");
         return 1;
     }
 

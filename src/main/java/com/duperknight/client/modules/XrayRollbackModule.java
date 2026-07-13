@@ -237,6 +237,13 @@ public final class XrayRollbackModule extends DMLSModule {
                     Text.translatable(step.label()));
             if (!ClientUtils.sendCommand(client, step.commandTemplate().formatted(ign))) {
                 cancel(client, "dmls.chat.xray.cancelled.connection");
+                return;
+            }
+
+            if (com.duperknight.client.utils.DMLSConfig.dryRun()) {
+                // nothing will confirm in dry run, so treat every step as completed
+                if (safetyGate != null) safetyGate.confirm();
+                else balanceOutcome = OperationOutcome.CONFIRMED;
             }
         }
 
