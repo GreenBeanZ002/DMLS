@@ -9,16 +9,19 @@ import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 
-/** Composes a ban log in the Stoneworks format and copies it to the clipboard. */
+/** Composes a ban log in the Stoneworks format, copies it, and can run the ban command. */
 public final class BanLogScreen extends DMLSMenuScreen {
     private final Rule rule;
     private TextFieldWidget ignField;
     private TextFieldWidget discordField;
     private TextFieldWidget reasonField;
     private TextFieldWidget typeField;
+    private TextFieldWidget durationField;
     private TextFieldWidget ticketField;
     private TextFieldWidget commentsField;
     private TextFieldWidget evidenceField;
+    private ButtonWidget banButton;
+    private boolean banArmed;
     private Text status = Text.empty();
 
     public BanLogScreen(Screen parent, Rule rule) {
@@ -32,11 +35,13 @@ public final class BanLogScreen extends DMLSMenuScreen {
         String savedDiscord = text(discordField);
         String savedReason = reasonField == null ? defaultReason() : reasonField.getText();
         String savedType = typeField == null ? defaultType() : typeField.getText();
+        String savedDuration = text(durationField);
         String savedTicket = text(ticketField);
         String savedComments = text(commentsField);
         String savedEvidence = text(evidenceField);
 
-        configureScrollableContent(HEADER_HEIGHT + scaled(10), scaled(340));
+        boolean canBan = PunishmentHelperModule.canBan();
+        configureScrollableContent(HEADER_HEIGHT + scaled(10), scaled(canBan ? 420 : 384));
         int formWidth = Math.min(scaled(380), width - scaled(40));
         int formX = (width - formWidth) / 2;
 
@@ -44,14 +49,25 @@ public final class BanLogScreen extends DMLSMenuScreen {
         discordField = field(formX, scaled(56), formWidth, savedDiscord, "user#0000 / @user", 64);
         reasonField = field(formX, scaled(100), formWidth, savedReason, "Rule broken and summary", 200);
         typeField = field(formX, scaled(144), formWidth, savedType, "Warning / 7 day ban / permanent", 64);
-        ticketField = field(formX, scaled(188), formWidth, savedTicket, "#ticket-123 (Grief)", 64);
-        commentsField = field(formX, scaled(232), formWidth, savedComments, "Notes for other staff", 200);
-        evidenceField = field(formX, scaled(276), formWidth, savedEvidence, "Links / screenshots", 200);
+        durationField = field(formX, scaled(188), formWidth, savedDuration, "7d / 2w / perm (for the ban command)", 32);
+        ticketField = field(formX, scaled(232), formWidth, savedTicket, "#ticket-123 (Grief)", 64);
+        commentsField = field(formX, scaled(276), formWidth, savedComments, "Notes for other staff", 200);
+        evidenceField = field(formX, scaled(320), formWidth, savedEvidence, "Links / screenshots", 200);
+
+        if (canBan) {
+            banButton = addScrollableChild(ButtonWidget.builder(banLabel(), button -> tryBan())
+                    .dimensions(formX, contentY(scaled(366)), formWidth, STANDARD_BUTTON_HEIGHT).build(), scaled(366));
+        }
 
         addDrawableChild(ButtonWidget.builder(ScreenTexts.BACK, button -> close())
                 .dimensions(leftPairedButtonX(), footerButtonY(), pairedButtonWidth(), STANDARD_BUTTON_HEIGHT).build());
         addDrawableChild(ButtonWidget.builder(Text.translatable("dmls.button.ban_log.copy"), button -> copy())
                 .dimensions(rightPairedButtonX(), footerButtonY(), pairedButtonWidth(), STANDARD_BUTTON_HEIGHT).build());
+    }
+
+    private Text banLabel() {
+        return banArmed ? Text.translatable("dmls.button.ban_log.confirm").styled(s -> s.withColor(0xFFFF5555))
+                : Text.translatable("dmls.button.ban_log.ban");
     }
 
     private String defaultReason() {
@@ -68,7 +84,10 @@ public final class BanLogScreen extends DMLSMenuScreen {
         widget.setMaxLength(maxLength);
         widget.setText(saved);
         widget.setSuggestion(saved.isEmpty() ? placeholder : null);
-        widget.setChangedListener(value -> widget.setSuggestion(value.isEmpty() ? placeholder : null));
+        widget.setChangedListener(value -> {
+            widget.setSuggestion(value.isEmpty() ? placeholder : null);
+            disarmBan();
+        });
         return widget;
     }
 
@@ -83,6 +102,32 @@ public final class BanLogScreen extends DMLSMenuScreen {
         status = Text.translatable("dmls.screen.ban_log.copied");
     }
 
+    private void tryBan() {
+        if (!banArmed) {
+            banArmed = true;
+            if (banButton != null) {
+                banButton.setMessage(banLabel());
+            }
+            status = Text.translatable("dmls.screen.ban_log.confirm_hint");
+            return;
+        }
+
+        boolean ran = PunishmentHelperModule.ban(client, ignField.getText(), durationField.getText(), reasonField.getText());
+        disarmBan();
+        if (ran) {
+            closeToGame();
+        }
+    }
+
+    private void disarmBan() {
+        if (banArmed) {
+            banArmed = false;
+            if (banButton != null) {
+                banButton.setMessage(banLabel());
+            }
+        }
+    }
+
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         renderMenuBackground(context);
@@ -91,11 +136,12 @@ public final class BanLogScreen extends DMLSMenuScreen {
         drawLabel(context, "dmls.field.ban_log.discord", formX, scaled(44));
         drawLabel(context, "dmls.field.ban_log.reason", formX, scaled(88));
         drawLabel(context, "dmls.field.ban_log.type", formX, scaled(132));
-        drawLabel(context, "dmls.field.ban_log.ticket", formX, scaled(176));
-        drawLabel(context, "dmls.field.ban_log.comments", formX, scaled(220));
-        drawLabel(context, "dmls.field.ban_log.evidence", formX, scaled(264));
+        drawLabel(context, "dmls.field.ban_log.duration", formX, scaled(176));
+        drawLabel(context, "dmls.field.ban_log.ticket", formX, scaled(220));
+        drawLabel(context, "dmls.field.ban_log.comments", formX, scaled(264));
+        drawLabel(context, "dmls.field.ban_log.evidence", formX, scaled(308));
         if (!status.getString().isEmpty()) {
-            context.drawCenteredTextWithShadow(textRenderer, status, width / 2, footerButtonY() - scaled(12), 0xFF55FF55);
+            context.drawCenteredTextWithShadow(textRenderer, status, width / 2, footerButtonY() - scaled(12), 0xFFFFFF55);
         }
         super.render(context, mouseX, mouseY, delta);
     }

@@ -2,6 +2,8 @@ package com.duperknight.client.modules;
 
 import com.duperknight.DMLS;
 import com.duperknight.client.gui.PunishmentHelperScreen;
+import com.duperknight.client.utils.ChatUtils;
+import com.duperknight.client.utils.ClientUtils;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.item.ItemStack;
@@ -21,6 +23,10 @@ import java.util.stream.Collectors;
 
 /** Rulebook browser and ban-log composer built from the Stoneworks rulebook. */
 public final class PunishmentHelperModule extends DMLSModule {
+    /** The minimum rank required to actually issue a ban from the helper. */
+    public static final StaffRank BAN_RANK = StaffRank.MODERATOR;
+    private static final String PREFIX = "§8[§6DMLS - Punish§8] §7";
+    private static final Pattern USERNAME = Pattern.compile("[A-Za-z0-9_]{3,16}");
     private static final Identifier RULEBOOK = Identifier.of(DMLS.MOD_ID.toLowerCase(Locale.ROOT), "rulebook.json");
     private static final Pattern RULE_ID = Pattern.compile("\"id\"\\s*:\\s*\"([^\"]+)\"");
     private static final Pattern SECTION = Pattern.compile("\"section\"\\s*:\\s*\"((?:[^\"\\\\]|\\\\.)*)\"");
@@ -90,6 +96,44 @@ public final class PunishmentHelperModule extends DMLSModule {
             return rules();
         }
         return rules().stream().filter(rule -> rule.matches(needle)).collect(Collectors.toList());
+    }
+
+    /** Whether the selected rank may issue bans. */
+    public static boolean canBan() {
+        return com.duperknight.client.utils.DMLSConfig.staffRank().isAtLeast(BAN_RANK);
+    }
+
+    /**
+     * Runs the server ban command: /ban &lt;ign&gt; &lt;duration&gt; &lt;reason&gt;.
+     *
+     * @return true if the command was dispatched
+     */
+    public static boolean ban(MinecraftClient client, String ign, String duration, String reason) {
+        if (!canBan()) {
+            ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.rank.required",
+                    BAN_RANK.displayName(), com.duperknight.client.utils.DMLSConfig.staffRank().displayName());
+            return false;
+        }
+
+        String cleanIgn = ign.trim();
+        if (!USERNAME.matcher(cleanIgn).matches()) {
+            ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.common.invalid_ign");
+            return false;
+        }
+
+        String cleanDuration = duration.trim();
+        String cleanReason = reason.trim();
+        if (cleanDuration.isEmpty() || cleanReason.isEmpty()) {
+            ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.punish.ban_incomplete");
+            return false;
+        }
+
+        if (ClientUtils.sendCommand(client, "ban %s %s %s".formatted(cleanIgn, cleanDuration, cleanReason))) {
+            ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.punish.banned", cleanIgn, cleanDuration);
+            return true;
+        }
+        ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.command.not_sent");
+        return false;
     }
 
     /** Builds the ban-log text in the Stoneworks format. */
