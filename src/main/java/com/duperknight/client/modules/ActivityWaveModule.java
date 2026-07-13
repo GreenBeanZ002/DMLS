@@ -1,6 +1,6 @@
 package com.duperknight.client.modules;
 
-import com.duperknight.client.gui.ActivityWaveScreen;
+import com.duperknight.client.gui.modules.ActivityWaveScreen;
 import com.duperknight.client.message.MessageOrigin;
 import com.duperknight.client.message.ServerMessage;
 import com.duperknight.client.message.ServerMessageRouter;
@@ -226,7 +226,7 @@ public final class ActivityWaveModule extends DMLSModule {
         private void report(MinecraftClient client) {
             String header = PREFIX;
             ChatUtils.sendClientMessage(client, header + ChatUtils.separatorForChatWidth(client, header));
-            ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.activity.header", reportedDays);
+            ChatUtils.sendTranslatedMessage(client, "", "dmls.chat.activity.header", reportedDays);
 
             results.entrySet().stream()
                     .sorted(Comparator.comparingDouble((Map.Entry<String, OptionalDouble> entry) ->

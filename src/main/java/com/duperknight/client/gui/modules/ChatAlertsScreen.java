@@ -1,5 +1,6 @@
-package com.duperknight.client.gui;
+package com.duperknight.client.gui.modules;
 
+import com.duperknight.client.gui.DMLSMenuScreen;
 import com.duperknight.client.modules.ChatAlertsModule;
 import com.duperknight.client.utils.DMLSConfig;
 import net.minecraft.client.gui.DrawContext;

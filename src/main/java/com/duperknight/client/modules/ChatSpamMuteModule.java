@@ -1,6 +1,6 @@
 package com.duperknight.client.modules;
 
-import com.duperknight.client.gui.ChatSpamMuteScreen;
+import com.duperknight.client.gui.modules.ChatSpamMuteScreen;
 import com.duperknight.client.utils.ChatUtils;
 import com.duperknight.client.utils.DMLSConfig;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;

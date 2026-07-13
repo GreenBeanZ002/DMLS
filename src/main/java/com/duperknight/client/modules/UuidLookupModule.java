@@ -1,6 +1,6 @@
 package com.duperknight.client.modules;
 
-import com.duperknight.client.gui.UuidLookupScreen;
+import com.duperknight.client.gui.modules.UuidLookupScreen;
 import com.duperknight.client.utils.ChatUtils;
 import com.duperknight.client.utils.InputValidators;
 import com.duperknight.client.utils.MojangProfileLookup;

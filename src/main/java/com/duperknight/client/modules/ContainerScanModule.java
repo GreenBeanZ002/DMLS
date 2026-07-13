@@ -1,6 +1,6 @@
 package com.duperknight.client.modules;
 
-import com.duperknight.client.gui.ContainerScanScreen;
+import com.duperknight.client.gui.modules.ContainerScanScreen;
 import com.duperknight.client.message.MessageOrigin;
 import com.duperknight.client.message.ServerMessage;
 import com.duperknight.client.message.ServerMessageRouter;
@@ -236,7 +236,7 @@ public final class ContainerScanModule extends DMLSModule {
             ChatUtils.sendClientMessage(client, header + ChatUtils.separatorForChatWidth(client, header));
 
             if (results.isEmpty()) {
-                ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.containers.no_results");
+                ChatUtils.sendTranslatedMessage(client, "", "dmls.chat.containers.no_results");
             } else {
                 results.entrySet().stream()
                         .sorted(Comparator.comparingLong((Map.Entry<String, Map<String, Map<String, Long>>> entry) ->
@@ -256,7 +256,7 @@ public final class ContainerScanModule extends DMLSModule {
             }
 
             int scannedPages = currentPage;
-            ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.containers.pages", scannedPages, totalPages);
+            ChatUtils.sendTranslatedMessage(client, "", "dmls.chat.containers.pages", scannedPages, totalPages);
             ChatUtils.sendClientMessage(client, "§7" + ChatUtils.separatorForChatWidth(client, ""));
         }
 

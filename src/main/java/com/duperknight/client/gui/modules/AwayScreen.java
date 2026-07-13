@@ -1,5 +1,6 @@
-package com.duperknight.client.gui;
+package com.duperknight.client.gui.modules;
 
+import com.duperknight.client.gui.DMLSMenuScreen;
 import com.duperknight.client.modules.AwayModule;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;

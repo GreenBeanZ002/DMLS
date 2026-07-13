@@ -1,6 +1,7 @@
 package com.duperknight.client.gui;
 
 import com.duperknight.DMLS;
+import com.duperknight.client.gui.widgets.DropdownWidget;
 import com.duperknight.client.modules.DMLSModule;
 import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.Click;
@@ -15,14 +16,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** Shared in-game menu chrome used by every DMLS screen. */
-abstract class DMLSMenuScreen extends Screen {
+public abstract class DMLSMenuScreen extends Screen {
     protected static final float UI_SCALE = 0.85F;
     private static final Identifier LOGO = Identifier.of(DMLS.MOD_ID.toLowerCase(), "logo.png");
     private static final Identifier HEADER_SEPARATOR = Identifier.ofVanilla("textures/gui/inworld_header_separator.png");
     private static final Identifier FOOTER_SEPARATOR = Identifier.ofVanilla("textures/gui/inworld_footer_separator.png");
     protected static final Identifier SCROLLER = Identifier.ofVanilla("widget/scroller");
     protected static final Identifier SCROLLER_BACKGROUND = Identifier.ofVanilla("widget/scroller_background");
-    protected static final int SCROLLBAR_WIDTH = 6;
+    public static final int SCROLLBAR_WIDTH = 6;
+    public static final int PANEL_BACKGROUND_COLOR = 0xC0101010;
+    public static final int PANEL_BORDER_COLOR = 0xFF9A9A9A;
     private static final int LOGO_TEXTURE_WIDTH = 2040;
     private static final int LOGO_TEXTURE_HEIGHT = 400;
     protected static final int HEADER_HEIGHT = scaled(80);
@@ -33,6 +36,7 @@ abstract class DMLSMenuScreen extends Screen {
 
     protected final Screen parent;
     private final List<ScrollableWidget> scrollableWidgets = new ArrayList<>();
+    private final List<DropdownWidget<?>> dropdownWidgets = new ArrayList<>();
     private int contentViewportTop;
     private int contentViewportBottom;
     private int contentScrollOffset;
@@ -68,8 +72,8 @@ abstract class DMLSMenuScreen extends Screen {
     }
 
     protected void renderPanel(DrawContext context, int x, int y, int panelWidth, int panelHeight) {
-        context.fill(x, y, x + panelWidth, y + panelHeight, 0xC0101010);
-        context.drawStrokedRectangle(x, y, panelWidth, panelHeight, 0xFF9A9A9A);
+        context.fill(x, y, x + panelWidth, y + panelHeight, PANEL_BACKGROUND_COLOR);
+        context.drawStrokedRectangle(x, y, panelWidth, panelHeight, PANEL_BORDER_COLOR);
     }
 
     /** Renders the standard title and description block for a module screen. */
@@ -115,6 +119,20 @@ abstract class DMLSMenuScreen extends Screen {
         T child = addDrawableChild(widget);
         updateScrollableWidgets();
         return child;
+    }
+
+    /** Registers a dropdown and ensures its expanded list renders and receives input above other controls. */
+    protected <T> DropdownWidget<T> addDropdownChild(DropdownWidget<T> dropdown) {
+        dropdown.setDropdownBounds(scaled(4), height - scaled(4));
+        dropdownWidgets.add(dropdown);
+        return addDrawableChild(dropdown);
+    }
+
+    /** Scrollable-content counterpart to {@link #addDropdownChild(DropdownWidget)}. */
+    protected <T> DropdownWidget<T> addScrollableDropdownChild(DropdownWidget<T> dropdown, int offset) {
+        dropdown.setDropdownBounds(scaled(4), height - scaled(4));
+        dropdownWidgets.add(dropdown);
+        return addScrollableChild(dropdown, offset);
     }
 
     protected boolean isContentVisible(int y, int elementHeight) {
@@ -200,10 +218,19 @@ abstract class DMLSMenuScreen extends Screen {
             int thumbY = contentViewportTop + contentScrollOffset * (viewportHeight - thumbHeight) / maxContentScroll;
             renderVanillaScrollbar(context, trackX, contentViewportTop, viewportHeight, thumbY, thumbHeight);
         }
+        for (DropdownWidget<?> dropdown : dropdownWidgets) {
+            dropdown.renderDropdown(context, mouseX, mouseY, delta);
+        }
     }
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        for (DropdownWidget<?> dropdown : dropdownWidgets) {
+            if (dropdown.isDropdownOpen()
+                    && dropdown.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount)) {
+                return true;
+            }
+        }
         if (maxContentScroll > 0 && mouseY >= contentViewportTop && mouseY < contentViewportBottom) {
             contentScrollOffset = Math.clamp(contentScrollOffset - (int) (verticalAmount * scaled(24)), 0, maxContentScroll);
             updateScrollableWidgets();
@@ -214,6 +241,12 @@ abstract class DMLSMenuScreen extends Screen {
 
     @Override
     public boolean mouseClicked(Click click, boolean doubled) {
+        for (DropdownWidget<?> dropdown : dropdownWidgets) {
+            if (dropdown.isDropdownOpen() && dropdown.mouseClicked(click, doubled)) {
+                setFocused(dropdown);
+                return true;
+            }
+        }
         if (maxContentScroll > 0 && click.button() == 0
                 && click.x() >= contentScrollbarX() && click.x() <= contentScrollbarX() + SCROLLBAR_WIDTH
                 && click.y() >= contentViewportTop && click.y() < contentViewportBottom) {
@@ -226,6 +259,11 @@ abstract class DMLSMenuScreen extends Screen {
 
     @Override
     public boolean mouseDragged(Click click, double deltaX, double deltaY) {
+        for (DropdownWidget<?> dropdown : dropdownWidgets) {
+            if (dropdown.mouseDragged(click, deltaX, deltaY)) {
+                return true;
+            }
+        }
         if (draggingContentScrollbar) {
             updateContentScrollFromMouse(click.y());
             return true;
@@ -235,8 +273,20 @@ abstract class DMLSMenuScreen extends Screen {
 
     @Override
     public boolean mouseReleased(Click click) {
+        for (DropdownWidget<?> dropdown : dropdownWidgets) {
+            if (dropdown.isDraggingScrollbar() && dropdown.mouseReleased(click)) {
+                return true;
+            }
+        }
         draggingContentScrollbar = false;
         return super.mouseReleased(click);
+    }
+
+    @Override
+    protected void clearChildren() {
+        super.clearChildren();
+        scrollableWidgets.clear();
+        dropdownWidgets.clear();
     }
 
     protected int contentScrollbarX() {
@@ -258,8 +308,8 @@ abstract class DMLSMenuScreen extends Screen {
                 32, Math.max(32, viewportHeight - 8));
     }
 
-    protected static void renderVanillaScrollbar(DrawContext context, int x, int y, int height,
-                                                  int thumbY, int thumbHeight) {
+    public static void renderVanillaScrollbar(DrawContext context, int x, int y, int height,
+                                               int thumbY, int thumbHeight) {
         context.drawGuiTexture(RenderPipelines.GUI_TEXTURED, SCROLLER_BACKGROUND,
                 x, y, SCROLLBAR_WIDTH, height);
         context.drawGuiTexture(RenderPipelines.GUI_TEXTURED, SCROLLER,

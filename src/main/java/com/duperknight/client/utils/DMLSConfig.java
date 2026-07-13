@@ -15,7 +15,7 @@ import java.util.Optional;
 import java.util.Properties;
 
 /**
- * Handles the DMLS settings (selected staff rank and chat alerts toggle), stored in config/dmls.properties.
+ * Handles durable DMLS preferences, stored in config/dmls.properties.
  */
 public final class DMLSConfig {
     public static final List<String> RANK_SUGGESTIONS = List.of("helper", "moderator", "senior_moderator", "support", "admin");
@@ -24,6 +24,8 @@ public final class DMLSConfig {
     private static final String ALERTS_KEY = "chatAlerts";
     private static final String TRADE_CHAT_MUTED_KEY = "tradeChatMuted";
     private static final String SERVER_MESSAGES_MUTED_KEY = "serverMessagesMuted";
+    private static final String GREETER_ENABLED_KEY = "greeterEnabled";
+    private static final String AWAY_DND_KEY = "awayDnd";
     private static final String ALLOWED_SERVERS_KEY = "allowedServers";
     private static final Path CONFIG_PATH = FabricLoader.getInstance().getConfigDir().resolve("dmls.properties");
     private static final StaffRank DEFAULT_RANK = StaffRank.HELPER;
@@ -33,6 +35,8 @@ public final class DMLSConfig {
     private static boolean alertsEnabled = true;
     private static boolean tradeChatMuted;
     private static boolean serverMessagesMuted;
+    private static boolean greeterEnabled = true;
+    private static boolean awayDnd;
     private static List<String> allowedServers = ServerGuard.DEFAULT_ALLOWED_SERVERS;
     // Deliberately not persisted: the game always starts live, so a forgotten
     // dry run can never suppress real commands in a later session.
@@ -82,6 +86,28 @@ public final class DMLSConfig {
     public static void setServerMessagesMuted(boolean muted) {
         ensureLoaded();
         serverMessagesMuted = muted;
+        save();
+    }
+
+    public static boolean greeterEnabled() {
+        ensureLoaded();
+        return greeterEnabled;
+    }
+
+    public static void setGreeterEnabled(boolean enabled) {
+        ensureLoaded();
+        greeterEnabled = enabled;
+        save();
+    }
+
+    public static boolean awayDnd() {
+        ensureLoaded();
+        return awayDnd;
+    }
+
+    public static void setAwayDnd(boolean enabled) {
+        ensureLoaded();
+        awayDnd = enabled;
         save();
     }
 
@@ -152,6 +178,8 @@ public final class DMLSConfig {
         alertsEnabled = Boolean.parseBoolean(properties.getProperty(ALERTS_KEY, "true"));
         tradeChatMuted = Boolean.parseBoolean(properties.getProperty(TRADE_CHAT_MUTED_KEY, "false"));
         serverMessagesMuted = Boolean.parseBoolean(properties.getProperty(SERVER_MESSAGES_MUTED_KEY, "false"));
+        greeterEnabled = Boolean.parseBoolean(properties.getProperty(GREETER_ENABLED_KEY, "true"));
+        awayDnd = Boolean.parseBoolean(properties.getProperty(AWAY_DND_KEY, "false"));
         if (properties.containsKey(ALLOWED_SERVERS_KEY)) {
             allowedServers = java.util.Arrays.stream(properties.getProperty(ALLOWED_SERVERS_KEY, "").split(","))
                     .map(ServerGuard::normalizeRule)
@@ -169,7 +197,15 @@ public final class DMLSConfig {
         properties.setProperty(ALERTS_KEY, Boolean.toString(alertsEnabled));
         properties.setProperty(TRADE_CHAT_MUTED_KEY, Boolean.toString(tradeChatMuted));
         properties.setProperty(SERVER_MESSAGES_MUTED_KEY, Boolean.toString(serverMessagesMuted));
+        properties.setProperty(GREETER_ENABLED_KEY, Boolean.toString(greeterEnabled));
+        properties.setProperty(AWAY_DND_KEY, Boolean.toString(awayDnd));
         properties.setProperty(ALLOWED_SERVERS_KEY, String.join(",", allowedServers));
+        try {
+            Files.createDirectories(CONFIG_PATH.getParent());
+        } catch (IOException e) {
+            DMLS.LOGGER.warn("Failed to create config directory for {}", CONFIG_PATH, e);
+            return;
+        }
         try (OutputStream out = Files.newOutputStream(CONFIG_PATH)) {
             properties.store(out, "DMLS settings");
         } catch (IOException e) {

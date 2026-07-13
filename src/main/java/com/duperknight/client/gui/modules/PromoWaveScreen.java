@@ -1,6 +1,8 @@
-package com.duperknight.client.gui;
+package com.duperknight.client.gui.modules;
 
-import com.duperknight.client.modules.CheckLandsModule;
+import com.duperknight.client.gui.DMLSMenuScreen;
+import com.duperknight.client.gui.widgets.DropdownWidget;
+import com.duperknight.client.modules.PromoWaveModule;
 import com.duperknight.client.utils.ClientUtils;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -9,44 +11,52 @@ import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 
-/** Form for invoking Check Lands' existing single or batch checker. */
-public final class CheckLandsScreen extends DMLSMenuScreen {
-    private final CheckLandsModule module;
-    private TextFieldWidget ignField;
+/** Form for invoking a promotion wave. */
+public final class PromoWaveScreen extends DMLSMenuScreen {
+    private final PromoWaveModule module;
+    private TextFieldWidget ignsField;
+    private String rank = PromoWaveModule.ranks().get(0);
     private ButtonWidget submitButton;
     private Text validationMessage = Text.empty();
 
-    public CheckLandsScreen(Screen parent, CheckLandsModule module) {
-        super(Text.translatable("dmls.module.check_lands.name"), parent);
+    public PromoWaveScreen(Screen parent, PromoWaveModule module) {
+        super(Text.translatable("dmls.module.promo_wave.name"), parent);
         this.module = module;
     }
 
     @Override
     protected void init() {
-        configureScrollableContent(module, scaled(64));
+        configureScrollableContent(module, scaled(94));
         int formWidth = Math.min(scaled(360), width - scaled(48));
         int formX = (width - formWidth) / 2;
-        ignField = addScrollableChild(new TextFieldWidget(textRenderer, formX, contentY(scaled(14)), formWidth, STANDARD_BUTTON_HEIGHT,
+        ignsField = addScrollableChild(new TextFieldWidget(textRenderer, formX, contentY(scaled(14)), formWidth, STANDARD_BUTTON_HEIGHT,
                 Text.translatable("dmls.field.player_igns")), scaled(14));
-        ignField.setMaxLength(512);
-        ignField.setSuggestion(Text.translatable("dmls.placeholder.player_names").getString());
-        ignField.setChangedListener(value -> ignField.setSuggestion(value.isEmpty() ? Text.translatable("dmls.placeholder.player_names").getString() : null));
-        setInitialFocus(ignField);
+        ignsField.setMaxLength(1024);
+        ignsField.setSuggestion(Text.translatable("dmls.placeholder.player_names_many").getString());
+        ignsField.setChangedListener(value -> ignsField.setSuggestion(value.isEmpty() ? Text.translatable("dmls.placeholder.player_names_many").getString() : null));
+        setInitialFocus(ignsField);
+
+        addScrollableDropdownChild(DropdownWidget.builder(
+                        Text.translatable("dmls.field.rank"), PromoWaveModule.ranks(), rank,
+                        Text::literal, (dropdown, value) -> rank = value)
+                .dimensions(formX, contentY(scaled(48)), formWidth, STANDARD_BUTTON_HEIGHT)
+                .showOptionLabel(true)
+                .build(), scaled(48));
 
         addDrawableChild(ButtonWidget.builder(ScreenTexts.BACK, button -> close())
                 .dimensions(leftPairedButtonX(), footerButtonY(), pairedButtonWidth(), STANDARD_BUTTON_HEIGHT).build());
-        submitButton = addDrawableChild(ButtonWidget.builder(Text.translatable("dmls.button.submit"), button -> submit())
+        submitButton = addDrawableChild(ButtonWidget.builder(Text.translatable("dmls.button.promote"), button -> submit())
                 .dimensions(rightPairedButtonX(), footerButtonY(), pairedButtonWidth(), STANDARD_BUTTON_HEIGHT).build());
         submitButton.active = !ClientUtils.isNotConnected(client);
     }
 
     private void submit() {
-        String input = ignField.getText().trim();
+        String input = ignsField.getText().trim();
         if (input.isEmpty()) {
             validationMessage = Text.translatable("dmls.validation.player_igns");
             return;
         }
-        module.submit(client, input);
+        module.submit(client, rank, input);
         closeToGame();
     }
 
@@ -61,9 +71,9 @@ public final class CheckLandsScreen extends DMLSMenuScreen {
         renderModuleHeader(context, module);
         int labelY = contentY(0);
         if (isContentVisible(labelY, textRenderer.fontHeight)) {
-            context.drawTextWithShadow(textRenderer, Text.translatable("dmls.field.player_igns.label"), ignField.getX(), labelY, 0xFFCCCCCC);
+            context.drawTextWithShadow(textRenderer, Text.translatable("dmls.field.player_igns.label"), ignsField.getX(), labelY, 0xFFCCCCCC);
         }
-        int validationY = contentY(scaled(48));
+        int validationY = contentY(scaled(80));
         if (!validationMessage.getString().isEmpty() && isContentVisible(validationY, textRenderer.fontHeight)) {
             context.drawCenteredTextWithShadow(textRenderer, validationMessage, width / 2, validationY, 0xFFFF5555);
         }

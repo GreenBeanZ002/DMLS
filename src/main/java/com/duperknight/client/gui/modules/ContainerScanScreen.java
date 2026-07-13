@@ -1,5 +1,6 @@
-package com.duperknight.client.gui;
+package com.duperknight.client.gui.modules;
 
+import com.duperknight.client.gui.DMLSMenuScreen;
 import com.duperknight.client.modules.ContainerScanModule;
 import com.duperknight.client.utils.ClientUtils;
 import net.minecraft.client.gui.DrawContext;

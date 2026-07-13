@@ -4,7 +4,7 @@ import com.duperknight.client.utils.AlertWordlist;
 import com.duperknight.client.utils.ChatUtils;
 import com.duperknight.client.utils.ClientUtils;
 import com.duperknight.client.utils.DMLSConfig;
-import com.duperknight.client.gui.ChatAlertsScreen;
+import com.duperknight.client.gui.modules.ChatAlertsScreen;
 import com.duperknight.client.message.MessageOrigin;
 import com.duperknight.client.message.ServerMessage;
 import com.duperknight.client.message.ServerMessageRouter;

@@ -1,6 +1,6 @@
 package com.duperknight.client.modules;
 
-import com.duperknight.client.gui.XrayRollbackScreen;
+import com.duperknight.client.gui.modules.XrayRollbackScreen;
 import com.duperknight.client.utils.ChatUtils;
 import com.duperknight.client.utils.ClientUtils;
 import com.duperknight.client.utils.ServerGuard;

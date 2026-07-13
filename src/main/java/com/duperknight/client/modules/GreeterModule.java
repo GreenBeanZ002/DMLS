@@ -1,11 +1,12 @@
 package com.duperknight.client.modules;
 
-import com.duperknight.client.gui.GreeterScreen;
+import com.duperknight.client.gui.modules.GreeterScreen;
 import com.duperknight.client.message.MessageOrigin;
 import com.duperknight.client.message.ServerMessage;
 import com.duperknight.client.message.ServerMessageRouter;
 import com.duperknight.client.utils.ChatUtils;
 import com.duperknight.client.utils.ClientUtils;
+import com.duperknight.client.utils.DMLSConfig;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.item.ItemStack;
@@ -36,7 +37,6 @@ public final class GreeterModule extends DMLSModule {
     );
 
     private final Map<String, Long> recentPrompts = new HashMap<>();
-    private boolean enabled = true;
 
     public GreeterModule() {
         super(StaffRank.HELPER);
@@ -68,12 +68,12 @@ public final class GreeterModule extends DMLSModule {
     }
 
     public boolean enabled() {
-        return enabled;
+        return DMLSConfig.greeterEnabled();
     }
 
-    /** Enables or disables the first-join prompts for this session. */
+    /** Enables or disables first-join prompts and saves the preference. */
     public void setEnabled(MinecraftClient client, boolean enabled) {
-        this.enabled = enabled;
+        DMLSConfig.setGreeterEnabled(enabled);
         ChatUtils.sendTranslatedMessage(client, PREFIX,
                 enabled ? "dmls.chat.greeter.enabled" : "dmls.chat.greeter.disabled");
     }
@@ -93,7 +93,7 @@ public final class GreeterModule extends DMLSModule {
     }
 
     private void handleServerMessage(ServerMessage message) {
-        if (!enabled) {
+        if (!enabled()) {
             return;
         }
 

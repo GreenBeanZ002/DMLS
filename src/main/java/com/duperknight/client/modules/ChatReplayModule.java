@@ -1,7 +1,7 @@
 package com.duperknight.client.modules;
 
 import com.duperknight.DMLS;
-import com.duperknight.client.gui.ChatReplayScreen;
+import com.duperknight.client.gui.modules.ChatReplayScreen;
 import com.duperknight.client.message.MessageOrigin;
 import com.duperknight.client.message.ServerMessage;
 import com.duperknight.client.message.ServerMessageRouter;

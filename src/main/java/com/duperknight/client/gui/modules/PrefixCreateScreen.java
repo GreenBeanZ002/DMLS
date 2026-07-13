@@ -1,12 +1,13 @@
-package com.duperknight.client.gui;
+package com.duperknight.client.gui.modules;
 
+import com.duperknight.client.gui.DMLSMenuScreen;
+import com.duperknight.client.gui.widgets.DropdownWidget;
 import com.duperknight.client.modules.PrefixCreateModule;
 import com.duperknight.client.utils.ClientUtils;
 import com.duperknight.client.utils.PrefixTextFormatter;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.CyclingButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.OrderedText;
@@ -77,15 +78,18 @@ public final class PrefixCreateScreen extends DMLSMenuScreen {
             refreshValidation();
         });
 
-        addScrollableChild(CyclingButtonWidget.builder((String value) -> PrefixCreateModule.CUSTOM_LIMIT.equals(value)
-                        ? Text.translatable("dmls.field.custom") : Text.literal(value), limit)
-                .values(PrefixCreateModule.LIMITS)
-                .build(formX, contentY(scaled(204)), splitWidth, STANDARD_BUTTON_HEIGHT,
-                        Text.translatable("dmls.field.player_limit"), (button, value) -> {
+        addScrollableDropdownChild(DropdownWidget.builder(
+                        Text.translatable("dmls.field.player_limit"), PrefixCreateModule.LIMITS, limit,
+                        value -> PrefixCreateModule.CUSTOM_LIMIT.equals(value)
+                                ? Text.translatable("dmls.field.custom") : Text.literal(value),
+                        (dropdown, value) -> {
                             limit = value;
                             updateCustomLimitState();
                             refreshValidation();
-                        }), scaled(204));
+                        })
+                .dimensions(formX, contentY(scaled(204)), splitWidth, STANDARD_BUTTON_HEIGHT)
+                .showOptionLabel(true)
+                .build(), scaled(204));
 
         customLimitField = addScrollableChild(new TextFieldWidget(textRenderer, formX + splitWidth + scaled(4),
                 contentY(scaled(204)), customWidth, STANDARD_BUTTON_HEIGHT, Text.translatable("dmls.field.custom")), scaled(204));

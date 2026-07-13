@@ -2,6 +2,7 @@ package com.duperknight.client;
 
 import com.duperknight.DMLS;
 import com.duperknight.client.gui.DMLSHomeScreen;
+import com.duperknight.client.gui.modules.PunishmentHelperScreen;
 import com.duperknight.client.modules.ActivityWaveModule;
 import com.duperknight.client.modules.AwayModule;
 import com.duperknight.client.modules.ChatAlertsModule;
@@ -55,30 +56,6 @@ import java.util.Optional;
 public class DMLSClient implements ClientModInitializer {
     private static final String PREFIX = "§8[§6DMLS§8] §7";
 
-    private static final List<DMLSModule> MODULES = List.of(
-            new CheckLandsModule(),
-            new CheckMembersModule(),
-            new CheckAltsModule(),
-            new XrayRollbackModule(),
-            new PrefixCreateModule(),
-            new DonorPetModule(),
-            new EventProtectModule(),
-            new PromoWaveModule(),
-            new DemoWaveModule(),
-            new UuidLookupModule(),
-            new ChatAlertsModule(),
-            new ChatSpamMuteModule(),
-            new AwayModule(),
-            new ActivityWaveModule(),
-            new ChatReplayModule(),
-            new GreeterModule(),
-            new LocationsModule(),
-            new CoreProtectBuilderModule(),
-            new ContainerScanModule(),
-            new GriefScanModule(),
-            new PunishmentHelperModule()
-    );
-
     @Override
     public void onInitializeClient() {
         DMLS.LOGGER.info("Initializing DMLS client, you are a lazy staff member!");
@@ -86,16 +63,20 @@ public class DMLSClient implements ClientModInitializer {
         registerDmlsCommand();
         registerMenuKeybind();
         UpdateChecker.register();
-        MODULES.forEach(DMLSModule::register);
+        modules().forEach(DMLSModule::register);
     }
 
     public static List<DMLSModule> modules() {
-        return MODULES;
+        return ModulesHolder.ALL;
     }
 
     private void registerDmlsCommand() {
-        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> dispatcher.register(
-                ClientCommandManager.literal("dmls")
+        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
+                dispatcher.register(buildDmlsCommand()));
+    }
+
+    LiteralArgumentBuilder<FabricClientCommandSource> buildDmlsCommand() {
+        return ClientCommandManager.literal("dmls")
                         .executes(context -> openHomeScreen(context.getSource().getClient()))
                         .then(ClientCommandManager.literal("rank")
                                 .executes(context -> {
@@ -153,7 +134,7 @@ public class DMLSClient implements ClientModInitializer {
                                                             module(PrefixCreateModule.class).submit(context.getSource().getClient(),
                                                                     StringArgumentType.getString(context, "ign"), StringArgumentType.getString(context, "limit"),
                                                                     StringArgumentType.getString(context, "prefixid"), StringArgumentType.getString(context, "prefixtext")); return 1;
-                                                        })))))
+                                                        }))))))
                         .then(ClientCommandManager.literal("donorpet")
                                 .then(ClientCommandManager.argument("ign", StringArgumentType.word())
                                         .then(ClientCommandManager.argument("pet", StringArgumentType.word()).executes(context -> {
@@ -209,7 +190,7 @@ public class DMLSClient implements ClientModInitializer {
                         .then(ClientCommandManager.literal("punish")
                                 .executes(context -> {
                                     MinecraftClient client = context.getSource().getClient();
-                                    client.send(() -> client.setScreen(new com.duperknight.client.gui.PunishmentHelperScreen(null, module(PunishmentHelperModule.class))));
+                                    client.send(() -> client.setScreen(new PunishmentHelperScreen(null, module(PunishmentHelperModule.class))));
                                     return 1;
                                 }))
                         .then(ClientCommandManager.literal("greet")
@@ -218,6 +199,12 @@ public class DMLSClient implements ClientModInitializer {
                                             StringArgumentType.getString(context, "ign").trim()); return 1;
                                 })))
                         .then(ClientCommandManager.literal("greeter")
+                                .executes(context -> {
+                                    GreeterModule greeter = module(GreeterModule.class);
+                                    ChatUtils.sendTranslatedMessage(context.getSource().getClient(), PREFIX,
+                                            greeter.enabled() ? "dmls.chat.greeter.enabled" : "dmls.chat.greeter.disabled");
+                                    return 1;
+                                })
                                 .then(ClientCommandManager.literal("on").executes(context -> {
                                     module(GreeterModule.class).setEnabled(context.getSource().getClient(), true); return 1;
                                 }))
@@ -317,12 +304,11 @@ public class DMLSClient implements ClientModInitializer {
                                             ChatUtils.sendTranslatedMessage(context.getSource().getClient(), PREFIX,
                                                     count == 1 ? "dmls.chat.alerts.reloaded.one" : "dmls.chat.alerts.reloaded.many", count);
                                             return 1;
-                                        }))))
-        ));
+                                        })));
     }
 
     private static <T extends DMLSModule> T module(Class<T> type) {
-        return MODULES.stream().filter(type::isInstance).map(type::cast).findFirst().orElseThrow();
+        return modules().stream().filter(type::isInstance).map(type::cast).findFirst().orElseThrow();
     }
 
     private LiteralArgumentBuilder<FabricClientCommandSource> buildSayCommand() {
@@ -396,7 +382,7 @@ public class DMLSClient implements ClientModInitializer {
 
     private int openHomeScreen(MinecraftClient client) {
         // next tick, otherwise the closing chat screen overrides it
-        client.send(() -> client.setScreen(new DMLSHomeScreen(MODULES)));
+        client.send(() -> client.setScreen(new DMLSHomeScreen(modules())));
         return 1;
     }
 
@@ -418,5 +404,32 @@ public class DMLSClient implements ClientModInitializer {
         ChatUtils.sendTranslatedMessage(client, PREFIX,
                 enabled ? "dmls.chat.alerts.enabled" : "dmls.chat.alerts.disabled");
         return 1;
+    }
+
+    /** Defers config-backed module construction until normal client initialization. */
+    private static final class ModulesHolder {
+        private static final List<DMLSModule> ALL = List.of(
+                new CheckLandsModule(),
+                new CheckMembersModule(),
+                new CheckAltsModule(),
+                new XrayRollbackModule(),
+                new PrefixCreateModule(),
+                new DonorPetModule(),
+                new EventProtectModule(),
+                new PromoWaveModule(),
+                new DemoWaveModule(),
+                new UuidLookupModule(),
+                new ChatAlertsModule(),
+                new ChatSpamMuteModule(),
+                new AwayModule(),
+                new ActivityWaveModule(),
+                new ChatReplayModule(),
+                new GreeterModule(),
+                new LocationsModule(),
+                new CoreProtectBuilderModule(),
+                new ContainerScanModule(),
+                new GriefScanModule(),
+                new PunishmentHelperModule()
+        );
     }
 }

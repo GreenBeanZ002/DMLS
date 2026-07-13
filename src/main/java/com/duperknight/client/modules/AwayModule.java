@@ -1,12 +1,13 @@
 package com.duperknight.client.modules;
 
-import com.duperknight.client.gui.AwayScreen;
+import com.duperknight.client.gui.modules.AwayScreen;
 import com.duperknight.client.message.MessageOrigin;
 import com.duperknight.client.message.ServerMessage;
 import com.duperknight.client.message.ServerMessageRouter;
 import com.duperknight.client.utils.CannedReplies;
 import com.duperknight.client.utils.ChatUtils;
 import com.duperknight.client.utils.ClientUtils;
+import com.duperknight.client.utils.DMLSConfig;
 import com.duperknight.client.utils.ServerGuard;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.MinecraftClient;
@@ -46,7 +47,7 @@ public final class AwayModule extends DMLSModule {
         DND
     }
 
-    private Mode mode = Mode.OFF;
+    private Mode mode = DMLSConfig.awayDnd() ? Mode.DND : Mode.OFF;
     private long brbExpiresAtMillis;
     private long lastReplyAtMillis;
     private final Map<String, Long> lastReplyBySender = new HashMap<>();
@@ -95,6 +96,7 @@ public final class AwayModule extends DMLSModule {
         }
 
         mode = Mode.BRB;
+        DMLSConfig.setAwayDnd(false);
         brbExpiresAtMillis = System.currentTimeMillis() + duration.getAsLong();
         clearAwayState();
         ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.away.brb.on", formatDuration(duration.getAsLong()));
@@ -108,12 +110,14 @@ public final class AwayModule extends DMLSModule {
         }
 
         mode = Mode.DND;
+        DMLSConfig.setAwayDnd(true);
         clearAwayState();
         ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.away.dnd.on");
     }
 
     /** Disables any away mode and reports who messaged meanwhile. */
     public void disable(MinecraftClient client) {
+        DMLSConfig.setAwayDnd(false);
         if (mode == Mode.OFF) {
             ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.away.already_off");
             return;

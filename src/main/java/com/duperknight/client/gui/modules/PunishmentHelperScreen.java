@@ -1,5 +1,6 @@
-package com.duperknight.client.gui;
+package com.duperknight.client.gui.modules;
 
+import com.duperknight.client.gui.DMLSMenuScreen;
 import com.duperknight.client.modules.PunishmentHelperModule;
 import com.duperknight.client.modules.PunishmentHelperModule.Rule;
 import net.minecraft.client.gui.DrawContext;

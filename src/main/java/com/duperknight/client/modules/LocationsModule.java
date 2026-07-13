@@ -1,7 +1,7 @@
 package com.duperknight.client.modules;
 
 import com.duperknight.DMLS;
-import com.duperknight.client.gui.LocationsScreen;
+import com.duperknight.client.gui.modules.LocationsScreen;
 import com.duperknight.client.utils.ChatUtils;
 import com.duperknight.client.utils.ClientUtils;
 import net.fabricmc.loader.api.FabricLoader;

@@ -1,7 +1,7 @@
 package com.duperknight.client.modules;
 
 import com.duperknight.DMLS;
-import com.duperknight.client.gui.PunishmentHelperScreen;
+import com.duperknight.client.gui.modules.PunishmentHelperScreen;
 import com.duperknight.client.utils.ChatUtils;
 import com.duperknight.client.utils.ClientUtils;
 import net.minecraft.client.MinecraftClient;

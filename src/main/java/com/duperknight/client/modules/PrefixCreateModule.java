@@ -1,6 +1,6 @@
 package com.duperknight.client.modules;
 
-import com.duperknight.client.gui.PrefixCreateScreen;
+import com.duperknight.client.gui.modules.PrefixCreateScreen;
 import com.duperknight.client.utils.ChatUtils;
 import com.duperknight.client.utils.ClientUtils;
 import com.duperknight.client.utils.PrefixTextFormatter;
@@ -23,7 +23,6 @@ import net.minecraft.text.Text;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.regex.Pattern;
 import java.util.EnumSet;
 
 public final class PrefixCreateModule extends DMLSModule {

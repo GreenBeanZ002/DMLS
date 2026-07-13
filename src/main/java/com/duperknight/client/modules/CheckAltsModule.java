@@ -1,6 +1,6 @@
 package com.duperknight.client.modules;
 
-import com.duperknight.client.gui.CheckAltsScreen;
+import com.duperknight.client.gui.modules.CheckAltsScreen;
 import com.duperknight.client.utils.ChatUtils;
 import com.duperknight.client.utils.ClientUtils;
 import com.mojang.brigadier.arguments.StringArgumentType;

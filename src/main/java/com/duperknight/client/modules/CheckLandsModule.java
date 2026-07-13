@@ -6,7 +6,7 @@ import com.duperknight.client.utils.MenuCommandQuery;
 import com.duperknight.client.utils.ScreenUtils;
 import com.duperknight.client.utils.TooltipUtils;
 import com.duperknight.client.utils.TooltipUtils.TooltipLine;
-import com.duperknight.client.gui.CheckLandsScreen;
+import com.duperknight.client.gui.modules.CheckLandsScreen;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;

@@ -1,6 +1,6 @@
 package com.duperknight.client.modules;
 
-import com.duperknight.client.gui.EventProtectScreen;
+import com.duperknight.client.gui.modules.EventProtectScreen;
 import com.duperknight.client.utils.ClientUtils;
 import com.duperknight.client.utils.DMLSConfig;
 import net.minecraft.client.MinecraftClient;

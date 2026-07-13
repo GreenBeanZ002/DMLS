@@ -1,11 +1,12 @@
-package com.duperknight.client.gui;
+package com.duperknight.client.gui.modules;
 
+import com.duperknight.client.gui.DMLSMenuScreen;
+import com.duperknight.client.gui.widgets.DropdownWidget;
 import com.duperknight.client.modules.CoreProtectBuilderModule;
 import com.duperknight.client.utils.ClientUtils;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.CyclingButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.OrderedText;
@@ -45,20 +46,24 @@ public final class CoreProtectBuilderScreen extends DMLSMenuScreen {
         int formX = (width - formWidth) / 2;
         int halfWidth = formWidth / 2 - scaled(2);
 
-        addScrollableChild(CyclingButtonWidget.builder((String value) -> Text.literal(value), mode)
-                .values(CoreProtectBuilderModule.MODES)
-                .build(formX, contentY(0), halfWidth, STANDARD_BUTTON_HEIGHT,
-                        Text.translatable("dmls.field.co.mode"), (button, value) -> {
+        addScrollableDropdownChild(DropdownWidget.builder(
+                        Text.translatable("dmls.field.co.mode"), CoreProtectBuilderModule.MODES, mode,
+                        Text::literal, (dropdown, value) -> {
                             mode = value;
                             refresh();
-                        }), 0);
-        addScrollableChild(CyclingButtonWidget.builder((String value) -> Text.literal(value), action)
-                .values(CoreProtectBuilderModule.ACTIONS)
-                .build(formX + halfWidth + scaled(4), contentY(0), halfWidth, STANDARD_BUTTON_HEIGHT,
-                        Text.translatable("dmls.field.co.action"), (button, value) -> {
+                        })
+                .dimensions(formX, contentY(0), halfWidth, STANDARD_BUTTON_HEIGHT)
+                .showOptionLabel(true)
+                .build(), 0);
+        addScrollableDropdownChild(DropdownWidget.builder(
+                        Text.translatable("dmls.field.co.action"), CoreProtectBuilderModule.ACTIONS, action,
+                        Text::literal, (dropdown, value) -> {
                             action = value;
                             refresh();
-                        }), 0);
+                        })
+                .dimensions(formX + halfWidth + scaled(4), contentY(0), halfWidth, STANDARD_BUTTON_HEIGHT)
+                .showOptionLabel(true)
+                .build(), 0);
 
         userField = addField(formX, scaled(46), halfWidth, savedUser, "PlayerName", 16);
         timeField = addField(formX + halfWidth + scaled(4), scaled(46), halfWidth, savedTime, "30d", 16);

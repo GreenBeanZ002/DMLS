@@ -1,6 +1,6 @@
 package com.duperknight.client.modules;
 
-import com.duperknight.client.gui.PromoWaveScreen;
+import com.duperknight.client.gui.modules.PromoWaveScreen;
 import com.duperknight.client.utils.ChatUtils;
 import com.duperknight.client.utils.ClientUtils;
 import com.duperknight.client.utils.ServerGuard;
@@ -25,7 +25,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
-import java.util.regex.Pattern;
 import java.util.EnumSet;
 
 public final class PromoWaveModule extends DMLSModule {

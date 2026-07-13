@@ -1,11 +1,12 @@
-package com.duperknight.client.gui;
+package com.duperknight.client.gui.modules;
 
+import com.duperknight.client.gui.DMLSMenuScreen;
+import com.duperknight.client.gui.widgets.DropdownWidget;
 import com.duperknight.client.modules.DemoWaveModule;
 import com.duperknight.client.utils.ClientUtils;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.CyclingButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
@@ -35,10 +36,12 @@ public final class DemoWaveScreen extends DMLSMenuScreen {
         ignsField.setChangedListener(value -> ignsField.setSuggestion(value.isEmpty() ? Text.translatable("dmls.placeholder.player_names_many").getString() : null));
         setInitialFocus(ignsField);
 
-        addScrollableChild(CyclingButtonWidget.builder((String value) -> Text.literal(value), rank)
-                .values(DemoWaveModule.ranks())
-                .build(formX, contentY(scaled(48)), formWidth, STANDARD_BUTTON_HEIGHT,
-                        Text.translatable("dmls.field.rank"), (button, value) -> rank = value), scaled(48));
+        addScrollableDropdownChild(DropdownWidget.builder(
+                        Text.translatable("dmls.field.rank"), DemoWaveModule.ranks(), rank,
+                        Text::literal, (dropdown, value) -> rank = value)
+                .dimensions(formX, contentY(scaled(48)), formWidth, STANDARD_BUTTON_HEIGHT)
+                .showOptionLabel(true)
+                .build(), scaled(48));
 
         addDrawableChild(ButtonWidget.builder(ScreenTexts.BACK, button -> close())
                 .dimensions(leftPairedButtonX(), footerButtonY(), pairedButtonWidth(), STANDARD_BUTTON_HEIGHT).build());
