@@ -36,6 +36,8 @@ class AwayModuleTest {
 
     @Test
     void recognizesSupportedPrivateMessageFormatsOnly() {
+        assertEquals("Piggify", AwayModule.parseIncomingWhisper("✉ ↓ MSG (Piggify ➜ Me): wassap").orElseThrow());
+        assertEquals("tnushkeep112", AwayModule.parseIncomingWhisper("✉ ↓ MSG (tnushkeep112 ➜ Me): sup").orElseThrow());
         assertEquals("Alice", AwayModule.parseIncomingWhisper("[Alice -> me] hello").orElseThrow());
         assertEquals("Bob_1", AwayModule.parseIncomingWhisper("Bob_1 whispers to you: hi").orElseThrow());
         assertEquals("Carol", AwayModule.parseIncomingWhisper("From Carol: question").orElseThrow());

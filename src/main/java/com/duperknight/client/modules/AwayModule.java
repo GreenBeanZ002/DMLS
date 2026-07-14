@@ -37,6 +37,8 @@ public final class AwayModule extends DMLSModule {
     private static final Pattern DURATION_PART = Pattern.compile("(\\d{1,5})([hms])");
     private static final Pattern BARE_MINUTES = Pattern.compile("\\d{1,5}");
     private static final List<Pattern> INCOMING_WHISPERS = List.of(
+            Pattern.compile("^.*?\\bMSG\\s*\\(([A-Za-z0-9_]{3,16})\\s*(?:->|→|➜|➤|➡|➔|[\\p{So}\\p{Sm}])\\s*(?:me|you)\\)\\s*:",
+                    Pattern.CASE_INSENSITIVE),
             Pattern.compile("^\\[([A-Za-z0-9_]{3,16}) *(?:->|→) *(?:me|you)\\]", Pattern.CASE_INSENSITIVE),
             Pattern.compile("^([A-Za-z0-9_]{3,16}) whispers(?: to you)?:", Pattern.CASE_INSENSITIVE),
             Pattern.compile("^From ([A-Za-z0-9_]{3,16}) *[:»>]", Pattern.CASE_INSENSITIVE)

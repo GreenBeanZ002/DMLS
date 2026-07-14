@@ -61,7 +61,6 @@ class ModuleCatalogTest {
         expected.put("XrayRollbackModule", StaffRank.SENIOR_MODERATOR);
         expected.put("PrefixCreateModule", StaffRank.SUPPORT);
         expected.put("DonorPetModule", StaffRank.ADMIN);
-        expected.put("EventProtectModule", StaffRank.MODERATOR);
         expected.put("PromoWaveModule", StaffRank.ADMIN);
         expected.put("DemoWaveModule", StaffRank.ADMIN);
         expected.put("UuidLookupModule", StaffRank.HELPER);
@@ -87,5 +86,9 @@ class ModuleCatalogTest {
             assertTrue(rank.find(), entry.getKey() + " does not declare a minimum rank");
             assertEquals(entry.getValue().name(), rank.group(1), entry.getKey());
         }
+
+        String eventProtect = Files.readString(MODULES.resolve("EventProtectModule.java"));
+        assertTrue(Pattern.compile("super\\s*\\(\\s*StaffDepartment\\.EVENTS\\s*\\)")
+                .matcher(eventProtect).find(), "EventProtectModule must require Events department membership");
     }
 }
