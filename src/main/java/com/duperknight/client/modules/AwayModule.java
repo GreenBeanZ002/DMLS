@@ -150,16 +150,6 @@ public final class AwayModule extends DMLSModule {
         }
     }
 
-    /** The status line shown on the module screen. */
-    public Text statusText() {
-        return switch (mode) {
-            case OFF -> Text.translatable("dmls.screen.away.status.off");
-            case BRB -> Text.translatable("dmls.screen.away.status.brb",
-                    formatDuration(Math.max(0, brbExpiresAtMillis - now())));
-            case DND -> Text.translatable("dmls.screen.away.status.dnd");
-        };
-    }
-
     /** Parses durations like 5m, 30s, 1h or 1h30m into milliseconds. Bare numbers count as minutes. */
     public static OptionalLong parseDurationMillis(String input) {
         if (input == null) {

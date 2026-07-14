@@ -10,8 +10,11 @@ class GreeterModuleTest {
     @Test
     void parsesKnownFirstJoinBroadcastsWithoutMatchingOrdinaryJoins() {
         assertEquals("Alice", GreeterModule.parseFirstJoin("Welcome, Alice, to Stoneworks!").orElseThrow());
+        assertEquals("Arthur", GreeterModule.parseFirstJoin("Welcome Arthur to Abexilas!").orElseThrow());
+        assertEquals("Carol", GreeterModule.parseFirstJoin("Welcome [Carol] to Abexilas!").orElseThrow());
         assertEquals("Bob_1", GreeterModule.parseFirstJoin("Bob_1 has joined us for the first time").orElseThrow());
         assertTrue(GreeterModule.parseFirstJoin("Alice joined the game").isEmpty());
+        assertTrue(GreeterModule.parseFirstJoin("Welcome Alice back to Stoneworks!").isEmpty());
     }
 
     @Test

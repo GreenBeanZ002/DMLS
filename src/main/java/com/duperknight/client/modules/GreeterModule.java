@@ -1,15 +1,13 @@
 package com.duperknight.client.modules;
 
 import com.duperknight.client.gui.modules.GreeterScreen;
-import com.duperknight.client.message.MessageOrigin;
-import com.duperknight.client.message.ServerMessage;
-import com.duperknight.client.message.ServerMessageRouter;
 import com.duperknight.client.session.CommandDispatch;
 import com.duperknight.client.utils.ChatUtils;
 import com.duperknight.client.utils.ClientUtils;
 import com.duperknight.client.utils.DMLSConfig;
 import com.duperknight.client.utils.InputValidators;
 import com.duperknight.client.utils.ServerGuard;
+import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.item.ItemStack;
@@ -19,7 +17,6 @@ import net.minecraft.text.HoverEvent;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -36,7 +33,8 @@ public final class GreeterModule extends DMLSModule {
     private static final String GREETING = "Welcome to Stoneworks, %s! Enjoy your stay, and feel free to ask if you have any questions :)";
     private static final long PROMPT_COOLDOWN_MILLIS = 5 * 60 * 1000;
     private static final List<Pattern> FIRST_JOIN_PATTERNS = List.of(
-            Pattern.compile("welcome,? ([A-Za-z0-9_]{3,16}),? to (?:the )?(?:server|stoneworks)", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("^welcome,?\\s+\\[?([A-Za-z0-9_]{3,16})]?,?\\s+to\\s+(?:abexilas|stoneworks|(?:the\\s+)?server)\\s*[!.]?$",
+                    Pattern.CASE_INSENSITIVE),
             Pattern.compile("([A-Za-z0-9_]{3,16}) (?:has )?joined (?:the server |us )?for the first time", Pattern.CASE_INSENSITIVE)
     );
 
@@ -75,7 +73,7 @@ public final class GreeterModule extends DMLSModule {
 
     @Override
     public void register() {
-        ServerMessageRouter.subscribe(EnumSet.of(MessageOrigin.SERVER_SYSTEM), this::handleServerMessage);
+        ClientReceiveMessageEvents.MODIFY_GAME.register(this::appendWelcomeAction);
     }
 
     public boolean enabled() {
@@ -116,15 +114,15 @@ public final class GreeterModule extends DMLSModule {
         return result;
     }
 
-    private void handleServerMessage(ServerMessage message) {
-        if (!enabled()) {
-            return;
+    private Text appendWelcomeAction(Text message, boolean overlay) {
+        if (overlay || !enabled() || !isAvailableToSelectedRank()) {
+            return message;
         }
 
         MinecraftClient client = MinecraftClient.getInstance();
         if (ClientUtils.isNotConnected(client) || !ServerGuard.check(client).allowed()) {
             resetPromptCache();
-            return;
+            return message;
         }
         Object currentConnection = client.getNetworkHandler();
         if (promptConnectionIdentity != currentConnection) {
@@ -132,28 +130,25 @@ public final class GreeterModule extends DMLSModule {
             promptConnectionIdentity = currentConnection;
         }
 
-        Optional<String> parsedName = parseFirstJoin(message.cleanText());
+        Optional<String> parsedName = parseFirstJoin(ChatUtils.cleanLine(message.getString()));
         if (parsedName.isEmpty()) {
-            return;
+            return message;
         }
 
         String name = parsedName.get();
         if (name.equalsIgnoreCase(client.player.getName().getString())) {
-            return;
+            return message;
         }
 
         if (!InputValidators.isUsername(name) || !recordPrompt(name, clock.getAsLong())) {
-            return;
+            return message;
         }
 
         Text button = Text.translatable("dmls.chat.greeter.button").formatted(Formatting.GREEN)
                 .styled(style -> style
                         .withClickEvent(new ClickEvent.RunCommand("/dmls greet " + name))
                         .withHoverEvent(new HoverEvent.ShowText(Text.translatable("dmls.chat.greeter.button.hover", name))));
-        ChatUtils.sendClientMessage(client, Text.literal(PREFIX)
-                .append(ChatUtils.translated("dmls.chat.greeter.detected", name))
-                .append(" ")
-                .append(button));
+        return message.copy().append(" ").append(button);
     }
 
     static Optional<String> parseFirstJoin(String message) {
