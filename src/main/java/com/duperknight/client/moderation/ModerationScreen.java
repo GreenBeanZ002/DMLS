@@ -1,12 +1,13 @@
 package com.duperknight.client.moderation;
 
+import com.duperknight.DMLS;
 import com.duperknight.client.gui.DMLSMenuScreen;
 import com.duperknight.client.gui.widgets.DropdownWidget;
 import com.duperknight.client.modules.ChatAlertsModule;
 import com.duperknight.client.modules.StaffRank;
 import com.duperknight.client.session.CommandDispatch;
 import com.duperknight.client.utils.DMLSConfig;
-import com.mojang.authlib.GameProfile;
+import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.PlayerSkinDrawer;
@@ -15,21 +16,32 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.input.KeyInput;
+import net.minecraft.client.texture.NativeImage;
+import net.minecraft.client.texture.NativeImageBackedTexture;
 import net.minecraft.client.util.DefaultSkinHelper;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.entity.player.SkinTextures;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.Formatting;
 import org.lwjgl.glfw.GLFW;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 /** Standalone live moderation workspace; intentionally not a regular DMLS module screen. */
 public final class ModerationScreen extends Screen {
@@ -48,13 +60,24 @@ public final class ModerationScreen extends Screen {
     private static final int STATUS_HORIZONTAL_PADDING = 12;
     private static final int STATUS_VERTICAL_PADDING = 6;
     private static final long SUBMENU_HOVER_DELAY_NANOS = 250_000_000L;
+    private static final float PUNISHMENT_SUMMARY_SCALE = 0.8F;
+    private static final Duration AVATAR_TIMEOUT = Duration.ofSeconds(8);
+    private static final HttpClient AVATAR_HTTP_CLIENT = HttpClient.newBuilder()
+            .connectTimeout(AVATAR_TIMEOUT)
+            .followRedirects(HttpClient.Redirect.NORMAL)
+            .build();
 
     private final Screen parent;
     private final PunishmentLogSource punishmentLogSource;
     private final PaneState globalPane = new PaneState();
     private final PaneState channelPane = new PaneState();
-    private final Map<UUID, SkinTextures> skinCache = new HashMap<>();
+    private final Map<String, SkinTextures> realtimeSkinCache = new HashMap<>();
+    private final Set<String> realtimeSkinLoading = new HashSet<>();
+    private final Map<String, Identifier> websiteAvatarCache = new HashMap<>();
+    private final Set<String> websiteAvatarLoading = new HashSet<>();
+    private final Set<String> websiteAvatarFailed = new HashSet<>();
     private final List<MessageHitbox> messageHitboxes = new ArrayList<>();
+    private final List<PunishmentHitbox> punishmentHitboxes = new ArrayList<>();
 
     private TextFieldWidget globalInput;
     private TextFieldWidget channelInput;
@@ -87,13 +110,16 @@ public final class ModerationScreen extends Screen {
     private boolean adminAccess;
 
     public ModerationScreen(Screen parent) {
-        this(parent, PunishmentLogSource.EMPTY);
+        this(parent, PunishmentLogService.shared());
     }
 
     public ModerationScreen(Screen parent, PunishmentLogSource punishmentLogSource) {
         super(Text.translatable("dmls.moderation.title"));
         this.parent = parent;
         this.punishmentLogSource = punishmentLogSource == null ? PunishmentLogSource.EMPTY : punishmentLogSource;
+        if (this.punishmentLogSource == PunishmentLogService.shared()) {
+            PunishmentLogService.shared().onScreenOpened();
+        }
         this.preferences = DMLSConfig.moderationPreferences();
     }
 
@@ -208,6 +234,7 @@ public final class ModerationScreen extends Screen {
         context.fill(0, 0, width, height, 0x70000000);
         Layout layout = layout();
         messageHitboxes.clear();
+        punishmentHitboxes.clear();
         boolean contextMenuConsumesPointer = isPointerOverContextMenu(mouseX, mouseY);
         int contentMouseX = contextMenuConsumesPointer ? -10_000 : mouseX;
         int contentMouseY = contextMenuConsumesPointer ? -10_000 : mouseY;
@@ -332,11 +359,13 @@ public final class ModerationScreen extends Screen {
         context.drawCenteredTextWithShadow(textRenderer, Text.translatable("dmls.moderation.punishment_log"),
                 pane.x() + pane.width() / 2, pane.y() + 6, 0xFFFFFFFF);
         int contentTop = pane.y() + 20;
-        int rowHeight = 38;
-        List<PunishmentLogEntry> entries = punishmentLogSource.latest().stream().limit(10).toList();
+        int rowHeight = 31;
+        List<PunishmentLogEntry> entries = punishmentLogSource.latest().stream()
+                .limit(PunishmentLogService.MAX_ENTRIES).toList();
         int viewportHeight = pane.bottom() - contentTop - 3;
         logMaxScroll = Math.max(0, entries.size() * rowHeight - viewportHeight);
         logScroll = Math.clamp(logScroll, 0, logMaxScroll);
+        int contentRight = logMaxScroll > 0 ? logScrollbarX(pane) - 2 : pane.right() - 3;
         context.enableScissor(pane.x() + 1, contentTop, pane.right() - 1, pane.bottom() - 1);
         if (entries.isEmpty()) {
             context.drawCenteredTextWithShadow(textRenderer, Text.translatable("dmls.moderation.no_punishments"),
@@ -345,18 +374,33 @@ public final class ModerationScreen extends Screen {
         for (int index = 0; index < entries.size(); index++) {
             PunishmentLogEntry entry = entries.get(index);
             int y = contentTop + index * rowHeight - logScroll;
-            context.fill(pane.x() + 2, y, pane.right() - 2, y + rowHeight - 2,
-                    (entry.type().accentColor() & 0x00FFFFFF) | 0x85000000);
-            SkinTextures skin = skinFor(entry);
-            PlayerSkinDrawer.draw(context, skin, pane.x() + 7, y + 7, 24);
-            context.drawTextWithShadow(textRenderer, Text.literal(entry.playerName()), pane.x() + 38, y + 7, 0xFFFFFFFF);
-            context.drawTextWithShadow(textRenderer,
-                    Text.translatable("dmls.moderation.log_line", entry.type().displayName(), entry.staffName()),
-                    pane.x() + 38, y + 20, 0xFFCCCCCC);
+            if (y + rowHeight <= contentTop || y >= pane.bottom()) continue;
+            boolean hovered = mouseX >= pane.x() + 2 && mouseX < contentRight
+                    && mouseY >= Math.max(y, contentTop) && mouseY < Math.min(y + rowHeight - 2, pane.bottom());
+            int highlightAlpha = entry.highlightAlpha(System.currentTimeMillis());
+            if (highlightAlpha > 0) {
+                context.fill(pane.x() + 2, y, pane.right() - 2, y + rowHeight - 2,
+                        (entry.type().accentColor() & 0x00FFFFFF) | highlightAlpha << 24);
+            }
+            if (hovered) {
+                context.fill(pane.x() + 2, y, pane.right() - 2, y + rowHeight - 2, HOVER_BACKGROUND);
+                context.setCursor(StandardCursors.POINTING_HAND);
+            }
+            renderPunishmentAvatar(context, entry, pane.x() + 7, y + 3, 24);
+            context.drawTextWithShadow(textRenderer, Text.literal(entry.playerName()), pane.x() + 38, y + 3, 0xFFFFFFFF);
+            Text logLine = entry.duration().isEmpty()
+                    ? Text.translatable("dmls.moderation.log_line", entry.type().displayName(), entry.staffName())
+                    : Text.translatable("dmls.moderation.log_line_timed",
+                    entry.type().displayName(), entry.duration(), entry.staffName());
+            drawPunishmentSummary(context, logLine.copy().formatted(Formatting.GRAY),
+                    pane.x() + 38, contentRight, y + 13, y + 29);
+            punishmentHitboxes.add(new PunishmentHitbox(entry, pane.x() + 2, y,
+                    contentRight, y + rowHeight - 2, new Rect(pane.x(), contentTop,
+                    pane.width(), pane.bottom() - contentTop)));
         }
         context.disableScissor();
         if (logMaxScroll > 0) {
-            int trackX = scrollbarX(pane);
+            int trackX = logScrollbarX(pane);
             int trackY = Math.max(contentTop, scrollbarTop(pane));
             int trackHeight = pane.bottom() - SCROLLBAR_INSET - trackY;
             int contentHeight = trackHeight + logMaxScroll;
@@ -366,14 +410,107 @@ public final class ModerationScreen extends Screen {
         }
     }
 
-    private SkinTextures skinFor(PunishmentLogEntry entry) {
-        SkinTextures known = skinCache.get(entry.playerUuid());
+    private void renderPunishmentAvatar(DrawContext context, PunishmentLogEntry entry, int x, int y, int size) {
+        if (entry.website()) {
+            Identifier avatar = websiteAvatar(entry);
+            if (avatar != null) {
+                context.drawTexture(RenderPipelines.GUI_TEXTURED, avatar, x, y, 0.0F, 0.0F,
+                        size, size, 25, 25, 25, 25);
+                return;
+            }
+            PlayerSkinDrawer.draw(context, DefaultSkinHelper.getSkinTextures(entry.playerUuid()), x, y, size);
+            return;
+        }
+        PlayerSkinDrawer.draw(context, realtimeSkin(entry), x, y, size);
+    }
+
+    private SkinTextures realtimeSkin(PunishmentLogEntry entry) {
+        String key = entry.playerName().toLowerCase(java.util.Locale.ROOT);
+        SkinTextures known = realtimeSkinCache.get(key);
         if (known != null) return known;
+
         SkinTextures fallback = DefaultSkinHelper.getSkinTextures(entry.playerUuid());
-        skinCache.put(entry.playerUuid(), fallback);
-        client.getSkinProvider().fetchSkinTextures(new GameProfile(entry.playerUuid(), entry.playerName()))
-                .thenAccept(result -> result.ifPresent(skin -> client.execute(() -> skinCache.put(entry.playerUuid(), skin))));
+        realtimeSkinCache.put(key, fallback);
+        if (realtimeSkinLoading.add(key)) {
+            CompletableFuture.supplyAsync(() -> client.getApiServices().profileRepository()
+                            .findProfileByName(entry.playerName())
+                            .map(nameAndId -> client.getApiServices().sessionService()
+                                    .fetchProfile(nameAndId.id(), true))
+                            .map(profileResult -> profileResult.profile())
+                            .orElse(null))
+                    .thenCompose(profile -> profile == null
+                            ? CompletableFuture.completedFuture(Optional.<SkinTextures>empty())
+                            : client.getSkinProvider().fetchSkinTextures(profile))
+                    .thenAccept(textures -> client.execute(() -> {
+                        textures.ifPresent(skin -> realtimeSkinCache.put(key, skin));
+                        realtimeSkinLoading.remove(key);
+                    }))
+                    .exceptionally(error -> {
+                        client.execute(() -> realtimeSkinLoading.remove(key));
+                        return null;
+                    });
+        }
         return fallback;
+    }
+
+    private Identifier websiteAvatar(PunishmentLogEntry entry) {
+        String url = entry.avatarUrl();
+        if (url.isEmpty()) return null;
+        Identifier known = websiteAvatarCache.get(url);
+        if (known != null) return known;
+        if (websiteAvatarFailed.contains(url) || !websiteAvatarLoading.add(url)) return null;
+
+        URI uri;
+        try {
+            uri = URI.create(url);
+            if (!uri.getScheme().equalsIgnoreCase("https") || !uri.getHost().equalsIgnoreCase("cravatar.eu")) {
+                websiteAvatarLoading.remove(url);
+                websiteAvatarFailed.add(url);
+                return null;
+            }
+        } catch (IllegalArgumentException | NullPointerException exception) {
+            websiteAvatarLoading.remove(url);
+            websiteAvatarFailed.add(url);
+            return null;
+        }
+
+        HttpRequest request = HttpRequest.newBuilder(uri)
+                .timeout(AVATAR_TIMEOUT)
+                .header("Accept", "image/png")
+                .header("User-Agent", "DuperKnight/DMLS punishment log")
+                .GET()
+                .build();
+        AVATAR_HTTP_CLIENT.sendAsync(request, HttpResponse.BodyHandlers.ofByteArray())
+                .thenAccept(response -> {
+                    if (response.statusCode() != 200) {
+                        client.execute(() -> failWebsiteAvatar(url));
+                        return;
+                    }
+                    try {
+                        NativeImage image = NativeImage.read(response.body());
+                        client.execute(() -> {
+                            Identifier id = Identifier.of(DMLS.MOD_ID, "punishment_avatars/"
+                                    + entry.playerUuid().toString().replace("-", ""));
+                            NativeImageBackedTexture texture = new NativeImageBackedTexture(
+                                    () -> "DMLS punishment avatar " + entry.playerName(), image);
+                            client.getTextureManager().registerTexture(id, texture);
+                            websiteAvatarCache.put(url, id);
+                            websiteAvatarLoading.remove(url);
+                        });
+                    } catch (Exception exception) {
+                        client.execute(() -> failWebsiteAvatar(url));
+                    }
+                })
+                .exceptionally(error -> {
+                    client.execute(() -> failWebsiteAvatar(url));
+                    return null;
+                });
+        return null;
+    }
+
+    private void failWebsiteAvatar(String url) {
+        websiteAvatarLoading.remove(url);
+        websiteAvatarFailed.add(url);
     }
 
     private void renderRightPanel(DrawContext context, Layout layout, int mouseX, int mouseY) {
@@ -596,13 +733,20 @@ public final class ModerationScreen extends Screen {
         }
         if (startScrollbarDrag(layout.globalPane(), globalPane, click)
                 || startScrollbarDrag(layout.channelPane(), channelPane, click)) return true;
-        if (logMaxScroll > 0 && click.button() == 0 && overScrollbar(layout.logPane(), click.x(), click.y())) {
+        if (logMaxScroll > 0 && click.button() == 0
+                && overLogScrollbar(layout.logPane(), click.x(), click.y())) {
             draggingLogScrollbar = true;
             updateLogScroll(layout.logPane(), click.y());
             return true;
         }
 
         if (click.button() == 0) {
+            for (PunishmentHitbox hitbox : punishmentHitboxes) {
+                if (hitbox.contains(click.x(), click.y())) {
+                    client.setScreen(new PunishmentDetailsScreen(this, hitbox.entry()));
+                    return true;
+                }
+            }
             for (MessageHitbox hitbox : messageHitboxes) {
                 if (hitbox.contains(click.x(), click.y())) {
                     openContextMenu(hitbox.message(), hitbox.state(), (int) click.x(), (int) click.y());
@@ -897,6 +1041,10 @@ public final class ModerationScreen extends Screen {
         return pane.right() - SCROLLBAR_INSET - DMLSMenuScreen.SCROLLBAR_WIDTH;
     }
 
+    private static int logScrollbarX(Rect pane) {
+        return pane.right() - DMLSMenuScreen.SCROLLBAR_WIDTH - 1;
+    }
+
     private static int scrollbarTop(Rect pane) {
         return pane.y() + SCROLLBAR_INSET;
     }
@@ -908,6 +1056,11 @@ public final class ModerationScreen extends Screen {
     private static boolean overScrollbar(Rect pane, double mouseX, double mouseY) {
         int x = scrollbarX(pane);
         return contains(mouseX, mouseY, x, scrollbarTop(pane),
+                DMLSMenuScreen.SCROLLBAR_WIDTH, scrollbarHeight(pane));
+    }
+
+    private static boolean overLogScrollbar(Rect pane, double mouseX, double mouseY) {
+        return contains(mouseX, mouseY, logScrollbarX(pane), scrollbarTop(pane),
                 DMLSMenuScreen.SCROLLBAR_WIDTH, scrollbarHeight(pane));
     }
 
@@ -1077,6 +1230,28 @@ public final class ModerationScreen extends Screen {
 
     private record MessageHitbox(ModerationMessage message, PaneState state,
                                  int left, int top, int right, int bottom, Rect clip) {
+        boolean contains(double x, double y) {
+            return x >= left && x < right && y >= Math.max(top, clip.y())
+                    && y < Math.min(bottom, clip.bottom());
+        }
+    }
+
+    private void drawPunishmentSummary(DrawContext context, Text text, int left, int right, int top, int bottom) {
+        int scaledLeft = Math.round(left / PUNISHMENT_SUMMARY_SCALE);
+        int scaledRight = Math.round(right / PUNISHMENT_SUMMARY_SCALE);
+        int scaledTop = Math.round(top / PUNISHMENT_SUMMARY_SCALE);
+        int scaledBottom = Math.round(bottom / PUNISHMENT_SUMMARY_SCALE);
+        int centeredX = scaledLeft + textRenderer.getWidth(text) / 2;
+
+        context.getMatrices().pushMatrix();
+        context.getMatrices().scale(PUNISHMENT_SUMMARY_SCALE, PUNISHMENT_SUMMARY_SCALE);
+        context.getTextConsumer().marqueedText(text, centeredX,
+                scaledLeft, scaledRight, scaledTop, scaledBottom);
+        context.getMatrices().popMatrix();
+    }
+
+    private record PunishmentHitbox(PunishmentLogEntry entry,
+                                    int left, int top, int right, int bottom, Rect clip) {
         boolean contains(double x, double y) {
             return x >= left && x < right && y >= Math.max(top, clip.y())
                     && y < Math.min(bottom, clip.bottom());

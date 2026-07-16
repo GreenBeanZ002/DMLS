@@ -36,7 +36,10 @@ public final class ModerationActions {
         if (start == OperationStartResult.BUSY) return Outcome.BUSY;
         if (start != OperationStartResult.STARTED) return Outcome.BLOCKED;
         return switch (operation.dispatch) {
-            case SENT -> Outcome.SENT;
+            case SENT -> {
+                PunishmentLogService.shared().recordLocal(client, request);
+                yield Outcome.SENT;
+            }
             case SIMULATED -> Outcome.SIMULATED;
             case BLOCKED -> Outcome.BLOCKED;
         };

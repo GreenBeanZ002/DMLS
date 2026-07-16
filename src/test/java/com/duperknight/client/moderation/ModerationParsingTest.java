@@ -50,6 +50,7 @@ class ModerationParsingTest {
         assertEquals("message", admin.messageBody());
         assertTrue(ModerationChatService.parsePlayerLine("[Server: restarting]").isEmpty());
         assertTrue(ModerationChatService.parsePlayerLine("[VIP] | invalid name : hello").isEmpty());
+        assertTrue(ModerationChatService.parsePlayerLine("Sales: 0 | Net: 0 Coins").isEmpty());
     }
 
     @Test
@@ -92,5 +93,11 @@ class ModerationParsingTest {
         ModerationMessage first = ModerationChatService.messages().getFirst();
         assertFalse(first.playerMessage());
         assertEquals(ChatChannel.SERVER, first.channel());
+
+        ModerationChatService.capture(Text.literal("Sales: 0 | Net: 0 Coins"), null, false, false);
+        ModerationMessage salesSummary = ModerationChatService.messages().getLast();
+        assertFalse(salesSummary.playerMessage());
+        assertEquals(ChatChannel.SERVER, salesSummary.channel());
+        assertEquals("Sales: 0 | Net: 0 Coins", salesSummary.messageBody());
     }
 }

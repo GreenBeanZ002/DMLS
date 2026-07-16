@@ -5,6 +5,7 @@ import com.duperknight.client.gui.DMLSHomeScreen;
 import com.duperknight.client.gui.modules.PunishmentHelperScreen;
 import com.duperknight.client.moderation.ModerationChatService;
 import com.duperknight.client.moderation.ModerationScreen;
+import com.duperknight.client.moderation.PunishmentLogService;
 import com.duperknight.client.modules.ActivityWaveModule;
 import com.duperknight.client.modules.AwayModule;
 import com.duperknight.client.modules.ChatAlertsModule;
@@ -73,6 +74,7 @@ public class DMLSClient implements ClientModInitializer {
         registerMenuKeybind();
         GlobalChatMessenger.register();
         ModerationChatService.register();
+        PunishmentLogService.register();
         HubStaffRankDetector.register();
         UpdateChecker.register();
         modules().forEach(DMLSModule::register);

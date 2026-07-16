@@ -92,6 +92,7 @@ public final class ModerationChatService {
         if (text == null || overlay) return;
         String clean = ChatUtils.cleanLine(text.getString());
         if (clean.isEmpty()) return;
+        PunishmentLogService.recordChatLine(clean);
         long now = System.nanoTime();
         if (isCrossEventDuplicate(clean, playerEvent, now)) return;
 
@@ -133,11 +134,20 @@ public final class ModerationChatService {
     }
 
     private static int playerMessageSeparator(String clean, int fromIndex) {
-        int colon = clean.indexOf(':', fromIndex);
+        int colon = whitespacePrefixedColon(clean, fromIndex);
         int chevron = clean.indexOf('»', fromIndex);
         if (colon < 0) return chevron;
         if (chevron < 0) return colon;
         return Math.min(colon, chevron);
+    }
+
+    private static int whitespacePrefixedColon(String clean, int fromIndex) {
+        int colon = clean.indexOf(':', fromIndex);
+        while (colon >= 0) {
+            if (colon > fromIndex && Character.isWhitespace(clean.charAt(colon - 1))) return colon;
+            colon = clean.indexOf(':', colon + 1);
+        }
+        return -1;
     }
 
     static Optional<String> parseRealnameResponse(String requestedVisibleName, String cleanLine) {

@@ -2,6 +2,9 @@ package com.duperknight.client.modules;
 
 import com.duperknight.DMLS;
 import com.duperknight.client.gui.modules.PunishmentHelperScreen;
+import com.duperknight.client.moderation.PunishmentLogService;
+import com.duperknight.client.moderation.PunishmentRequest;
+import com.duperknight.client.moderation.PunishmentType;
 import com.duperknight.client.session.CommandDispatch;
 import com.duperknight.client.session.ManagedOperation;
 import com.duperknight.client.session.OperationCoordinator;
@@ -217,6 +220,8 @@ public final class PunishmentHelperModule extends DMLSModule {
 
         CommandDispatch dispatch = operation.dispatch;
         if (dispatch == CommandDispatch.SENT) {
+            PunishmentLogService.shared().recordLocal(client,
+                    new PunishmentRequest(PunishmentType.BAN, request.ign(), request.duration(), request.reason()));
             ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.punish.banned", request.ign(), request.duration());
             return BanOutcome.SENT;
         }
