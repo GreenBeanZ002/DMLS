@@ -110,6 +110,18 @@
   "dmls.module.uuid.description.1": "Look up as many as 10 Minecraft UUIDs using Mojang's API.",
   "dmls.module.uuid.description.2": "Separate usernames with commas or spaces; results can be copied.",
 
+  "dmls.module.event_random_teleport.name": "Event Random Teleport",
+  "dmls.module.event_random_teleport.description": "Teleport to a random online player.",
+  "dmls.module.event_random_teleport.teleport": "Teleport to Random Player",
+  "dmls.module.event_random_teleport.idle": "Click below to teleport to a random online player.",
+  "dmls.chat.event_random_teleport.teleported": "Teleporting to %s.",
+  "dmls.chat.event_random_teleport.no_players": "No other players online to teleport to.",
+  "dmls.module.random_teleport.name": "Random Teleport",
+  "dmls.module.random_teleport.description": "Teleport to a random online player.",
+  "dmls.chat.random_teleport.teleported": "Teleporting to %s.",
+  "dmls.chat.random_teleport.no_players": "No other players online to teleport to.",
+  "dmls.chat.random_teleport.vanish": "Automatically activated vanish before teleporting",
+
   "dmls.module.event_protect.name":  "Event Protect",
   "dmls.module.event_protect.description": "Broadcast a protection message for protected events",
   "dmls.module.event_protect.event_name": "Event Name",
