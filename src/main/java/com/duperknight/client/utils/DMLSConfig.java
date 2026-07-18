@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -40,6 +41,8 @@ public final class DMLSConfig {
     private static final String MOD_SERVER_KEY = "moderation.includeServer";
     private static final String MOD_TIMESTAMPS_KEY = "moderation.showTimestamps";
     private static final String MOD_HIGHLIGHTS_KEY = "moderation.highlightAlerts";
+    private static final String MOD_RULE_PREFIX = "moderation.rule.";
+    private static final String MOD_RULE_SUFFIX = ".enabled";
     private static final String MINI_ME_DUPEY_HUD_KEY = "miniMe.dupeyHud";
     private static final String MINI_ME_SIAFFY_HUD_KEY = "miniMe.siaffyHud";
     private static final String MINI_ME_BEANY_HUD_KEY = "miniMe.beanyHud";
@@ -59,6 +62,7 @@ public final class DMLSConfig {
     private static boolean greeterEnabled = true;
     private static List<String> allowedServers = ServerGuard.DEFAULT_ALLOWED_SERVERS;
     private static ModerationPreferences moderationPreferences = ModerationPreferences.defaults();
+    private static final Map<String, Boolean> moderationRuleOverrides = new HashMap<>();
     private static MiniMeHudPreferences miniMeHudPreferences = MiniMeHudPreferences.defaults();
     // Deliberately not persisted: the game always starts live, so a forgotten
     // dry run can never suppress real commands in a later session.
@@ -196,6 +200,25 @@ public final class DMLSConfig {
         return false;
     }
 
+    /** Returns a persisted per-rule override, falling back to the bundled definition's default. */
+    public static boolean automaticRuleEnabled(String ruleId, boolean defaultEnabled) {
+        ensureLoaded();
+        return moderationRuleOverrides.getOrDefault(ruleId, defaultEnabled);
+    }
+
+    /** Persists a staff member's enablement choice for one validated automatic rule id. */
+    public static boolean setAutomaticRuleEnabled(String ruleId, boolean enabled) {
+        ensureLoaded();
+        Boolean previous = moderationRuleOverrides.put(ruleId, enabled);
+        if (save()) return true;
+        if (previous == null) {
+            moderationRuleOverrides.remove(ruleId);
+        } else {
+            moderationRuleOverrides.put(ruleId, previous);
+        }
+        return false;
+    }
+
     public static MiniMeHudPreferences miniMeHudPreferences() {
         ensureLoaded();
         return miniMeHudPreferences;
@@ -302,6 +325,17 @@ public final class DMLSConfig {
                 Boolean.parseBoolean(properties.getProperty(MOD_TIMESTAMPS_KEY, Boolean.toString(defaults.showTimestamps()))),
                 Boolean.parseBoolean(properties.getProperty(MOD_HIGHLIGHTS_KEY, Boolean.toString(defaults.highlightAlerts())))
         );
+        moderationRuleOverrides.clear();
+        for (String key : properties.stringPropertyNames()) {
+            if (!key.startsWith(MOD_RULE_PREFIX) || !key.endsWith(MOD_RULE_SUFFIX)) continue;
+            String ruleId = key.substring(MOD_RULE_PREFIX.length(), key.length() - MOD_RULE_SUFFIX.length());
+            String value = properties.getProperty(key, "").trim();
+            if (ruleId.isEmpty() || !(value.equalsIgnoreCase("true") || value.equalsIgnoreCase("false"))) {
+                DMLS.LOGGER.warn("Ignoring invalid automatic moderation preference {}={}", key, value);
+                continue;
+            }
+            moderationRuleOverrides.put(ruleId, Boolean.parseBoolean(value));
+        }
         MiniMeHudPreferences miniMeDefaults = MiniMeHudPreferences.defaults();
         miniMeHudPreferences = new MiniMeHudPreferences(
                 Boolean.parseBoolean(properties.getProperty(MINI_ME_DUPEY_HUD_KEY, Boolean.toString(miniMeDefaults.dupeyHud()))),
@@ -353,6 +387,8 @@ public final class DMLSConfig {
         properties.setProperty(MOD_SERVER_KEY, Boolean.toString(moderationPreferences.includeServer()));
         properties.setProperty(MOD_TIMESTAMPS_KEY, Boolean.toString(moderationPreferences.showTimestamps()));
         properties.setProperty(MOD_HIGHLIGHTS_KEY, Boolean.toString(moderationPreferences.highlightAlerts()));
+        moderationRuleOverrides.forEach((ruleId, enabled) -> properties.setProperty(
+                MOD_RULE_PREFIX + ruleId + MOD_RULE_SUFFIX, Boolean.toString(enabled)));
         properties.setProperty(MINI_ME_DUPEY_HUD_KEY, Boolean.toString(miniMeHudPreferences.dupeyHud()));
         properties.setProperty(MINI_ME_SIAFFY_HUD_KEY, Boolean.toString(miniMeHudPreferences.siaffyHud()));
         properties.setProperty(MINI_ME_BEANY_HUD_KEY, Boolean.toString(miniMeHudPreferences.beanyHud()));

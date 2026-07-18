@@ -26,6 +26,7 @@ import net.minecraft.client.util.InputUtil;
 import net.minecraft.entity.player.SkinTextures;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.sound.SoundEvent;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
@@ -54,6 +55,8 @@ public final class ModerationScreen extends Screen {
     private static final int PANEL_BORDER = 0xFF888888;
     private static final int HOVER_BACKGROUND = 0x80383838;
     private static final int ALERT_BACKGROUND = 0x805F4710;
+    private static final int AUTOMATIC_ALERT_BACKGROUND = 0xA0701515;
+    private static final int AUTOMATIC_ALERT_HOVER_BACKGROUND = 0xB0882525;
     private static final int MENU_WIDTH = 118;
     private static final int SUBMENU_WIDTH = 90;
     private static final int SCROLLBAR_INSET = 3;
@@ -125,6 +128,7 @@ public final class ModerationScreen extends Screen {
     private long lastMiniMeClickNanos;
     private Rect miniMeHitbox;
     private SoundInstance activeMiniMeSquishSound;
+    private long lastAutomaticAlertRevision;
 
     public ModerationScreen(Screen parent) {
         this(parent, PunishmentLogService.shared());
@@ -138,6 +142,7 @@ public final class ModerationScreen extends Screen {
             PunishmentLogService.shared().onScreenOpened();
         }
         this.preferences = DMLSConfig.moderationPreferences();
+        this.lastAutomaticAlertRevision = ModerationChatService.automaticAlertRevision();
     }
 
     @Override
@@ -292,14 +297,15 @@ public final class ModerationScreen extends Screen {
         int contentMouseX = contextMenuConsumesPointer ? -10_000 : mouseX;
         int contentMouseY = contextMenuConsumesPointer ? -10_000 : mouseY;
 
+        Set<Long> automaticFlags = ModerationChatService.automaticFlaggedSequences();
         renderFeed(context, layout.globalPane(), globalPane,
                 ModerationChatService.messages().stream()
                         .filter(message -> preferences.includesInGlobal(message.channel())).toList(),
-                contentMouseX, contentMouseY);
+                automaticFlags, contentMouseX, contentMouseY);
         renderFeed(context, layout.channelPane(), channelPane,
                 ModerationChatService.messages().stream()
                         .filter(message -> message.channel() == selectedChannel).toList(),
-                contentMouseX, contentMouseY);
+                automaticFlags, contentMouseX, contentMouseY);
         renderPunishmentLog(context, layout, contentMouseX, contentMouseY);
         renderRightPanel(context, layout, contentMouseX, contentMouseY);
 
@@ -330,7 +336,8 @@ public final class ModerationScreen extends Screen {
     }
 
     private void renderFeed(DrawContext context, Rect pane, PaneState state,
-                            List<ModerationMessage> messages, int mouseX, int mouseY) {
+                            List<ModerationMessage> messages, Set<Long> automaticFlags,
+                            int mouseX, int mouseY) {
         drawPanel(context, pane);
         int innerX = pane.x() + 5;
         int innerY = pane.y() + 5;
@@ -371,7 +378,11 @@ public final class ModerationScreen extends Screen {
                     && contextMenu.message.sequence() == message.sequence();
             boolean alert = player && preferences.highlightAlerts()
                     && ChatAlertsModule.findWordlistMatch(message.messageBody()).isPresent();
-            if (alert || hovered || selected) {
+            boolean automaticAlert = player && automaticFlags.contains(message.sequence());
+            if (automaticAlert) {
+                context.fill(rowLeft, blockY, contentRight, blockY + block.height(),
+                        hovered || selected ? AUTOMATIC_ALERT_HOVER_BACKGROUND : AUTOMATIC_ALERT_BACKGROUND);
+            } else if (alert || hovered || selected) {
                 context.fill(rowLeft, blockY, contentRight, blockY + block.height(),
                         hovered || selected ? HOVER_BACKGROUND : ALERT_BACKGROUND);
             }
@@ -692,6 +703,15 @@ public final class ModerationScreen extends Screen {
         entries.add(new SettingRow(Text.translatable("dmls.moderation.timestamps"), preferences.showTimestamps(), SettingKey.TIMESTAMPS));
         entries.add(new SettingRow(Text.translatable("dmls.moderation.highlight_alerts"), preferences.highlightAlerts(), SettingKey.ALERTS));
 
+        List<AutomaticRuleDefinition> automaticRules = ModerationChatService.automaticRules();
+        if (!automaticRules.isEmpty()) {
+            entries.add(new SettingSection(Text.translatable("dmls.moderation.settings.section.automatic_detection")));
+            for (AutomaticRuleDefinition rule : automaticRules) {
+                entries.add(new SettingRow(Text.translatable(rule.labelKey()),
+                        ModerationChatService.automaticRuleEnabled(rule.id()), SettingKey.AUTOMATIC_RULE, rule.id()));
+            }
+        }
+
         return entries;
     }
 
@@ -987,6 +1007,12 @@ public final class ModerationScreen extends Screen {
     }
 
     private void toggleSetting(SettingRow row) {
+        if (row.key == SettingKey.AUTOMATIC_RULE) {
+            if (!ModerationChatService.setAutomaticRuleEnabled(row.ruleId, !row.enabled)) {
+                showStatus(Text.translatable("dmls.validation.config.save_failed").getString());
+            }
+            return;
+        }
         ModerationPreferences updated = switch (row.key) {
             case LOCAL -> preferences.withChannel(ChatChannel.LOCAL, !preferences.includeLocal());
             case TRADE -> preferences.withChannel(ChatChannel.TRADE, !preferences.includeTrade());
@@ -997,6 +1023,7 @@ public final class ModerationScreen extends Screen {
             case SERVER -> preferences.withChannel(ChatChannel.SERVER, !preferences.includeServer());
             case TIMESTAMPS -> preferences.withTimestamps(!preferences.showTimestamps());
             case ALERTS -> preferences.withHighlightAlerts(!preferences.highlightAlerts());
+            case AUTOMATIC_RULE -> throw new IllegalStateException("Automatic rules are handled separately");
         };
         if (DMLSConfig.setModerationPreferences(updated)) {
             preferences = updated;
@@ -1303,6 +1330,13 @@ public final class ModerationScreen extends Screen {
         client.setScreen(parent);
     }
 
+    /** Called only for a threshold crossing received while this screen is current. */
+    void onAutomaticRuleAlert(long alertRevision) {
+        if (alertRevision <= lastAutomaticAlertRevision || client == null || client.currentScreen != this) return;
+        lastAutomaticAlertRevision = alertRevision;
+        client.getSoundManager().play(PositionedSoundInstance.ui(SoundEvents.BLOCK_NOTE_BLOCK_CHIME, 1.0F));
+    }
+
     private enum RightTab { SETTINGS, MINI_ME }
 
     private static final class PaneState {
@@ -1364,11 +1398,17 @@ public final class ModerationScreen extends Screen {
         private final Text label;
         private final boolean enabled;
         private final SettingKey key;
+        private final String ruleId;
 
         private SettingRow(Text label, boolean enabled, SettingKey key) {
+            this(label, enabled, key, "");
+        }
+
+        private SettingRow(Text label, boolean enabled, SettingKey key, String ruleId) {
             this.label = label;
             this.enabled = enabled;
             this.key = key;
+            this.ruleId = ruleId;
         }
 
         public Text label() { return label; }
@@ -1381,7 +1421,7 @@ public final class ModerationScreen extends Screen {
     }
 
     private enum SettingKey {
-        LOCAL, TRADE, RP, STAFF, ADMIN, SERVER, TIMESTAMPS, ALERTS
+        LOCAL, TRADE, RP, STAFF, ADMIN, SERVER, TIMESTAMPS, ALERTS, AUTOMATIC_RULE
     }
 
     private record Rect(int x, int y, int width, int height) {

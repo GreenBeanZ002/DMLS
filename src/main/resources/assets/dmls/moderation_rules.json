@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "rules": [
+    {
+      "id": "spam",
+      "type": "spam",
+      "labelKey": "dmls.moderation.automatic_rule.spam",
+      "defaultEnabled": true,
+      "repeatCount": 4,
+      "repeatWindowMs": 5000,
+      "similarityThreshold": 0.8,
+      "fuzzyMinLength": 8,
+      "burstCount": 3,
+      "burstWindowMs": 1500
+    },
+    {
+      "id": "text_wall",
+      "type": "text_wall",
+      "labelKey": "dmls.moderation.automatic_rule.text_wall",
+      "defaultEnabled": true,
+      "minLines": 2
+    }
+  ]
+}

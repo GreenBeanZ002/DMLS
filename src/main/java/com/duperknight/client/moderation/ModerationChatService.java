@@ -12,6 +12,7 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.hud.ChatHud;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
@@ -52,6 +54,10 @@ public final class ModerationChatService {
     private static final Map<String, UUID> UUID_BY_IGN = new HashMap<>();
     private static final Deque<RealnameRequest> REALNAME_QUEUE = new ArrayDeque<>();
     private static final ChannelMentionTracker CHANNEL_MENTIONS = new ChannelMentionTracker();
+    private static final AutomaticRuleRegistry.LoadResult AUTOMATIC_RULE_LOAD = AutomaticRuleRegistry.loadBundled();
+    private static final AutomaticRuleDetector AUTOMATIC_RULE_DETECTOR = new AutomaticRuleDetector(
+            AUTOMATIC_RULE_LOAD.definitions(),
+            rule -> DMLSConfig.automaticRuleEnabled(rule.id(), rule.defaultEnabled()));
 
     private static RealnameRequest activeRealname;
     private static int activeRealnameTicks;
@@ -95,6 +101,29 @@ public final class ModerationChatService {
         return CHANNEL_MENTIONS;
     }
 
+    static synchronized List<AutomaticRuleDefinition> automaticRules() {
+        return AUTOMATIC_RULE_DETECTOR.definitions();
+    }
+
+    static synchronized boolean automaticRuleEnabled(String ruleId) {
+        return AUTOMATIC_RULE_DETECTOR.isEnabled(ruleId);
+    }
+
+    static synchronized boolean setAutomaticRuleEnabled(String ruleId, boolean enabled) {
+        if (AUTOMATIC_RULE_DETECTOR.isEnabled(ruleId) == enabled) return true;
+        if (!DMLSConfig.setAutomaticRuleEnabled(ruleId, enabled)) return false;
+        if (AUTOMATIC_RULE_DETECTOR.setEnabled(ruleId, enabled)) revision++;
+        return true;
+    }
+
+    static synchronized Set<Long> automaticFlaggedSequences() {
+        return Set.copyOf(AUTOMATIC_RULE_DETECTOR.snapshot().matches().keySet());
+    }
+
+    static synchronized long automaticAlertRevision() {
+        return AUTOMATIC_RULE_DETECTOR.snapshot().alertRevision();
+    }
+
     static synchronized void capture(Text text, GameProfile sender, boolean playerEvent, boolean overlay) {
         if (text == null || overlay) return;
         String clean = ChatUtils.cleanLine(text.getString());
@@ -121,9 +150,21 @@ public final class ModerationChatService {
 
         ModerationMessage message = new ModerationMessage(++nextSequence, LocalTime.now().format(TIME), text, clean,
                 channel, playerMessage, visible, body, capturedIgn, capturedUuid);
-        if (MESSAGES.size() == MAX_MESSAGES) MESSAGES.removeFirst();
+        if (MESSAGES.size() == MAX_MESSAGES) {
+            ModerationMessage removed = MESSAGES.removeFirst();
+            AUTOMATIC_RULE_DETECTOR.removeSequence(removed.sequence());
+        }
         MESSAGES.addLast(message);
+        AutomaticRuleDetector.DetectionUpdate detection = AUTOMATIC_RULE_DETECTOR.accept(
+                new AutomaticRuleDetector.Message(message.sequence(), now, channel, body,
+                        senderKey(capturedUuid, capturedIgn, visible), measureBodyLines(body, channel)));
         revision++;
+        if (detection.newAlert()) {
+            MinecraftClient client = MinecraftClient.getInstance();
+            if (client != null && client.currentScreen instanceof ModerationScreen screen) {
+                screen.onAutomaticRuleAlert(detection.alertRevision());
+            }
+        }
     }
 
     static Optional<ParsedPlayerLine> parsePlayerLine(String clean) {
@@ -324,6 +365,7 @@ public final class ModerationChatService {
         previousText = "";
         previousAt = 0;
         nextSequence = 0;
+        AUTOMATIC_RULE_DETECTOR.reset();
         CHANNEL_MENTIONS.reset();
         revision++;
         callbacks.forEach(callback -> callback.accept(Optional.empty()));
@@ -336,6 +378,23 @@ public final class ModerationChatService {
 
     private static String normalize(String value) {
         return value == null ? "" : value.toLowerCase(Locale.ROOT);
+    }
+
+    private static String senderKey(UUID uuid, String ign, String visibleUsername) {
+        if (uuid != null) return "uuid:" + uuid;
+        if (ign != null && !ign.isBlank()) return "ign:" + normalize(ign);
+        return "visible:" + normalize(visibleUsername);
+    }
+
+    /** Measures the body independently of the narrower moderation pane. */
+    static int measureBodyLines(String body, ChatChannel channel) {
+        if (channel != ChatChannel.GLOBAL || body == null || body.isEmpty()) return 1;
+        int lines = body.split("\\R", -1).length;
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client == null || client.textRenderer == null || client.options == null) return lines;
+        double chatScale = client.options.getChatScale().getValue();
+        int chatWidth = (int) Math.floor(ChatHud.getWidth(client.options.getChatWidth().getValue()) / chatScale);
+        return Math.max(lines, client.textRenderer.wrapLines(Text.literal(body), chatWidth).size());
     }
 
     record ParsedPlayerLine(String visibleUsername, String messageBody) {
