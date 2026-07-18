@@ -1,31 +1,43 @@
 package com.duperknight.client.moderation;
 
-/** One validated, developer-provided automatic moderation rule. */
-sealed interface AutomaticRuleDefinition permits SpamRuleDefinition, TextWallRuleDefinition {
-    String id();
+import java.util.List;
+import java.util.Set;
 
-    String labelKey();
-
-    boolean defaultEnabled();
-}
-
-record SpamRuleDefinition(
+/** One validated automatic rule assembled from reusable, data-defined requirements. */
+record AutomaticRuleDefinition(
         String id,
         String labelKey,
         boolean defaultEnabled,
-        int repeatCount,
-        long repeatWindowNanos,
+        Set<ChatChannel> channels,
+        int minimumMatches,
+        List<AutomaticRuleRequirement> requirements
+) {
+    AutomaticRuleDefinition {
+        channels = Set.copyOf(channels);
+        requirements = List.copyOf(requirements);
+        if (requirements.isEmpty()) throw new IllegalArgumentException("requirements must not be empty");
+        if (minimumMatches < 1) throw new IllegalArgumentException("minimumMatches must be positive");
+        minimumMatches = Math.min(minimumMatches, requirements.size());
+    }
+}
+
+/** A reusable metric that can be composed into any automatic rule. */
+sealed interface AutomaticRuleRequirement permits MessageCountRequirement, RenderedLinesRequirement {
+}
+
+record MessageCountRequirement(
+        MessageCountGrouping groupBy,
+        int minimum,
+        long windowNanos,
         double similarityThreshold,
-        int fuzzyMinLength,
-        int burstCount,
-        long burstWindowNanos
-) implements AutomaticRuleDefinition {
+        int fuzzyMinLength
+) implements AutomaticRuleRequirement {
 }
 
-record TextWallRuleDefinition(
-        String id,
-        String labelKey,
-        boolean defaultEnabled,
-        int minLines
-) implements AutomaticRuleDefinition {
+enum MessageCountGrouping {
+    SIMILAR_CONTENT,
+    SENDER
+}
+
+record RenderedLinesRequirement(int minimum) implements AutomaticRuleRequirement {
 }

@@ -1,24 +1,41 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "rules": [
     {
       "id": "spam",
-      "type": "spam",
       "labelKey": "dmls.moderation.automatic_rule.spam",
       "defaultEnabled": true,
-      "repeatCount": 4,
-      "repeatWindowMs": 5000,
-      "similarityThreshold": 0.8,
-      "fuzzyMinLength": 8,
-      "burstCount": 3,
-      "burstWindowMs": 1500
+      "channels": ["global", "local"],
+      "match": "any",
+      "requirements": [
+        {
+          "metric": "message_count",
+          "groupBy": "similar_content",
+          "minimum": 4,
+          "windowMs": 5000,
+          "similarityThreshold": 0.8,
+          "fuzzyMinLength": 8
+        },
+        {
+          "metric": "message_count",
+          "groupBy": "sender",
+          "minimum": 3,
+          "windowMs": 2500
+        }
+      ]
     },
     {
       "id": "text_wall",
-      "type": "text_wall",
       "labelKey": "dmls.moderation.automatic_rule.text_wall",
       "defaultEnabled": true,
-      "minLines": 2
+      "channels": ["global", "local"],
+      "match": "all",
+      "requirements": [
+        {
+          "metric": "rendered_lines",
+          "minimum": 5
+        }
+      ]
     }
   ]
 }

@@ -60,11 +60,6 @@ The supported command namespace is `/dmls`:
 
 Java 21 is required.
 
-Automatic moderation detectors are defined in `assets/dmls/moderation_rules.json`. Existing `spam` and
-`text_wall` definitions can be added, removed, or tuned there; a new detector algorithm requires a matching
-typed Java implementation. Automatic detections only flag global-chat rows for staff review and never punish
-players directly.
-
 ```text
 ./gradlew test --rerun-tasks
 ./gradlew build

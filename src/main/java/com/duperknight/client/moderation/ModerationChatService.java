@@ -386,9 +386,9 @@ public final class ModerationChatService {
         return "visible:" + normalize(visibleUsername);
     }
 
-    /** Measures the body independently of the narrower moderation pane. */
+    /** Measures any player-message body so JSON rules can target rendered lines in their configured channels. */
     static int measureBodyLines(String body, ChatChannel channel) {
-        if (channel != ChatChannel.GLOBAL || body == null || body.isEmpty()) return 1;
+        if (channel == ChatChannel.SERVER || body == null || body.isEmpty()) return 1;
         int lines = body.split("\\R", -1).length;
         MinecraftClient client = MinecraftClient.getInstance();
         if (client == null || client.textRenderer == null || client.options == null) return lines;
