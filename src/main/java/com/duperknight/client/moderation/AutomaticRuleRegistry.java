@@ -12,32 +12,30 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-/** Strict loader for the bundled automatic-moderation rule definitions. */
+/** Strict loader for the bundled, requirement-composed automatic moderation rules. */
 final class AutomaticRuleRegistry {
     private static final String RESOURCE = "/assets/dmls/moderation_rules.json";
-    private static final int SCHEMA_VERSION = 1;
+    private static final int SCHEMA_VERSION = 2;
     private static final long MAX_WINDOW_MILLIS = 600_000L;
     private static final Pattern RULE_ID = Pattern.compile("[a-z0-9][a-z0-9_-]{0,63}");
     private static final Set<String> ROOT_FIELDS = Set.of("schemaVersion", "rules");
-    private static final Set<String> COMMON_FIELDS = Set.of("id", "type", "labelKey", "defaultEnabled");
-    private static final Set<String> SPAM_FIELDS = Set.of(
-            "repeatCount", "repeatWindowMs", "similarityThreshold", "fuzzyMinLength",
-            "burstCount", "burstWindowMs");
-    private static final Set<String> TEXT_WALL_FIELDS = Set.of("minLines");
-    private static final Set<String> ALL_RULE_FIELDS;
-
-    static {
-        Set<String> fields = new HashSet<>(COMMON_FIELDS);
-        fields.addAll(SPAM_FIELDS);
-        fields.addAll(TEXT_WALL_FIELDS);
-        ALL_RULE_FIELDS = Set.copyOf(fields);
-    }
+    private static final Set<String> RULE_FIELDS = Set.of(
+            "id", "labelKey", "defaultEnabled", "channels", "match", "requirements");
+    private static final Set<String> REQUIREMENT_FIELDS = Set.of(
+            "metric", "groupBy", "minimum", "windowMs", "similarityThreshold", "fuzzyMinLength");
+    private static final Set<String> RENDERED_LINES_FIELDS = Set.of("metric", "minimum");
+    private static final Set<String> SENDER_COUNT_FIELDS = Set.of(
+            "metric", "groupBy", "minimum", "windowMs");
+    private static final Set<String> SIMILAR_COUNT_FIELDS = Set.of(
+            "metric", "groupBy", "minimum", "windowMs", "similarityThreshold", "fuzzyMinLength");
 
     private AutomaticRuleRegistry() {
     }
@@ -117,76 +115,181 @@ final class AutomaticRuleRegistry {
     private static AutomaticRuleDefinition readRule(JsonReader json, int index) throws IOException {
         requireToken(json, JsonToken.BEGIN_OBJECT, "Rule " + index + " must be an object");
         json.beginObject();
+        Set<String> seen = new HashSet<>();
+        Map<String, Object> values = new HashMap<>();
+        Set<ChatChannel> channels = null;
+        List<AutomaticRuleRequirement> requirements = null;
+        while (json.hasNext()) {
+            String field = json.nextName();
+            if (!RULE_FIELDS.contains(field)) throw new IOException("Unknown field in rule " + index + ": " + field);
+            if (!seen.add(field)) throw new IOException("Duplicate field in rule " + index + ": " + field);
+            switch (field) {
+                case "channels" -> channels = readChannels(json, index);
+                case "requirements" -> requirements = readRequirements(json, index);
+                default -> values.put(field, readRuleValue(json, field));
+            }
+        }
+        json.endObject();
+        requireFields(index, seen, RULE_FIELDS);
+
+        String id = requiredString(values, "id", "rule " + index);
+        if (!RULE_ID.matcher(id).matches()) throw new IOException("Invalid rule id: " + id);
+        String labelKey = requiredString(values, "labelKey", "rule " + index);
+        boolean defaultEnabled = requiredBoolean(values, "defaultEnabled", "rule " + index);
+        int minimumMatches = parseMinimumMatches(values.get("match"), requirements.size(), index);
+        return new AutomaticRuleDefinition(id, labelKey, defaultEnabled, channels, minimumMatches, requirements);
+    }
+
+    private static Set<ChatChannel> readChannels(JsonReader json, int ruleIndex) throws IOException {
+        requireToken(json, JsonToken.BEGIN_ARRAY, "Rule " + ruleIndex + " channels must be an array");
+        json.beginArray();
+        Set<ChatChannel> channels = new LinkedHashSet<>();
+        while (json.hasNext()) {
+            String value = readString(json, "channel");
+            ChatChannel channel = switch (value) {
+                case "global" -> ChatChannel.GLOBAL;
+                case "local" -> ChatChannel.LOCAL;
+                case "trade" -> ChatChannel.TRADE;
+                case "rp" -> ChatChannel.RP;
+                case "staff" -> ChatChannel.STAFF;
+                case "admin" -> ChatChannel.ADMIN;
+                default -> throw new IOException("Unsupported channel in rule " + ruleIndex + ": " + value);
+            };
+            if (!channels.add(channel)) throw new IOException("Duplicate channel in rule " + ruleIndex + ": " + value);
+        }
+        json.endArray();
+        if (channels.isEmpty()) throw new IOException("Rule " + ruleIndex + " channels must not be empty");
+        return channels;
+    }
+
+    private static List<AutomaticRuleRequirement> readRequirements(JsonReader json, int ruleIndex) throws IOException {
+        requireToken(json, JsonToken.BEGIN_ARRAY, "Rule " + ruleIndex + " requirements must be an array");
+        json.beginArray();
+        List<AutomaticRuleRequirement> requirements = new ArrayList<>();
+        while (json.hasNext()) {
+            requirements.add(readRequirement(json, ruleIndex, requirements.size()));
+        }
+        json.endArray();
+        if (requirements.isEmpty()) throw new IOException("Rule " + ruleIndex + " requirements must not be empty");
+        return requirements;
+    }
+
+    private static AutomaticRuleRequirement readRequirement(JsonReader json, int ruleIndex, int requirementIndex)
+            throws IOException {
+        String context = "requirement " + requirementIndex + " in rule " + ruleIndex;
+        requireToken(json, JsonToken.BEGIN_OBJECT, context + " must be an object");
+        json.beginObject();
         Map<String, Object> values = new HashMap<>();
         while (json.hasNext()) {
             String field = json.nextName();
-            if (!ALL_RULE_FIELDS.contains(field)) throw new IOException("Unknown field in rule " + index + ": " + field);
-            if (values.containsKey(field)) throw new IOException("Duplicate field in rule " + index + ": " + field);
-            values.put(field, readValue(json, field));
+            if (!REQUIREMENT_FIELDS.contains(field)) throw new IOException("Unknown field in " + context + ": " + field);
+            if (values.containsKey(field)) throw new IOException("Duplicate field in " + context + ": " + field);
+            values.put(field, readRequirementValue(json, field));
         }
         json.endObject();
 
-        String id = requiredString(values, "id", index);
-        if (!RULE_ID.matcher(id).matches()) throw new IOException("Invalid rule id: " + id);
-        String type = requiredString(values, "type", index);
-        String labelKey = requiredString(values, "labelKey", index);
-        boolean defaultEnabled = requiredBoolean(values, "defaultEnabled", index);
-
-        return switch (type) {
-            case "spam" -> buildSpam(index, values, id, labelKey, defaultEnabled);
-            case "text_wall" -> buildTextWall(index, values, id, labelKey, defaultEnabled);
-            default -> throw new IOException("Unsupported rule type in rule " + index + ": " + type);
+        String metric = requiredString(values, "metric", context);
+        return switch (metric) {
+            case "rendered_lines" -> buildRenderedLines(values, context);
+            case "message_count" -> buildMessageCount(values, context);
+            default -> throw new IOException("Unsupported metric in " + context + ": " + metric);
         };
     }
 
-    private static AutomaticRuleDefinition buildSpam(int index, Map<String, Object> values,
-                                                      String id, String labelKey, boolean defaultEnabled)
+    private static AutomaticRuleRequirement buildRenderedLines(Map<String, Object> values, String context)
             throws IOException {
-        requireExactFields(index, values, SPAM_FIELDS);
-        int repeatCount = positiveCount(values, "repeatCount", index);
-        long repeatWindowMs = positiveWindow(values, "repeatWindowMs", index);
-        double similarity = requiredDouble(values, "similarityThreshold", index);
-        if (!(similarity > 0.0D && similarity <= 1.0D)) {
-            throw new IOException("Rule " + index + " similarityThreshold must be greater than 0 and at most 1");
+        requireExactFields(values, RENDERED_LINES_FIELDS, context);
+        int minimum = requiredInteger(values, "minimum", context);
+        if (minimum < 2) throw new IOException(context + " minimum must be at least 2");
+        return new RenderedLinesRequirement(minimum);
+    }
+
+    private static AutomaticRuleRequirement buildMessageCount(Map<String, Object> values, String context)
+            throws IOException {
+        String grouping = requiredString(values, "groupBy", context);
+        MessageCountGrouping groupBy = switch (grouping) {
+            case "similar_content" -> MessageCountGrouping.SIMILAR_CONTENT;
+            case "sender" -> MessageCountGrouping.SENDER;
+            default -> throw new IOException("Unsupported groupBy in " + context + ": " + grouping);
+        };
+        requireExactFields(values,
+                groupBy == MessageCountGrouping.SIMILAR_CONTENT ? SIMILAR_COUNT_FIELDS : SENDER_COUNT_FIELDS,
+                context);
+        int minimum = requiredInteger(values, "minimum", context);
+        if (minimum < 2) throw new IOException(context + " minimum must be at least 2");
+        long windowMs = requiredInteger(values, "windowMs", context);
+        if (windowMs <= 0 || windowMs > MAX_WINDOW_MILLIS) {
+            throw new IOException(context + " windowMs must be between 1 and "
+                    + MAX_WINDOW_MILLIS + " milliseconds");
         }
-        int fuzzyMinLength = requiredInteger(values, "fuzzyMinLength", index);
-        if (fuzzyMinLength < 1) throw new IOException("Rule " + index + " fuzzyMinLength must be positive");
-        int burstCount = positiveCount(values, "burstCount", index);
-        long burstWindowMs = positiveWindow(values, "burstWindowMs", index);
-        return new SpamRuleDefinition(id, labelKey, defaultEnabled, repeatCount,
-                repeatWindowMs * 1_000_000L, similarity, fuzzyMinLength, burstCount,
-                burstWindowMs * 1_000_000L);
+        if (groupBy == MessageCountGrouping.SENDER) {
+            return new MessageCountRequirement(groupBy, minimum, windowMs * 1_000_000L, 1.0D, 1);
+        }
+        double similarity = requiredDouble(values, "similarityThreshold", context);
+        if (!(similarity > 0.0D && similarity <= 1.0D)) {
+            throw new IOException(context + " similarityThreshold must be greater than 0 and at most 1");
+        }
+        int fuzzyMinLength = requiredInteger(values, "fuzzyMinLength", context);
+        if (fuzzyMinLength < 1) throw new IOException(context + " fuzzyMinLength must be positive");
+        return new MessageCountRequirement(
+                groupBy, minimum, windowMs * 1_000_000L, similarity, fuzzyMinLength);
     }
 
-    private static AutomaticRuleDefinition buildTextWall(int index, Map<String, Object> values,
-                                                          String id, String labelKey, boolean defaultEnabled)
-            throws IOException {
-        requireExactFields(index, values, TEXT_WALL_FIELDS);
-        int minLines = requiredInteger(values, "minLines", index);
-        if (minLines < 2) throw new IOException("Rule " + index + " minLines must be at least 2");
-        return new TextWallRuleDefinition(id, labelKey, defaultEnabled, minLines);
+    private static int parseMinimumMatches(Object value, int requirementCount, int ruleIndex) throws IOException {
+        if (value instanceof String text) {
+            return switch (text.toLowerCase(Locale.ROOT)) {
+                case "any" -> 1;
+                case "all" -> requirementCount;
+                default -> throw new IOException(
+                        "Rule " + ruleIndex + " match must be 'any', 'all', or a positive integer");
+            };
+        }
+        if (value instanceof Integer count) {
+            if (count < 1) throw new IOException("Rule " + ruleIndex + " match must be positive");
+            return Math.min(count, requirementCount);
+        }
+        throw new IOException("Missing field in rule " + ruleIndex + ": match");
     }
 
-    private static void requireExactFields(int index, Map<String, Object> values, Set<String> typeFields)
-            throws IOException {
-        Set<String> expected = new HashSet<>(COMMON_FIELDS);
-        expected.addAll(typeFields);
+    private static void requireFields(int index, Set<String> actual, Set<String> expected) throws IOException {
         for (String field : expected) {
-            if (!values.containsKey(field)) throw new IOException("Missing field in rule " + index + ": " + field);
+            if (!actual.contains(field)) throw new IOException("Missing field in rule " + index + ": " + field);
+        }
+    }
+
+    private static void requireExactFields(Map<String, Object> values, Set<String> expected, String context)
+            throws IOException {
+        for (String field : expected) {
+            if (!values.containsKey(field)) throw new IOException("Missing field in " + context + ": " + field);
         }
         for (String field : values.keySet()) {
-            if (!expected.contains(field)) throw new IOException("Field " + field + " is invalid for rule " + index);
+            if (!expected.contains(field)) throw new IOException("Field " + field + " is invalid for " + context);
         }
     }
 
-    private static Object readValue(JsonReader json, String field) throws IOException {
+    private static Object readRuleValue(JsonReader json, String field) throws IOException {
         return switch (field) {
-            case "id", "type", "labelKey" -> readString(json, field);
+            case "id", "labelKey" -> readString(json, field);
+            case "match" -> readMatchValue(json);
             case "defaultEnabled" -> readBoolean(json, field);
-            case "repeatCount", "repeatWindowMs", "fuzzyMinLength", "burstCount", "burstWindowMs", "minLines" ->
-                    readInteger(json, field);
+            default -> throw new IOException("Unsupported rule field: " + field);
+        };
+    }
+
+    private static Object readMatchValue(JsonReader json) throws IOException {
+        return switch (json.peek()) {
+            case STRING -> json.nextString();
+            case NUMBER -> readInteger(json, "match");
+            default -> throw new IOException("match must be 'any', 'all', or a positive integer");
+        };
+    }
+
+    private static Object readRequirementValue(JsonReader json, String field) throws IOException {
+        return switch (field) {
+            case "metric", "groupBy" -> readString(json, field);
+            case "minimum", "windowMs", "fuzzyMinLength" -> readInteger(json, field);
             case "similarityThreshold" -> readDouble(json, field);
-            default -> throw new IOException("Unsupported field: " + field);
+            default -> throw new IOException("Unsupported requirement field: " + field);
         };
     }
 
@@ -218,45 +321,31 @@ final class AutomaticRuleRegistry {
         return value;
     }
 
-    private static String requiredString(Map<String, Object> values, String field, int index) throws IOException {
+    private static String requiredString(Map<String, Object> values, String field, String context) throws IOException {
         Object value = values.get(field);
         if (!(value instanceof String string) || string.isBlank()) {
-            throw new IOException("Missing or blank field in rule " + index + ": " + field);
+            throw new IOException("Missing or blank field in " + context + ": " + field);
         }
         return string;
     }
 
-    private static boolean requiredBoolean(Map<String, Object> values, String field, int index) throws IOException {
+    private static boolean requiredBoolean(Map<String, Object> values, String field, String context)
+            throws IOException {
         Object value = values.get(field);
-        if (!(value instanceof Boolean flag)) throw new IOException("Missing field in rule " + index + ": " + field);
+        if (!(value instanceof Boolean flag)) throw new IOException("Missing field in " + context + ": " + field);
         return flag;
     }
 
-    private static int requiredInteger(Map<String, Object> values, String field, int index) throws IOException {
+    private static int requiredInteger(Map<String, Object> values, String field, String context) throws IOException {
         Object value = values.get(field);
-        if (!(value instanceof Integer number)) throw new IOException("Missing field in rule " + index + ": " + field);
+        if (!(value instanceof Integer number)) throw new IOException("Missing field in " + context + ": " + field);
         return number;
     }
 
-    private static double requiredDouble(Map<String, Object> values, String field, int index) throws IOException {
+    private static double requiredDouble(Map<String, Object> values, String field, String context) throws IOException {
         Object value = values.get(field);
-        if (!(value instanceof Double number)) throw new IOException("Missing field in rule " + index + ": " + field);
+        if (!(value instanceof Double number)) throw new IOException("Missing field in " + context + ": " + field);
         return number;
-    }
-
-    private static int positiveCount(Map<String, Object> values, String field, int index) throws IOException {
-        int count = requiredInteger(values, field, index);
-        if (count < 2) throw new IOException("Rule " + index + " " + field + " must be at least 2");
-        return count;
-    }
-
-    private static long positiveWindow(Map<String, Object> values, String field, int index) throws IOException {
-        int window = requiredInteger(values, field, index);
-        if (window <= 0 || window > MAX_WINDOW_MILLIS) {
-            throw new IOException("Rule " + index + " " + field + " must be between 1 and "
-                    + MAX_WINDOW_MILLIS + " milliseconds");
-        }
-        return window;
     }
 
     private static void requireToken(JsonReader json, JsonToken expected, String message) throws IOException {
