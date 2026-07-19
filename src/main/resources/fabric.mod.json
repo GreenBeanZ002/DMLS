@@ -4,7 +4,7 @@
   "version": "${version}",
   "name": "Duper's Mod for Lazy Staff",
   "description": "A mod made for the LAZY staff of stoneworks",
-  "authors": ["DuperKnight", "Siaffs"],
+  "authors": ["DuperKnight", "Siaffs", "GreenBeanz_"],
   "contact": {
     "issues": "https://github.com/DuperKnight/DMLS/issues",
     "sources": "https://github.com/DuperKnight/DMLS"
