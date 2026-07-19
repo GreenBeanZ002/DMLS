@@ -28,10 +28,13 @@ public final class EventRandomTeleportScreen extends DMLSMenuScreen {
 
         addScrollableChild(ButtonWidget.builder(Text.translatable("dmls.module.event_random_teleport.teleport"), button -> {
             MinecraftClient client = MinecraftClient.getInstance();
-            String target = module.teleportToRandomPlayer(client);
-            lastResult = target != null
-                    ? Text.translatable("dmls.chat.event_random_teleport.teleported", target)
-                    : Text.translatable("dmls.chat.event_random_teleport.no_players");
+            EventRandomTeleportModule.TeleportResult result = module.teleport(client);
+            lastResult = switch (result.status()) {
+                case SENT -> Text.translatable("dmls.chat.event_random_teleport.teleported", result.target());
+                case SIMULATED -> Text.translatable("dmls.chat.event_random_teleport.simulated", result.target());
+                case NO_PLAYERS -> Text.translatable("dmls.chat.event_random_teleport.no_players");
+                case BLOCKED -> Text.translatable("dmls.chat.event_random_teleport.blocked");
+            };
         }).dimensions(x, contentY(0), controlWidth, STANDARD_BUTTON_HEIGHT).build(), 0);
 
         addDrawableChild(ButtonWidget.builder(ScreenTexts.BACK, button -> close())

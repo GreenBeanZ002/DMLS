@@ -98,7 +98,7 @@ final class ActivityWaveOperation implements ManagedOperation {
     public void onStarted(OperationHandle handle, MinecraftClient client) {
         this.handle = handle;
         this.client = client;
-        listener.started(client, usernames.size());
+        if (!handle.descriptor().dryRunCaptured()) listener.started(client, usernames.size());
         startCurrentPlayer();
     }
 
@@ -145,7 +145,9 @@ final class ActivityWaveOperation implements ManagedOperation {
         String username = usernames.get(playerIndex);
         parser = new ActivityResponseParser(username);
         parsedResult = null;
-        listener.progress(client, username, playerIndex + 1, usernames.size());
+        if (!handle.descriptor().dryRunCaptured()) {
+            listener.progress(client, username, playerIndex + 1, usernames.size());
+        }
         sequence = new PacedCommandSequence<>(List.of(username), 0, RESPONSE_TIMEOUT_TICKS,
                 ignored -> dispatcher.dispatch(handle, client, "activity " + username),
                 (ignored, line) -> parse(line));
@@ -179,7 +181,7 @@ final class ActivityWaveOperation implements ManagedOperation {
                 } else {
                     results.put(username, ActivityValue.noResponse());
                 }
-                advance(true);
+                advance(!handle.descriptor().dryRunCaptured());
             }
             case TIMED_OUT, REJECTED, FAILED -> {
                 results.put(usernames.get(playerIndex), ActivityValue.noResponse());

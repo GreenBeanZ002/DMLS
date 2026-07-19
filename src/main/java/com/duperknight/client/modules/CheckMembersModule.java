@@ -130,7 +130,9 @@ public final class CheckMembersModule extends DMLSModule {
         @Override
         public void onStarted(OperationHandle handle, MinecraftClient client) {
             this.handle = handle;
-            ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.check_members.checking", land);
+            if (!handle.descriptor().dryRunCaptured()) {
+                ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.check_members.checking", land);
+            }
             activeQuery = new MenuCommandQuery("la info " + land, land, MENU_TIMEOUT_TICKS, PLAYER_LIST_SLOT);
             initialDispatch = activeQuery.start(client, handle::dispatchCommand);
             if (initialDispatch == CommandDispatch.BLOCKED) {

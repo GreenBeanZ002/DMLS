@@ -6,6 +6,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -21,7 +22,7 @@ public final class EventPowerToolStorage {
 
     public static synchronized Map<String, String> all() {
         ensureLoaded();
-        return Map.copyOf(ENTRIES);
+        return Collections.unmodifiableMap(new LinkedHashMap<>(ENTRIES));
     }
 
     public static synchronized Optional<String> get(String name) {

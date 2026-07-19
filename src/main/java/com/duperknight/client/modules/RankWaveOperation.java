@@ -77,7 +77,8 @@ final class RankWaveOperation implements ManagedOperation {
     public void onStarted(OperationHandle handle, MinecraftClient client) {
         this.handle = handle;
         this.client = client;
-        sequence = new PacedCommandSequence<>(steps, COMMAND_GAP_TICKS, RESPONSE_TIMEOUT_TICKS,
+        boolean dryRun = handle.descriptor().dryRunCaptured();
+        sequence = new PacedCommandSequence<>(steps, dryRun ? 0 : COMMAND_GAP_TICKS, RESPONSE_TIMEOUT_TICKS,
                 step -> handle.dispatchCommand(client, step.command()),
                 (step, line) -> switch (LuckPermsResponseParser.parseParentChange(
                         step.action(), step.username(), step.group(), line)) {
@@ -85,8 +86,10 @@ final class RankWaveOperation implements ManagedOperation {
                     case REJECTED -> ResponseStatus.REJECTED;
                     case UNRELATED -> ResponseStatus.UNRELATED;
                 });
-        listener.started(client, playerCount);
-        announceCurrent();
+        if (!dryRun) {
+            listener.started(client, playerCount);
+            announceCurrent();
+        }
         sequence.start();
         synchronizeAndFinishIfNeeded();
     }
@@ -135,6 +138,7 @@ final class RankWaveOperation implements ManagedOperation {
     }
 
     private void announceCurrent() {
+        if (handle != null && handle.descriptor().dryRunCaptured()) return;
         if (sequence == null || sequence.state().terminal()) return;
         int index = sequence.currentIndex();
         if (index == announcedIndex || index >= steps.size()) return;

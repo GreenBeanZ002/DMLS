@@ -48,7 +48,6 @@ public record PunishmentLogEntry(
 
     public int highlightAlpha(long nowMillis) {
         if (origin == PunishmentLogOrigin.WEBSITE) return 0;
-        if (origin == PunishmentLogOrigin.COMMAND) return FULL_HIGHLIGHT_ALPHA;
         long elapsed = Math.max(0L, nowMillis - highlightFadeStartedAtMillis);
         if (elapsed >= HIGHLIGHT_FADE_MILLIS) return 0;
         return Math.round(FULL_HIGHLIGHT_ALPHA * (1.0F - (float) elapsed / HIGHLIGHT_FADE_MILLIS));

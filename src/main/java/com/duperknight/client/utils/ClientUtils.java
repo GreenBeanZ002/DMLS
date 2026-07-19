@@ -59,7 +59,8 @@ public final class ClientUtils {
 
     /** Dispatches a one-shot command using the dry-run state observed at this call. */
     public static CommandDispatch dispatchCommand(MinecraftClient client, String command) {
-        return dispatchCommand(client, command, DMLSConfig.dryRun(), ConnectionSnapshot.capture(client));
+        return dispatchCommand(client, command, DMLSConfig.dryRun(), ConnectionSnapshot.capture(client),
+                DryRunFeedback.COMMAND_PREVIEW);
     }
 
     /**
@@ -72,13 +73,27 @@ public final class ClientUtils {
             boolean dryRunCaptured,
             ConnectionSnapshot expectedConnection
     ) {
+        return dispatchCommand(client, command, dryRunCaptured, expectedConnection,
+                DryRunFeedback.COMMAND_PREVIEW);
+    }
+
+    /** Dispatches with an explicit dry-run reporting policy. */
+    public static CommandDispatch dispatchCommand(
+            MinecraftClient client,
+            String command,
+            boolean dryRunCaptured,
+            ConnectionSnapshot expectedConnection,
+            DryRunFeedback dryRunFeedback
+    ) {
         if (command == null || command.isBlank() || expectedConnection == null
-                || !expectedConnection.matches(client)) {
+                || dryRunFeedback == null || !expectedConnection.matches(client)) {
             return CommandDispatch.BLOCKED;
         }
         if (dryRunCaptured) {
-            ChatUtils.sendTranslatedMessage(client, DRY_RUN_PREFIX,
-                    "dmls.chat.dry_run.would_run", "/" + command);
+            if (dryRunFeedback == DryRunFeedback.COMMAND_PREVIEW) {
+                ChatUtils.sendTranslatedMessage(client, DRY_RUN_PREFIX,
+                        "dmls.chat.dry_run.would_run", "/" + command);
+            }
             return CommandDispatch.SIMULATED;
         }
         if (!ServerGuard.check(client).allowed() || client.getNetworkHandler() == null
@@ -116,35 +131,19 @@ public final class ClientUtils {
             boolean dryRunCaptured,
             ConnectionSnapshot expectedConnection
     ) {
-        return GlobalChatMessenger.dispatch(client, message, dryRunCaptured, expectedConnection);
+        return dispatchChatMessage(client, message, dryRunCaptured, expectedConnection,
+                DryRunFeedback.COMMAND_PREVIEW);
     }
 
-    /** Sends directly to the currently active chat channel; only the global-chat coordinator should call this live. */
-    static CommandDispatch dispatchChatMessageDirect(
+    /** Guarded chat-message dispatch with an explicit dry-run reporting policy. */
+    public static CommandDispatch dispatchChatMessage(
             MinecraftClient client,
             String message,
             boolean dryRunCaptured,
-            ConnectionSnapshot expectedConnection
+            ConnectionSnapshot expectedConnection,
+            DryRunFeedback dryRunFeedback
     ) {
-        if (message == null || message.isBlank() || expectedConnection == null
-                || !expectedConnection.matches(client)) {
-            return CommandDispatch.BLOCKED;
-        }
-        if (dryRunCaptured) {
-            ChatUtils.sendTranslatedMessage(client, DRY_RUN_PREFIX,
-                    "dmls.chat.dry_run.would_say", message);
-            return CommandDispatch.SIMULATED;
-        }
-        if (!ServerGuard.check(client).allowed() || client.getNetworkHandler() == null
-                || !client.getNetworkHandler().isConnectionOpen()) {
-            return CommandDispatch.BLOCKED;
-        }
-        try {
-            client.getNetworkHandler().sendChatMessage(message);
-            return CommandDispatch.SENT;
-        } catch (RuntimeException exception) {
-            DMLS.LOGGER.warn("Failed to dispatch a guarded chat message", exception);
-            return CommandDispatch.BLOCKED;
-        }
+        return GlobalChatMessenger.dispatch(client, message, dryRunCaptured, expectedConnection, dryRunFeedback);
     }
+
 }

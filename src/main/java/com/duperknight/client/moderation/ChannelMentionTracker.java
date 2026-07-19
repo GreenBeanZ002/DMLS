@@ -12,6 +12,7 @@ final class ChannelMentionTracker {
 
     void update(List<ModerationMessage> messages, String username, ChatChannel selectedChannel,
                 List<ChatChannel> availableChannels) {
+        retainAvailableChannels(availableChannels);
         if (messages.isEmpty()) {
             if (lastProcessedSequence > 0) reset();
             return;
@@ -31,6 +32,14 @@ final class ChannelMentionTracker {
             }
         }
         lastProcessedSequence = newestSequence;
+    }
+
+    void retainAvailableChannels(List<ChatChannel> availableChannels) {
+        if (availableChannels == null || availableChannels.isEmpty()) {
+            unreadChannels.clear();
+            return;
+        }
+        unreadChannels.retainAll(EnumSet.copyOf(availableChannels));
     }
 
     void markRead(ChatChannel channel) {

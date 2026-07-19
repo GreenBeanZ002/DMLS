@@ -17,9 +17,13 @@ public final class ModerationActions {
 
     public static CommandDispatch sendToChannel(MinecraftClient client, ChatChannel channel, String message) {
         String clean = message == null ? "" : message.trim();
-        if (channel == null || !channel.selectable() || clean.isEmpty() || clean.indexOf('§') >= 0
+        if (!DMLSConfig.hasRecognizedStaffRank() || channel == null || !channel.selectable()
+                || clean.isEmpty() || clean.indexOf('§') >= 0
                 || clean.chars().anyMatch(Character::isISOControl)) {
             return CommandDispatch.BLOCKED;
+        }
+        if (channel == ChatChannel.GLOBAL) {
+            return ClientUtils.dispatchChatMessage(client, clean);
         }
         return ClientUtils.dispatchCommand(client, channel.sendCommand() + " " + clean);
     }
@@ -37,7 +41,9 @@ public final class ModerationActions {
         if (start != OperationStartResult.STARTED) return Outcome.BLOCKED;
         return switch (operation.dispatch) {
             case SENT -> {
-                PunishmentLogService.shared().recordLocal(client, request);
+                // Helpers do not receive the moderator punishment broadcasts that confirm the action.
+                // Higher ranks are recorded only when that server confirmation is captured.
+                if (rank == StaffRank.HELPER) PunishmentLogService.shared().recordLocal(client, request);
                 yield Outcome.SENT;
             }
             case SIMULATED -> Outcome.SIMULATED;

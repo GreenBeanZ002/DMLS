@@ -45,6 +45,7 @@ public final class PunishmentLogService implements PunishmentLogSource {
             DateTimeFormatter.ofPattern("MMM d, uuuu HH:mm:ss", Locale.ENGLISH);
     static final long HELPER_REFRESH_INTERVAL_MILLIS = 5 * 60_000L;
     private static final long DUPLICATE_WINDOW_MILLIS = 5_000L;
+    private static final long WEBSITE_DUPLICATE_TOLERANCE_MILLIS = 2 * 60_000L;
     private static final String USERNAME = "[A-Za-z0-9_]{1,16}";
     private static final List<Page> PAGES = List.of(
             new Page(PunishmentType.BAN, "bans.php"),
@@ -116,15 +117,11 @@ public final class PunishmentLogService implements PunishmentLogSource {
 
     @Override
     public List<PunishmentLogEntry> latest() {
-        StaffRank rank = DMLSConfig.staffRank();
         synchronized (this) {
             List<PunishmentLogEntry> local = localEntries.stream().map(LocalEntry::entry).toList();
             List<PunishmentLogEntry> website = new ArrayList<>();
             for (Page page : PAGES) {
                 website.addAll(websiteEntries.get(page.type()));
-            }
-            if (rank == StaffRank.HELPER) {
-                website = filterWebsiteEntries(website, currentPlayerName());
             }
             return mergeEntries(local, website);
         }
@@ -132,14 +129,15 @@ public final class PunishmentLogService implements PunishmentLogSource {
 
     public synchronized void recordLocal(MinecraftClient client, PunishmentRequest request) {
         if (request == null) return;
+        long now = System.currentTimeMillis();
         String staffName = client != null && client.player != null
                 ? client.player.getName().getString()
                 : "You";
         String duration = request.type().durationRequired() ? displayCommandDuration(request.duration()) : "";
         PunishmentLogEntry entry = new PunishmentLogEntry(request.type(), request.ign(),
                 offlineUuid(request.ign()), staffName, request.reason(), duration, currentLogTime(),
-                "", PunishmentLogOrigin.COMMAND, "", "", 0L);
-        addLocal(entry, System.currentTimeMillis(), LocalSource.COMMAND);
+                "", PunishmentLogOrigin.COMMAND, "", "", now);
+        addLocal(entry, now, LocalSource.COMMAND);
     }
 
     static boolean recordChatLine(String cleanLine) {
@@ -268,7 +266,7 @@ public final class PunishmentLogService implements PunishmentLogSource {
             String duration = "";
             String reason = tail;
             if (temporary) {
-                int reasonDivider = tail.toLowerCase(Locale.ROOT).lastIndexOf(" for ");
+                int reasonDivider = tail.toLowerCase(Locale.ROOT).indexOf(" for ");
                 if (reasonDivider > 0) {
                     duration = tail.substring(0, reasonDivider).trim();
                     reason = tail.substring(reasonDivider + 5);
@@ -363,34 +361,32 @@ public final class PunishmentLogService implements PunishmentLogSource {
         return rank == StaffRank.HELPER;
     }
 
-    static List<PunishmentLogEntry> filterWebsiteEntries(List<PunishmentLogEntry> website,
-                                                         String helperName) {
-        if (helperName == null || helperName.isBlank()) return List.copyOf(website);
-        return website.stream()
-                .filter(entry -> !entry.staffName().equalsIgnoreCase(helperName))
-                .toList();
-    }
-
     static List<PunishmentLogEntry> mergeEntries(List<PunishmentLogEntry> local,
                                                  List<PunishmentLogEntry> website) {
         List<PunishmentLogEntry> merged = new ArrayList<>(local.size() + website.size());
-        Map<EntryKey, Integer> localCounts = new HashMap<>();
-        for (PunishmentLogEntry entry : local) {
-            merged.add(entry);
-            localCounts.merge(EntryKey.of(entry), 1, Integer::sum);
-        }
+        merged.addAll(local);
+        boolean[] matchedLocal = new boolean[local.size()];
         for (PunishmentLogEntry entry : website) {
-            EntryKey key = EntryKey.of(entry);
-            int remainingDuplicates = localCounts.getOrDefault(key, 0);
-            if (remainingDuplicates > 0) {
-                if (remainingDuplicates == 1) localCounts.remove(key);
-                else localCounts.put(key, remainingDuplicates - 1);
-                continue;
+            int duplicateIndex = -1;
+            for (int index = 0; index < local.size(); index++) {
+                if (!matchedLocal[index] && sameOccurrence(local.get(index), entry)) {
+                    duplicateIndex = index;
+                    break;
+                }
             }
-            merged.add(entry);
+            if (duplicateIndex >= 0) matchedLocal[duplicateIndex] = true;
+            else merged.add(entry);
         }
         merged.sort(Comparator.comparingLong(PunishmentLogService::punishmentTimestamp).reversed());
         return List.copyOf(merged.subList(0, Math.min(MAX_ENTRIES, merged.size())));
+    }
+
+    private static boolean sameOccurrence(PunishmentLogEntry local, PunishmentLogEntry website) {
+        if (!EntryKey.of(local).equals(EntryKey.of(website))) return false;
+        long localTimestamp = punishmentTimestamp(local);
+        long websiteTimestamp = punishmentTimestamp(website);
+        return localTimestamp != Long.MIN_VALUE && websiteTimestamp != Long.MIN_VALUE
+                && Math.abs(localTimestamp - websiteTimestamp) <= WEBSITE_DUPLICATE_TOLERANCE_MILLIS;
     }
 
     private static long punishmentTimestamp(PunishmentLogEntry entry) {
@@ -481,11 +477,6 @@ public final class PunishmentLogService implements PunishmentLogSource {
         } catch (IllegalArgumentException exception) {
             return "";
         }
-    }
-
-    private static String currentPlayerName() {
-        MinecraftClient client = MinecraftClient.getInstance();
-        return client != null && client.player != null ? client.player.getName().getString() : "";
     }
 
     private static java.util.Optional<UUID> uuidFromPlayerCell(String cell) {

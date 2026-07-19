@@ -2,23 +2,27 @@ package com.duperknight.client.gui.modules;
 
 import com.duperknight.client.gui.DMLSMenuScreen;
 import com.duperknight.client.modules.EventPowerToolModule;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
-/** Save, load, clear, and delete named /powertool command bindings. */
+/** Standard DMLS form and saved-row list for held-item PowerTool bindings. */
 public final class EventPowerToolScreen extends DMLSMenuScreen {
+    private static final int ROW_HEIGHT_UNSCALED = 24;
+    private static final int SAVED_HEADING_OFFSET_UNSCALED = 128;
+    private static final int SAVED_ROWS_OFFSET_UNSCALED = 148;
+
     private final EventPowerToolModule module;
     private TextFieldWidget nameField;
     private TextFieldWidget commandField;
+    private ButtonWidget saveButton;
+    private Text validation = Text.empty();
     private Text status = Text.empty();
 
     public EventPowerToolScreen(Screen parent, EventPowerToolModule module) {
@@ -28,80 +32,134 @@ public final class EventPowerToolScreen extends DMLSMenuScreen {
 
     @Override
     protected void init() {
-        Map<String, String> saved = module.saved();
-        int entryCount = saved.size();
-        configureScrollableContent(module, scaled(94) + entryCount * scaled(26));
+        String savedName = fieldText(nameField);
+        String savedCommand = fieldText(commandField);
+        Map<String, String> entries = module.saved();
 
-        int controlWidth = scaled(200);
-        int x = width / 2 - controlWidth / 2;
+        int rowsOffset = scaled(SAVED_ROWS_OFFSET_UNSCALED);
+        int contentHeight = Math.max(scaled(174), rowsOffset
+                + entries.size() * scaled(ROW_HEIGHT_UNSCALED) + scaled(8));
+        configureScrollableContent(module, contentHeight);
 
-        nameField = new TextFieldWidget(textRenderer, x, contentY(0), controlWidth, STANDARD_BUTTON_HEIGHT,
-                Text.translatable("dmls.module.event_powertool.name_field"));
-        nameField.setMaxLength(64);
-        nameField.setPlaceholder(Text.translatable("dmls.module.event_powertool.name_placeholder"));
-        addScrollableChild(nameField, 0);
+        int formWidth = Math.min(scaled(360), width - scaled(48));
+        int formX = (width - formWidth) / 2;
 
-        commandField = new TextFieldWidget(textRenderer, x, contentY(scaled(24)), controlWidth, STANDARD_BUTTON_HEIGHT,
-                Text.translatable("dmls.module.event_powertool.command_field"));
-        commandField.setMaxLength(256);
-        commandField.setPlaceholder(Text.translatable("dmls.module.event_powertool.command_placeholder"));
-        addScrollableChild(commandField, scaled(24));
+        nameField = addScrollableChild(new TextFieldWidget(textRenderer, formX, contentY(scaled(14)), formWidth,
+                STANDARD_BUTTON_HEIGHT, Text.translatable("dmls.module.event_powertool.name_field")), scaled(14));
+        nameField.setMaxLength(EventPowerToolModule.MAX_NAME_LENGTH);
+        nameField.setText(savedName);
+        updateNameSuggestion();
+        nameField.setChangedListener(value -> {
+            updateNameSuggestion();
+            status = Text.empty();
+            refreshValidation();
+        });
+        setInitialFocus(nameField);
 
-        addScrollableChild(ButtonWidget.builder(Text.translatable("dmls.button.save"), button -> {
-            String name = nameField.getText().trim();
-            String command = commandField.getText().trim();
-            if (name.isEmpty() || command.isEmpty()) {
-                status = Text.translatable("dmls.validation.event_powertool.incomplete");
-                return;
-            }
-            if (module.save(MinecraftClient.getInstance(), name, command)) {
-                status = Text.empty();
-                clearAndReinit();
-            } else {
-                status = Text.translatable("dmls.validation.config.save_failed");
-            }
-        }).dimensions(x, contentY(scaled(48)), controlWidth, STANDARD_BUTTON_HEIGHT).build(), scaled(48));
+        commandField = addScrollableChild(new TextFieldWidget(textRenderer, formX, contentY(scaled(60)), formWidth,
+                STANDARD_BUTTON_HEIGHT, Text.translatable("dmls.module.event_powertool.command_field")), scaled(60));
+        commandField.setMaxLength(EventPowerToolModule.MAX_COMMAND_LENGTH + 1);
+        commandField.setText(savedCommand);
+        updateCommandSuggestion();
+        commandField.setChangedListener(value -> {
+            updateCommandSuggestion();
+            status = Text.empty();
+            refreshValidation();
+        });
 
         addScrollableChild(ButtonWidget.builder(Text.translatable("dmls.button.event_powertool.clear"), button -> {
-            if (module.clear(MinecraftClient.getInstance())) {
-                status = Text.empty();
+            status = Text.empty();
+            if (module.clear(client)) {
+                closeToGame();
+            } else {
+                status = Text.translatable("dmls.validation.event_powertool.action_blocked");
             }
-        }).dimensions(x, contentY(scaled(72)), controlWidth, STANDARD_BUTTON_HEIGHT).build(), scaled(72));
+        }).dimensions(formX, contentY(scaled(92)), formWidth, STANDARD_BUTTON_HEIGHT).build(), scaled(92));
 
-        int entryY = scaled(102);
-        List<Map.Entry<String, String>> entries = new ArrayList<>(saved.entrySet());
-        int loadWidth = scaled(90);
-        int deleteWidth = scaled(90);
+        int deleteWidth = scaled(20);
         int gap = scaled(4);
-        int rowX = width / 2 - (loadWidth + deleteWidth + gap) / 2;
-
-        for (Map.Entry<String, String> entry : entries) {
+        int row = 0;
+        for (Map.Entry<String, String> entry : entries.entrySet()) {
             String name = entry.getKey();
-            int rowOffset = entryY;
-            addScrollableChild(ButtonWidget.builder(
-                    Text.translatable("dmls.button.event_powertool.load", name),
-                    button -> {
-                        if (module.load(MinecraftClient.getInstance(), name)) {
-                            status = Text.empty();
+            String command = entry.getValue();
+            int offset = rowsOffset + row * scaled(ROW_HEIGHT_UNSCALED);
+            Text rowText = Text.literal(name + " ").append(Text.literal("/" + command).formatted(Formatting.DARK_GRAY));
+            addScrollableChild(ButtonWidget.builder(rowText, button -> {
+                        status = Text.empty();
+                        if (module.load(client, name)) {
+                            closeToGame();
+                        } else {
+                            status = Text.translatable("dmls.validation.event_powertool.action_blocked");
                         }
-                    }).dimensions(rowX, contentY(rowOffset), loadWidth, STANDARD_BUTTON_HEIGHT).build(), rowOffset);
-            addScrollableChild(ButtonWidget.builder(
-                    Text.translatable("dmls.button.delete"),
-                    button -> {
-                        if (module.delete(MinecraftClient.getInstance(), name)) {
-                            clearAndReinit();
+                    })
+                    .dimensions(formX, contentY(offset), formWidth - deleteWidth - gap,
+                            STANDARD_BUTTON_HEIGHT).build(), offset);
+            addScrollableChild(ButtonWidget.builder(Text.literal("✕"), button -> {
+                        status = Text.empty();
+                        if (module.delete(client, name)) {
+                            clearAndInit();
+                        } else {
+                            status = Text.translatable("dmls.validation.config.save_failed");
                         }
-                    }).dimensions(rowX + loadWidth + gap, contentY(rowOffset), deleteWidth, STANDARD_BUTTON_HEIGHT).build(), rowOffset);
-            entryY += scaled(26);
+                    })
+                    .dimensions(formX + formWidth - deleteWidth, contentY(offset), deleteWidth,
+                            STANDARD_BUTTON_HEIGHT).build(), offset);
+            row++;
         }
 
         addDrawableChild(ButtonWidget.builder(ScreenTexts.BACK, button -> close())
-                .dimensions(width / 2 - scaled(75), footerButtonY(), scaled(150), STANDARD_BUTTON_HEIGHT).build());
+                .dimensions(leftPairedButtonX(), footerButtonY(), pairedButtonWidth(), STANDARD_BUTTON_HEIGHT).build());
+        saveButton = addDrawableChild(ButtonWidget.builder(Text.translatable("dmls.button.save"), button -> save())
+                .dimensions(rightPairedButtonX(), footerButtonY(), pairedButtonWidth(), STANDARD_BUTTON_HEIGHT).build());
+        refreshValidation();
     }
 
-    private void clearAndReinit() {
-        clearChildren();
-        init();
+    private void save() {
+        refreshValidation();
+        if (!validation.getString().isEmpty()) return;
+        if (module.save(client, nameField.getText(), commandField.getText())) {
+            nameField.setText("");
+            commandField.setText("");
+            status = Text.empty();
+            clearAndInit();
+        } else {
+            status = Text.translatable("dmls.validation.config.save_failed");
+        }
+    }
+
+    private void refreshValidation() {
+        if (nameField == null || commandField == null) return;
+        String name = nameField.getText();
+        String command = commandField.getText();
+        boolean bothEmpty = name.isBlank() && command.isBlank();
+        if (bothEmpty) {
+            validation = Text.empty();
+        } else if (name.isBlank() || command.isBlank()) {
+            validation = Text.translatable("dmls.validation.event_powertool.incomplete");
+        } else if (EventPowerToolModule.normalizeName(name).isEmpty()) {
+            validation = Text.translatable("dmls.validation.event_powertool.name");
+        } else if (EventPowerToolModule.normalizeCommand(command).isEmpty()) {
+            validation = Text.translatable("dmls.validation.event_powertool.command");
+        } else {
+            validation = Text.empty();
+        }
+        if (saveButton != null) {
+            saveButton.active = !bothEmpty && validation.getString().isEmpty();
+        }
+    }
+
+    private void updateNameSuggestion() {
+        nameField.setSuggestion(nameField.getText().isEmpty()
+                ? Text.translatable("dmls.module.event_powertool.name_placeholder").getString() : null);
+    }
+
+    private void updateCommandSuggestion() {
+        commandField.setSuggestion(commandField.getText().isEmpty()
+                ? Text.translatable("dmls.module.event_powertool.command_placeholder").getString() : null);
+    }
+
+    private static String fieldText(TextFieldWidget field) {
+        return field == null ? "" : field.getText();
     }
 
     @Override
@@ -109,21 +167,36 @@ public final class EventPowerToolScreen extends DMLSMenuScreen {
         renderMenuBackground(context);
         renderModuleHeader(context, module);
         beginContentScissor(context);
-        int statusY = contentY(scaled(96));
-        if (!status.getString().isEmpty() && isContentVisible(statusY, textRenderer.fontHeight)) {
-            context.drawCenteredTextWithShadow(textRenderer, status, width / 2, statusY, 0xFFFF5555);
-        }
-        List<Map.Entry<String, String>> entries = new ArrayList<>(module.saved().entrySet());
-        int labelY = scaled(102);
-        for (Map.Entry<String, String> entry : entries) {
-            int y = contentY(labelY - scaled(12));
-            if (isContentVisible(y, textRenderer.fontHeight)) {
-                context.drawCenteredTextWithShadow(textRenderer, Text.literal(entry.getKey()),
-                        width / 2, y, 0xFFDDDDDD);
+
+        int formWidth = Math.min(scaled(360), width - scaled(48));
+        int formX = (width - formWidth) / 2;
+        drawLabel(context, Text.translatable("dmls.module.event_powertool.name_field"),
+                formX, contentY(0));
+        drawLabel(context, Text.translatable("dmls.module.event_powertool.command_field"),
+                formX, contentY(scaled(46)));
+        drawLabel(context, Text.translatable("dmls.screen.event_powertool.saved"),
+                formX, contentY(scaled(SAVED_HEADING_OFFSET_UNSCALED)));
+
+        if (module.saved().isEmpty()) {
+            int emptyY = contentY(scaled(SAVED_ROWS_OFFSET_UNSCALED + 5));
+            if (isContentVisible(emptyY, textRenderer.fontHeight)) {
+                context.drawCenteredTextWithShadow(textRenderer,
+                        Text.translatable("dmls.screen.event_powertool.empty"), width / 2, emptyY, 0xFFAAAAAA);
             }
-            labelY += scaled(26);
         }
         endContentScissor(context);
+
+        Text footerStatus = status.getString().isEmpty() ? validation : status;
+        if (!footerStatus.getString().isEmpty()) {
+            context.drawCenteredTextWithShadow(textRenderer, footerStatus, width / 2,
+                    footerButtonY() - scaled(13), 0xFFFF5555);
+        }
         super.render(context, mouseX, mouseY, delta);
+    }
+
+    private void drawLabel(DrawContext context, Text label, int x, int y) {
+        if (isContentVisible(y, textRenderer.fontHeight)) {
+            context.drawTextWithShadow(textRenderer, label, x, y, 0xFFCCCCCC);
+        }
     }
 }

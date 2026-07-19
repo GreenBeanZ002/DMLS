@@ -51,6 +51,7 @@ public final class ModerationScreen extends Screen {
     private static final int ROW_HEIGHT = 20;
     private static final int SETTINGS_SECTION_HEIGHT = 25;
     private static final int CONTEXT_ROW_HEIGHT = 23;
+    private static final int LOG_CONTENT_TOP_OFFSET = 20;
     private static final int PANEL_BACKGROUND = 0xD0000000;
     private static final int PANEL_BORDER = 0xFF888888;
     private static final int HOVER_BACKGROUND = 0x80383838;
@@ -154,6 +155,7 @@ public final class ModerationScreen extends Screen {
         Layout layout = layout();
         adminAccess = isAdmin();
         List<ChatChannel> selectableChannels = selectableChannels();
+        channelMentions.retainAvailableChannels(selectableChannels);
         if (!selectableChannels.contains(selectedChannel)) selectChannel(ChatChannel.STAFF);
 
         int sendWidth = Math.min(72, Math.max(50, layout.leftWidth() / 7));
@@ -215,6 +217,10 @@ public final class ModerationScreen extends Screen {
     }
 
     private void sendGlobal() {
+        if (!DMLSConfig.hasRecognizedStaffRank()) {
+            showStatus(Text.translatable("dmls.moderation.send_blocked").getString());
+            return;
+        }
         String message = globalInput.getText().trim();
         if (message.startsWith("/")) {
             completeSend(globalInput, ClientUtils.dispatchCommand(client, message.substring(1)));
@@ -265,10 +271,24 @@ public final class ModerationScreen extends Screen {
         Text placeholder = commandsAllowed
                 ? Text.translatable("dmls.moderation.type_message_or_command")
                 : Text.translatable("dmls.moderation.type_channel_message", selectedChannel.displayName());
-        input.setSuggestion(empty ? placeholder.getString() : null);
-        boolean enabled = !empty && (commandsAllowed || !value.startsWith("/"));
+        input.setSuggestion(empty ? fitPlaceholder(input, placeholder.getString()) : null);
+        boolean enabled = !empty && (commandsAllowed || !value.startsWith("/"))
+                && canRefreshSuggestions();
         suggestor.setWindowActive(enabled);
         if (enabled) suggestor.refresh();
+    }
+
+    private String fitPlaceholder(TextFieldWidget input, String placeholder) {
+        int availableWidth = Math.max(0, input.getWidth() - 8);
+        if (textRenderer.getWidth(placeholder) <= availableWidth) return placeholder;
+        String ellipsis = "…";
+        int textWidth = availableWidth - textRenderer.getWidth(ellipsis);
+        return textWidth <= 0 ? "" : textRenderer.trimToWidth(placeholder, textWidth) + ellipsis;
+    }
+
+    private boolean canRefreshSuggestions() {
+        return client != null && client.player != null && client.getNetworkHandler() != null
+                && client.getNetworkHandler().isConnectionOpen();
     }
 
     @Override
@@ -283,6 +303,10 @@ public final class ModerationScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+        if (!DMLSConfig.hasRecognizedStaffRank()) {
+            close();
+            return;
+        }
         if (adminAccess != isAdmin()) {
             clearChildren();
             init();
@@ -427,7 +451,7 @@ public final class ModerationScreen extends Screen {
         drawPanel(context, pane);
         context.drawCenteredTextWithShadow(textRenderer, Text.translatable("dmls.moderation.punishment_log"),
                 pane.x() + pane.width() / 2, pane.y() + 6, 0xFFFFFFFF);
-        int contentTop = pane.y() + 20;
+        int contentTop = logScrollbarTop(pane);
         int rowHeight = 30;
         List<PunishmentLogEntry> entries = punishmentLogSource.latest().stream()
                 .limit(PunishmentLogService.MAX_ENTRIES).toList();
@@ -473,8 +497,8 @@ public final class ModerationScreen extends Screen {
         context.disableScissor();
         if (logMaxScroll > 0) {
             int trackX = logScrollbarX(pane);
-            int trackY = Math.max(contentTop, scrollbarTop(pane));
-            int trackHeight = pane.bottom() - SCROLLBAR_INSET - trackY;
+            int trackY = logScrollbarTop(pane);
+            int trackHeight = logScrollbarHeight(pane);
             int contentHeight = trackHeight + logMaxScroll;
             int thumbHeight = Math.clamp(trackHeight * trackHeight / Math.max(1, contentHeight), 18, trackHeight);
             int thumbY = trackY + logScroll * Math.max(0, trackHeight - thumbHeight) / logMaxScroll;
@@ -1094,7 +1118,8 @@ public final class ModerationScreen extends Screen {
     }
 
     private void updateLogScroll(Rect rect, double mouseY) {
-        double ratio = Math.clamp((mouseY - rect.y()) / Math.max(1.0, rect.height()), 0.0, 1.0);
+        double ratio = Math.clamp((mouseY - logScrollbarTop(rect)) / Math.max(1.0, logScrollbarHeight(rect)),
+                0.0, 1.0);
         logScroll = (int) Math.round(ratio * logMaxScroll);
     }
 
@@ -1227,6 +1252,14 @@ public final class ModerationScreen extends Screen {
         return pane.right() - DMLSMenuScreen.SCROLLBAR_WIDTH - 1;
     }
 
+    private static int logScrollbarTop(Rect pane) {
+        return pane.y() + LOG_CONTENT_TOP_OFFSET;
+    }
+
+    private static int logScrollbarHeight(Rect pane) {
+        return Math.max(1, pane.bottom() - SCROLLBAR_INSET - logScrollbarTop(pane));
+    }
+
     private static int scrollbarTop(Rect pane) {
         return pane.y() + SCROLLBAR_INSET;
     }
@@ -1242,8 +1275,8 @@ public final class ModerationScreen extends Screen {
     }
 
     private static boolean overLogScrollbar(Rect pane, double mouseX, double mouseY) {
-        return contains(mouseX, mouseY, logScrollbarX(pane), scrollbarTop(pane),
-                DMLSMenuScreen.SCROLLBAR_WIDTH, scrollbarHeight(pane));
+        return contains(mouseX, mouseY, logScrollbarX(pane), logScrollbarTop(pane),
+                DMLSMenuScreen.SCROLLBAR_WIDTH, logScrollbarHeight(pane));
     }
 
     private void showStatus(String value) {

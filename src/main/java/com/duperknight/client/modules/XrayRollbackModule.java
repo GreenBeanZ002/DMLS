@@ -249,6 +249,21 @@ public final class XrayRollbackModule extends DMLSModule {
         @Override
         public void onStarted(OperationHandle handle, MinecraftClient client) {
             this.handle = handle;
+            if (handle.descriptor().dryRunCaptured()) {
+                for (Step step : STEPS) {
+                    CommandDispatch dispatch = handle.dispatchCommand(client,
+                            step.commandTemplate().formatted(ign));
+                    if (initialDispatch == CommandDispatch.BLOCKED) initialDispatch = dispatch;
+                    if (dispatch == CommandDispatch.BLOCKED) {
+                        handle.cancel(client, OperationCancelReason.DISPATCH_BLOCKED);
+                        return;
+                    }
+                }
+                ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.xray.simulated",
+                        STEPS.size(), ign);
+                handle.complete();
+                return;
+            }
             ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.xray.start", ign, STEPS.size());
             nextStep(client);
         }

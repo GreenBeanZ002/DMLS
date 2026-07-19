@@ -234,7 +234,7 @@ public final class DMLSConfig {
         return false;
     }
 
-    /** While enabled, DMLS prints every command instead of running it. Not persisted. */
+    /** While enabled, DMLS previews each action without sending it. Not persisted. */
     public static boolean dryRun() {
         return dryRun;
     }

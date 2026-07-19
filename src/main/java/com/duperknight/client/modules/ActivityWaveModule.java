@@ -173,6 +173,15 @@ public final class ActivityWaveModule extends DMLSModule {
     }
 
     private void report(MinecraftClient client, ActivityWaveOperation.Summary summary) {
+        long simulated = summary.results().values().stream()
+                .filter(value -> value.kind() == ActivityWaveOperation.ResultKind.SIMULATED)
+                .count();
+        if (simulated == summary.totalPlayers()) {
+            ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.activity.simulated_summary",
+                    summary.totalPlayers());
+            return;
+        }
+
         String header = PREFIX;
         ChatUtils.sendClientMessage(client, header + ChatUtils.separatorForChatWidth(client, header));
         ChatUtils.sendTranslatedMessage(client, "", "dmls.chat.activity.header", summary.reportedDays());

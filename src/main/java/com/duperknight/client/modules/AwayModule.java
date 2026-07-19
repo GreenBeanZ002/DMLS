@@ -4,6 +4,7 @@ import com.duperknight.client.gui.modules.AwayScreen;
 import com.duperknight.client.message.MessageOrigin;
 import com.duperknight.client.message.ServerMessage;
 import com.duperknight.client.message.ServerMessageRouter;
+import com.duperknight.client.session.CommandDispatch;
 import com.duperknight.client.utils.CannedReplies;
 import com.duperknight.client.utils.ChatUtils;
 import com.duperknight.client.utils.ClientUtils;
@@ -264,7 +265,9 @@ public final class AwayModule extends DMLSModule {
             return;
         }
 
-        if (ClientUtils.sendCommand(client, "msg %s %s".formatted(sender, reply.get()))) {
+        CommandDispatch dispatch = ClientUtils.dispatchCommand(
+                client, "msg %s %s".formatted(sender, reply.get()));
+        if (dispatch == CommandDispatch.SENT) {
             lastReplyAtMillis = now;
             lastReplyBySender.put(sender.toLowerCase(Locale.ROOT), now);
             if (sendersWhileAway.stream().noneMatch(sender::equalsIgnoreCase)) {

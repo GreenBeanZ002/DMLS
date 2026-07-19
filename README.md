@@ -9,9 +9,6 @@ DMLS is a client-only Fabric mod for Stoneworks staff workflows on Minecraft 1.2
 3. Join through `play.stoneworks.gg`. DMLS reads and stores your staff rank from the hub scoreboard; an unrecognized rank locks the module menu.
 4. Add alert words, one per line, to `config/dmls-alerts.txt`, then run `/dmls alerts reload`.
 
-The first verified staff rank opens a welcome module grid. Later promotions open the same grid with newly unlocked modules highlighted.
-Module messages intended for global chat temporarily switch to `public` when needed, then restore the previous channel; the channel-list probe is hidden from chat.
-
 ## Canonical commands ( its recommended that you use the GUI )
 
 The supported command namespace is `/dmls`:
@@ -19,7 +16,7 @@ The supported command namespace is `/dmls`:
 - `/dmls` — open the module menu.
 - `/dmls help` — show in-game command help.
 - `/dmls rank` — show the staff rank last detected in the Stoneworks hub.
-- `/dmls dryrun [on|off]` — show or toggle session-only dry-run mode; changing it requires a detected Admin rank.
+- `/dmls dryrun [on|off]` — show or toggle session-only dry-run mode. Direct actions show one exact local preview; multi-command modules show one concise summary. Changing it requires a detected Admin rank.
 - `/dmls cancel` — cancel the active response-tracked operation.
 - `/dmls lands <ign...>`
 - `/dmls members <land>`
@@ -38,6 +35,9 @@ The supported command namespace is `/dmls`:
 - `/dmls demowave cancel`
 - `/dmls activity <ign...>`
 - `/dmls activity cancel`
+- `/dmls event protect ["event name" <land>]` — open Event Protect, or broadcast directly with arguments.
+- `/dmls event randomtp` — vanish when needed and teleport to a random online player.
+- `/dmls event powertool` — open the saved PowerTool library.
 - `/dmls co` — open the CoreProtect request builder.
 - `/dmls containers <ign|*> <time> <radius>`
 - `/dmls containers cancel`

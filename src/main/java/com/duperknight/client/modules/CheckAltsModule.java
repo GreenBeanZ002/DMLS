@@ -152,7 +152,9 @@ public final class CheckAltsModule extends DMLSModule {
         @Override
         public void onStarted(OperationHandle handle, MinecraftClient client) {
             this.handle = handle;
-            ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.check_alts.checking", ign);
+            if (!handle.descriptor().dryRunCaptured()) {
+                ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.check_alts.checking", ign);
+            }
             initialDispatch = handle.dispatchCommand(client, "alts " + ign);
             handleDispatch(client, initialDispatch, "/alts " + ign);
         }

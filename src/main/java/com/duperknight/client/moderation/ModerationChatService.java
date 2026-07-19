@@ -50,7 +50,8 @@ public final class ModerationChatService {
             "^\\[(?:SC|AC)]\\s+\\[[^]\\r\\n]{1,32}]\\s+([^\\s|:»]{1,32})\\s*:\\s*(.+)$");
 
     private static final Deque<ModerationMessage> MESSAGES = new ArrayDeque<>(MAX_MESSAGES);
-    private static final Map<String, String> IGN_BY_VISIBLE_NAME = new HashMap<>();
+    /** Resolved nicknames belong to the message that was queried, not every later use of that nickname. */
+    private static final Map<Long, String> RESOLVED_IGN_BY_SEQUENCE = new HashMap<>();
     private static final Map<String, UUID> UUID_BY_IGN = new HashMap<>();
     private static final Deque<RealnameRequest> REALNAME_QUEUE = new ArrayDeque<>();
     private static final ChannelMentionTracker CHANNEL_MENTIONS = new ChannelMentionTracker();
@@ -143,15 +144,13 @@ public final class ModerationChatService {
                 : clickIgn != null ? clickIgn
                 : sender != null && InputValidators.isUsername(sender.name()) ? sender.name() : null;
         UUID capturedUuid = sender == null ? null : sender.id();
-        if (capturedIgn != null) {
-            IGN_BY_VISIBLE_NAME.put(normalize(visible), capturedIgn);
-            if (capturedUuid != null) UUID_BY_IGN.put(normalize(capturedIgn), capturedUuid);
-        }
+        if (capturedIgn != null && capturedUuid != null) UUID_BY_IGN.put(normalize(capturedIgn), capturedUuid);
 
         ModerationMessage message = new ModerationMessage(++nextSequence, LocalTime.now().format(TIME), text, clean,
                 channel, playerMessage, visible, body, capturedIgn, capturedUuid);
         if (MESSAGES.size() == MAX_MESSAGES) {
             ModerationMessage removed = MESSAGES.removeFirst();
+            RESOLVED_IGN_BY_SEQUENCE.remove(removed.sequence());
             AUTOMATIC_RULE_DETECTOR.removeSequence(removed.sequence());
         }
         MESSAGES.addLast(message);
@@ -235,7 +234,7 @@ public final class ModerationChatService {
     public static synchronized Optional<String> knownIgn(ModerationMessage message) {
         if (message == null || !message.playerMessage()) return Optional.empty();
         return message.capturedIgnOptional().or(() ->
-                Optional.ofNullable(IGN_BY_VISIBLE_NAME.get(normalize(message.visibleUsername()))));
+                Optional.ofNullable(RESOLVED_IGN_BY_SEQUENCE.get(message.sequence())));
     }
 
     public static void resolveIgn(MinecraftClient client, ModerationMessage message,
@@ -246,7 +245,7 @@ public final class ModerationChatService {
             return;
         }
         synchronized (ModerationChatService.class) {
-            REALNAME_QUEUE.addLast(new RealnameRequest(message.visibleUsername(), callback));
+            REALNAME_QUEUE.addLast(new RealnameRequest(message.sequence(), message.visibleUsername(), callback));
             startNextRealname(client);
         }
     }
@@ -291,7 +290,7 @@ public final class ModerationChatService {
                 ChatUtils.cleanLine(text.getString()));
         if (parsed.isEmpty()) return false;
         String ign = parsed.get();
-        IGN_BY_VISIBLE_NAME.put(normalize(activeRealname.visibleUsername()), ign);
+        RESOLVED_IGN_BY_SEQUENCE.put(activeRealname.messageSequence(), ign);
         Consumer<Optional<String>> callback = activeRealname.callback();
         activeRealname = null;
         activeRealnameTicks = 0;
@@ -309,7 +308,7 @@ public final class ModerationChatService {
             return;
         }
         RealnameRequest next = REALNAME_QUEUE.removeFirst();
-        String cached = IGN_BY_VISIBLE_NAME.get(normalize(next.visibleUsername()));
+        String cached = RESOLVED_IGN_BY_SEQUENCE.get(next.messageSequence());
         if (cached != null) {
             next.callback().accept(Optional.of(cached));
             startNextRealname(client);
@@ -357,7 +356,7 @@ public final class ModerationChatService {
         if (activeRealname != null) callbacks.add(activeRealname.callback());
         REALNAME_QUEUE.forEach(request -> callbacks.add(request.callback()));
         MESSAGES.clear();
-        IGN_BY_VISIBLE_NAME.clear();
+        RESOLVED_IGN_BY_SEQUENCE.clear();
         UUID_BY_IGN.clear();
         REALNAME_QUEUE.clear();
         activeRealname = null;
@@ -400,6 +399,7 @@ public final class ModerationChatService {
     record ParsedPlayerLine(String visibleUsername, String messageBody) {
     }
 
-    private record RealnameRequest(String visibleUsername, Consumer<Optional<String>> callback) {
+    private record RealnameRequest(long messageSequence, String visibleUsername,
+                                   Consumer<Optional<String>> callback) {
     }
 }

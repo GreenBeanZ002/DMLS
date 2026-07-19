@@ -225,8 +225,10 @@ public final class PrefixCreateModule extends DMLSModule {
 
         @Override
         public void onStarted(OperationHandle handle, MinecraftClient client) {
-            ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.prefix.start",
-                    request.prefixId(), request.ign());
+            if (!handle.descriptor().dryRunCaptured()) {
+                ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.prefix.start",
+                        request.prefixId(), request.ign());
+            }
             sequence = createSequence(request, command -> handle.dispatchCommand(client, command));
             handleState(handle, client, sequence.start());
         }
@@ -264,10 +266,10 @@ public final class PrefixCreateModule extends DMLSModule {
             switch (state) {
                 case COMPLETED -> finish(handle, client,
                         sequence.simulatedCount() > 0
-                                ? "dmls.chat.prefix.dispatched.before"
+                                ? "dmls.chat.prefix.simulated.before"
                                 : "dmls.chat.prefix.confirmed.before",
                         sequence.simulatedCount() > 0
-                                ? "dmls.chat.prefix.dispatched.after"
+                                ? "dmls.chat.prefix.simulated.after"
                                 : "dmls.chat.prefix.confirmed.after");
                 case REJECTED, FAILED -> finish(handle, client,
                         "dmls.chat.prefix.rejected.before", "dmls.chat.prefix.rejected.after");

@@ -4,7 +4,7 @@ package com.duperknight.client.session;
 public enum CommandDispatch {
     /** The payload was sent to the currently connected server. */
     SENT,
-    /** The operation captured dry-run mode, so the payload was only shown locally. */
+    /** Dry-run was captured, so no payload was sent; the caller reports a preview or summary. */
     SIMULATED,
     /** Dispatch was refused because validation or connection safety failed. */
     BLOCKED;

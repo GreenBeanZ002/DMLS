@@ -15,6 +15,7 @@ import com.duperknight.client.session.OperationCoordinator;
 import com.duperknight.client.session.OperationHandle;
 import com.duperknight.client.session.OperationStartResult;
 import com.duperknight.client.utils.ChatUtils;
+import com.duperknight.client.utils.DMLSConfig;
 import com.duperknight.client.utils.InputValidators;
 import com.duperknight.client.utils.MenuCommandQuery;
 import com.duperknight.client.utils.ScreenUtils;
@@ -98,7 +99,7 @@ public final class CheckLandsModule extends DMLSModule {
         }
 
         replaceOwnOperation(client);
-        if (players.size() > 1) {
+        if (players.size() > 1 && !DMLSConfig.dryRun()) {
             ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.check_lands.queued",
                     players.size(), String.join(", ", players));
         }
@@ -159,6 +160,7 @@ public final class CheckLandsModule extends DMLSModule {
     private enum Stage { WAITING_FOR_LANDS, SENDING_NEXT_INFO_COMMAND, WAITING_FOR_INFO }
 
     private final class CheckSession implements ManagedOperation {
+        private final List<String> players;
         private final Queue<String> remainingPlayers = new ArrayDeque<>();
         private final Queue<String> remainingClaims = new ArrayDeque<>();
         private final List<String> ownedClaims = new ArrayList<>();
@@ -174,12 +176,30 @@ public final class CheckLandsModule extends DMLSModule {
         private CommandDispatch initialDispatch = CommandDispatch.BLOCKED;
 
         private CheckSession(List<String> players) {
-            remainingPlayers.addAll(players);
+            this.players = List.copyOf(players);
+            remainingPlayers.addAll(this.players);
         }
 
         @Override
         public void onStarted(OperationHandle handle, MinecraftClient client) {
             this.handle = handle;
+            if (handle.descriptor().dryRunCaptured()) {
+                String firstPlayer = players.getFirst();
+                initialDispatch = handle.dispatchCommand(client, "la player " + firstPlayer);
+                if (initialDispatch == CommandDispatch.BLOCKED) {
+                    handle.cancel(client, OperationCancelReason.DISPATCH_BLOCKED);
+                    return;
+                }
+                ChatUtils.sendTranslatedMessage(client, PREFIX,
+                        players.size() == 1
+                                ? "dmls.chat.check_lands.simulated.one"
+                                : "dmls.chat.check_lands.simulated.many",
+                        players.size() == 1 ? firstPlayer : players.size());
+                remainingPlayers.clear();
+                if (activeSession == this) activeSession = null;
+                handle.complete();
+                return;
+            }
             startNextPlayer(client);
         }
 

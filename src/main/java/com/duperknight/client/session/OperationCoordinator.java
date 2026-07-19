@@ -6,6 +6,7 @@ import com.duperknight.client.message.ServerMessage;
 import com.duperknight.client.message.ServerMessageRouter;
 import com.duperknight.client.utils.ClientUtils;
 import com.duperknight.client.utils.DMLSConfig;
+import com.duperknight.client.utils.DryRunFeedback;
 import com.duperknight.client.utils.ServerGuard;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.MinecraftClient;
@@ -163,14 +164,14 @@ public final class OperationCoordinator {
         if (!isActive(handle)) return CommandDispatch.BLOCKED;
         OperationDescriptor descriptor = handle.descriptor();
         return ClientUtils.dispatchCommand(client, command,
-                descriptor.dryRunCaptured(), descriptor.connection());
+                descriptor.dryRunCaptured(), descriptor.connection(), DryRunFeedback.OPERATION_SUMMARY);
     }
 
     CommandDispatch dispatchChatMessage(OperationHandle handle, MinecraftClient client, String message) {
         if (!isActive(handle)) return CommandDispatch.BLOCKED;
         OperationDescriptor descriptor = handle.descriptor();
         return ClientUtils.dispatchChatMessage(client, message,
-                descriptor.dryRunCaptured(), descriptor.connection());
+                descriptor.dryRunCaptured(), descriptor.connection(), DryRunFeedback.OPERATION_SUMMARY);
     }
 
     boolean complete(OperationHandle handle) {

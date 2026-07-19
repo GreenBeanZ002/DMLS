@@ -231,6 +231,8 @@ public final class PunishmentHelperModule extends DMLSModule {
             return BanOutcome.SENT;
         }
         if (dispatch == CommandDispatch.SIMULATED) {
+            ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.punish.ban_simulated",
+                    request.ign(), request.duration());
             return BanOutcome.SIMULATED;
         }
         ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.command.not_sent");

@@ -170,7 +170,7 @@ public final class LocationsModule extends DMLSModule {
             return Outcome.NOT_FOUND;
         }
 
-        // A location preview is safe while offline: captured dry-run prints the exact
+        // A location preview is safe while offline: captured dry-run shows the exact
         // command and can never turn into a live teleport. Matching server and dimension
         // remain mandatory below for every live dispatch.
         if (DMLSConfig.dryRun()) {

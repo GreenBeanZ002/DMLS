@@ -115,12 +115,15 @@
   "dmls.module.event_random_teleport.teleport": "Teleport to Random Player",
   "dmls.module.event_random_teleport.idle": "Click below to teleport to a random online player.",
   "dmls.chat.event_random_teleport.teleported": "Teleporting to %s.",
+  "dmls.chat.event_random_teleport.simulated": "Dry run: would teleport to %s.",
+  "dmls.chat.event_random_teleport.blocked": "Teleport was blocked; check chat for details.",
   "dmls.chat.event_random_teleport.no_players": "No other players online to teleport to.",
   "dmls.module.random_teleport.name": "Random Teleport",
   "dmls.module.random_teleport.description": "Teleport to a random online player.",
   "dmls.chat.random_teleport.teleported": "Teleporting to %s.",
   "dmls.chat.random_teleport.no_players": "No other players online to teleport to.",
-  "dmls.chat.random_teleport.vanish": "Automatically activated vanish before teleporting",
+  "dmls.chat.random_teleport.simulated_with_vanish": "Dry run: would enable vanish, then teleport to §6%s§7; nothing was sent.",
+  "dmls.chat.random_teleport.simulated": "Dry run: would leave vanish unchanged and teleport to §6%s§7. Nothing was sent.",
 
   "dmls.module.event_powertool.name": "Event PowerTool",
   "dmls.module.event_powertool.description": "Save named /powertool commands and load them onto your held item.",
@@ -131,14 +134,19 @@
   "dmls.button.save": "Save",
   "dmls.button.delete": "Delete",
   "dmls.button.event_powertool.load": "Load: %s",
+  "dmls.screen.event_powertool.saved": "Saved PowerTools",
+  "dmls.screen.event_powertool.empty": "No PowerTools saved yet.",
   "dmls.validation.event_powertool.incomplete": "Enter both a name and a command.",
+  "dmls.validation.event_powertool.name": "Use a 1-64 character PowerTool name without formatting or control characters.",
+  "dmls.validation.event_powertool.command": "Enter a command without formatting or control characters; a leading slash is optional.",
+  "dmls.validation.event_powertool.action_blocked": "The PowerTool action was blocked; check chat for details.",
   "dmls.chat.powertool.saved": "Saved powertool §6%s§7.",
-  "dmls.chat.powertool.loaded": "Bound §6%s§7 (§8%s§7) to your held item via /powertool.",
+  "dmls.chat.powertool.loaded": "Sent the §6%s§7 PowerTool binding (§8%s§7); check the server response.",
   "dmls.chat.powertool.unknown": "No saved powertool named §6%s§7.",
   "dmls.chat.powertool.deleted": "Deleted powertool §6%s§7.",
   "dmls.chat.powertool.save_failed": "Could not save the powertool; the previous data is still active.",
   "dmls.button.event_powertool.clear": "Clear PowerTool",
-  "dmls.chat.powertool.cleared": "Cleared the /powertool binding on your held item.",
+  "dmls.chat.powertool.cleared": "Sent the request to clear the held item's PowerTool; check the server response.",
 
 
   "dmls.module.event_protect.name":  "Event Protect",
@@ -212,9 +220,9 @@
   ,"dmls.help.say": "Sends a pre-written staff reply in chat."
   ,"dmls.help.menu": "Opens the DMLS menu."
   ,"dmls.help.hover": "%s\n§8Click to put the command in your chat bar."
-  ,"dmls.help.eventprotect": "Broadcasts the chat message for a protected event"
-  ,"dmls.help.eventrandomteleport": "Enables /vanish then teleports to an online player"
-  ,"dmls.help.eventpowertool": "Opens a library where you can save and load powertools"
+  ,"dmls.help.eventprotect": "Opens Event Protect, or broadcasts directly when a quoted event name and land are supplied."
+  ,"dmls.help.eventrandomteleport": "Enables vanish only when tracked off, then teleports to a random online player."
+  ,"dmls.help.eventpowertool": "Opens the saved PowerTool command library."
   ,"dmls.validation.required_rank": "This module is hidden for the hub-detected staff rank; server permissions are authoritative."
   ,"dmls.validation.prefix.active": "A prefix creation is still running; wait for it to finish."
   ,"dmls.validation.prefix.ign": "Enter a valid player IGN."
@@ -241,6 +249,7 @@
   ,"dmls.chat.promo.done.many": "Done! Promoted §6%s§7 players to §6%s§7: §6%s§7. Check the LuckPerms output above for errors."
   ,"dmls.chat.xray.active": "A rollback for §6%s§7 is still running; wait for it to finish."
   ,"dmls.chat.xray.start": "Starting xray rollback for §6%s§7 (§6%s§7 steps)..."
+  ,"dmls.chat.xray.simulated": "Simulated §6%s§7 xray rollback commands for §6%s§7; nothing was sent."
   ,"dmls.chat.xray.step": "Step §6%s/%s§7: %s"
   ,"dmls.chat.xray.result": "§8• %s"
   ,"dmls.chat.prefix.start": "Creating prefix §6%s§7 for §6%s§7..."
@@ -251,6 +260,8 @@
   ,"dmls.chat.check_alts.counts_note": "§8Only recognized records after a matching /history header are counted."
   ,"dmls.chat.check_lands.queued": "Queued §6%s§7 players: §6%s§7."
   ,"dmls.chat.check_lands.checking": "Checking lands for §6%s§7..."
+  ,"dmls.chat.check_lands.simulated.one": "Simulated the land query for §6%s§7; nothing was sent and no menu data was fabricated."
+  ,"dmls.chat.check_lands.simulated.many": "Simulated land queries for §6%s§7 players; nothing was sent and no menu data was fabricated."
   ,"dmls.chat.check_lands.none": "§6%s§7 is not in any lands."
   ,"dmls.chat.check_lands.found.one": "Found §6%s§7 land for §6%s§7."
   ,"dmls.chat.check_lands.found.many": "Found §6%s§7 lands for §6%s§7."
@@ -289,16 +300,12 @@
   ,"dmls.chat.check_alts.skipped": "§8Skipped because of the account limit: %s"
   ,"dmls.chat.server_guard.blocked": "Stoneworks command blocked (%s): §6%s§7. Configure allowedServers in config/dmls.properties."
   ,"dmls.chat.command.not_sent": "Command was not sent because the connection or allowed server changed."
-  ,"dmls.chat.global_channel.query_failed": "Could not read your active chat channel; the global message was not sent."
-  ,"dmls.chat.global_channel.switch_failed": "Could not switch to public chat; the global message was not sent."
-  ,"dmls.chat.global_channel.send_failed": "The global chat message could not be sent."
-  ,"dmls.chat.global_channel.restore_failed": "The message was sent, but DMLS could not return you to channel %s."
   ,"dmls.chat.donor_pet.sent": "Permission command sent for §6%s§7 / §6%s§7 (§8%s§7); server confirmation was not observed."
   ,"dmls.chat.donor_pet.waiting": "Permission command sent for §6%s§7 / §6%s§7; waiting for LuckPerms confirmation."
   ,"dmls.chat.donor_pet.confirmed": "Confirmed pet permission for §6%s§7 / §6%s§7 (§8%s§7)."
   ,"dmls.chat.donor_pet.active": "A donor-pet permission command is already awaiting confirmation."
-  ,"dmls.chat.prefix.dispatched.before": "Dispatched prefix commands for §6%s§7 with text "
-  ,"dmls.chat.prefix.dispatched.after": "§7, player limit §6%s§7 and manager §6%s§7. Verify the server output."
+  ,"dmls.chat.prefix.simulated.before": "Simulated prefix commands for §6%s§7 with text "
+  ,"dmls.chat.prefix.simulated.after": "§7, player limit §6%s§7 and manager §6%s§7; nothing was sent."
   ,"dmls.chat.prefix.confirmed.before": "Confirmed prefix §6%s§7 with text "
   ,"dmls.chat.prefix.confirmed.after": "§7, player limit §6%s§7 and manager §6%s§7."
   ,"dmls.chat.prefix.rejected.before": "Stopped prefix creation for §6%s§7 after a rejected command; its requested text was "
@@ -364,6 +371,7 @@
   ,"dmls.chat.activity.skipping.one": "Skipping invalid name: %s."
   ,"dmls.chat.activity.skipping.many": "Skipping invalid names: %s."
   ,"dmls.chat.activity.header": "Activity report, last %s days, sorted by hours:"
+  ,"dmls.chat.activity.simulated_summary": "Simulated §6%s§7 /activity queries; nothing was sent and no activity data was fabricated."
   ,"dmls.chat.activity.result": "%s: %s hours"
   ,"dmls.chat.activity.no_data": "%s: no response"
   ,"dmls.help.activity": "Checks /activity for every listed staff member, preserves partial results, and supports cancel. Requires %s."
@@ -396,12 +404,11 @@
   ,"dmls.screen.chat_replay.export_failed": "Export failed."
   ,"dmls.help.chatlog": "Opens a scrollable log of this session's chat with a player or text filter."
   ,"dmls.chat.dry_run.would_run": "Would run: %s"
-  ,"dmls.chat.dry_run.would_say": "Would say: %s"
-  ,"dmls.chat.dry_run.status.on": "Dry run is on: DMLS prints commands instead of running them."
-  ,"dmls.chat.dry_run.status.off": "Dry run is off, commands run for real."
-  ,"dmls.chat.dry_run.enabled": "Dry run enabled: DMLS prints every command instead of running it. Resets when the game restarts."
+  ,"dmls.chat.dry_run.status.on": "Dry run is on: DMLS shows one concise preview or summary instead of sending anything."
+  ,"dmls.chat.dry_run.status.off": "Dry run is off, commands run for real. Use /dmls dryrun on to enable it."
+  ,"dmls.chat.dry_run.enabled": "Dry run enabled: DMLS shows one concise preview or summary instead of sending anything. Resets when the game restarts."
   ,"dmls.chat.dry_run.disabled": "Dry run disabled, commands run for real again."
-  ,"dmls.help.dryrun": "Toggles dry run mode where DMLS prints every command instead of running it. Requires %s."
+  ,"dmls.help.dryrun": "Toggles dry run mode where DMLS previews actions without sending them. Requires %s."
   ,"dmls.module.greeter.name": "New Player Greeter"
   ,"dmls.module.greeter.description": "Spot first-join broadcasts and welcome new players with one click."
   ,"dmls.module.greeter.toggle": "First-join prompts"
@@ -528,6 +535,7 @@
   ,"dmls.screen.ban_log.confirm_hint": "Click Ban again to run /ban."
   ,"dmls.chat.punish.ban_incomplete": "Fill in the ban duration and reason first."
   ,"dmls.chat.punish.banned": "Ran /ban on %s for %s. Check the server response above."
+  ,"dmls.chat.punish.ban_simulated": "Simulated /ban for §6%s§7 (%s); nothing was sent."
   ,"dmls.button.confirm_rollback": "Confirm rollback"
   ,"dmls.button.confirm_promotion": "Confirm promotion"
   ,"dmls.button.confirm_demotion": "Confirm demotion"
