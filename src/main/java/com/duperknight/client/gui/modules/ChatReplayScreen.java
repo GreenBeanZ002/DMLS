@@ -30,7 +30,7 @@ public final class ChatReplayScreen extends DMLSMenuScreen {
     private List<OrderedText> lines = List.of();
     private final List<SessionButton> sessionButtons = new ArrayList<>();
     private String selectedSessionId;
-    private ChatReplayModule.Chunk chunk = new ChatReplayModule.Chunk(List.of(), 0, false, false);
+    private ChatReplayModule.Chunk chunk = new ChatReplayModule.Chunk(List.of(), 0, 0, false, false);
     private long lastRevision = -1;
     private long loadGeneration;
     private int lineHeight;
@@ -157,7 +157,7 @@ public final class ChatReplayScreen extends DMLSMenuScreen {
 
     private void requestChunk(int offset, boolean scrollToBottom) {
         if (selectedSessionId == null) {
-            applyChunk(new ChatReplayModule.Chunk(List.of(), 0, false, false), false);
+            applyChunk(new ChatReplayModule.Chunk(List.of(), 0, 0, false, false), false);
             return;
         }
 
@@ -183,7 +183,7 @@ public final class ChatReplayScreen extends DMLSMenuScreen {
                     if (error == null) {
                         applyChunk(loadedChunk, scrollToBottom);
                     } else {
-                        applyChunk(new ChatReplayModule.Chunk(List.of(), 0, false, false), false);
+                        applyChunk(new ChatReplayModule.Chunk(List.of(), 0, 0, false, false), false);
                         loadFailed = true;
                     }
                 }));
@@ -219,7 +219,7 @@ public final class ChatReplayScreen extends DMLSMenuScreen {
         }
         lines = List.copyOf(built);
         int contentHeight = lines.isEmpty() ? 0 : lines.size() * lineHeight + scaled(8);
-        configureScrollableContent(layout.viewportTop(), contentHeight);
+        configureScrollableContent(layout.viewportTop(), chatViewportBottom(), contentHeight);
     }
 
     private void updateNavigationButtons() {
@@ -338,9 +338,11 @@ public final class ChatReplayScreen extends DMLSMenuScreen {
         String needle = filter.trim().toLowerCase(Locale.ROOT);
         List<ChatReplayModule.Entry> merged = new ArrayList<>(chunk.entries());
         int offset = chunk.offset();
+        int totalMatches = chunk.totalMatches();
         for (ChatReplayModule.Entry entry : updates.entries()) {
             if (!needle.isEmpty() && !entry.cleanText().toLowerCase(Locale.ROOT).contains(needle)) continue;
             merged.add(entry);
+            totalMatches++;
             if (merged.size() > ChatReplayModule.DISPLAY_CHUNK_SIZE) {
                 merged.removeFirst();
                 offset++;
@@ -351,7 +353,8 @@ public final class ChatReplayScreen extends DMLSMenuScreen {
         lastRevision = ChatReplayModule.revision();
         ticksSinceRefresh = 0;
         if (!merged.equals(chunk.entries())) {
-            applyChunk(new ChatReplayModule.Chunk(List.copyOf(merged), offset, offset > 0, false), true);
+            applyChunk(new ChatReplayModule.Chunk(List.copyOf(merged), offset, totalMatches,
+                    offset > 0, false), true);
         }
     }
 
@@ -379,6 +382,7 @@ public final class ChatReplayScreen extends DMLSMenuScreen {
             }
         }
         endContentScissor(context);
+        renderPageIndicator(context);
         updateNavigationButtons();
         if (exportStatus != null) {
             context.drawCenteredTextWithShadow(textRenderer, exportStatus, width / 2,
@@ -395,6 +399,22 @@ public final class ChatReplayScreen extends DMLSMenuScreen {
         if (isContentVisible(y, textRenderer.fontHeight)) {
             context.drawCenteredTextWithShadow(textRenderer, message, width / 2, y, 0xFFAAAAAA);
         }
+    }
+
+    private void renderPageIndicator(DrawContext context) {
+        if (selectedSessionId == null || loading || loadFailed) return;
+        ReplayLayout layout = replayLayout();
+        int pageStride = Math.max(1, ChatReplayModule.DISPLAY_CHUNK_SIZE - 1);
+        int lastMatchIndex = chunk.entries().isEmpty()
+                ? 0
+                : chunk.offset() + chunk.entries().size() - 1;
+        int chronologicalPage = Math.max(1, (lastMatchIndex + pageStride - 1) / pageStride);
+        int totalPageNumerator = Math.max(0, chunk.totalMatches() - 1);
+        int totalPages = Math.max(1, (totalPageNumerator + pageStride - 1) / pageStride);
+        int currentPage = Math.max(1, totalPages - chronologicalPage + 1);
+        Text page = Text.translatable("dmls.screen.chat_replay.page", currentPage, totalPages);
+        context.drawCenteredTextWithShadow(textRenderer, page,
+                layout.contentX() + layout.contentWidth() / 2, pageIndicatorY(), 0xFFAAAAAA);
     }
 
     @Override
@@ -502,6 +522,14 @@ public final class ChatReplayScreen extends DMLSMenuScreen {
 
     private int sessionViewportBottom() {
         return height - FOOTER_TOP_OFFSET - scaled(8);
+    }
+
+    private int chatViewportBottom() {
+        return pageIndicatorY() - scaled(3);
+    }
+
+    private int pageIndicatorY() {
+        return height - FOOTER_TOP_OFFSET - textRenderer.fontHeight - scaled(7);
     }
 
     private FooterLayout footerLayout() {

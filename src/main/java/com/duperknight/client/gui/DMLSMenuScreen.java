@@ -103,9 +103,14 @@ public abstract class DMLSMenuScreen extends Screen {
 
     /** Configures scrolling for non-module settings screens. */
     protected void configureScrollableContent(int viewportTop, int contentHeight) {
+        configureScrollableContent(viewportTop, height - FOOTER_TOP_OFFSET - scaled(8), contentHeight);
+    }
+
+    /** Configures scrolling with a screen-specific bottom edge. */
+    protected void configureScrollableContent(int viewportTop, int viewportBottom, int contentHeight) {
         scrollableWidgets.clear();
         contentViewportTop = viewportTop;
-        contentViewportBottom = Math.max(contentViewportTop + 1, height - FOOTER_TOP_OFFSET - scaled(8));
+        contentViewportBottom = Math.max(contentViewportTop + 1, viewportBottom);
         maxContentScroll = Math.max(0, contentHeight - (contentViewportBottom - contentViewportTop));
         contentScrollOffset = Math.clamp(contentScrollOffset, 0, maxContentScroll);
     }

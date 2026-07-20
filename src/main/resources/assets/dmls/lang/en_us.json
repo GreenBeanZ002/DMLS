@@ -399,6 +399,7 @@
   ,"dmls.screen.chat_replay.empty": "No chat captured yet this session."
   ,"dmls.screen.chat_replay.loading": "Loading chat replay..."
   ,"dmls.screen.chat_replay.load_failed": "Could not load this chat replay."
+  ,"dmls.screen.chat_replay.page": "Page %s of %s"
   ,"dmls.button.export": "Export"
   ,"dmls.screen.chat_replay.exporting": "Exporting..."
   ,"dmls.screen.chat_replay.exported": "Exported to %s"

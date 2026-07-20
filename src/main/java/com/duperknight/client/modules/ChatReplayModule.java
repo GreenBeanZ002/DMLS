@@ -70,7 +70,8 @@ public final class ChatReplayModule extends DMLSModule {
     }
 
     /** A bounded page of matches from the complete session file. */
-    public record Chunk(List<Entry> entries, int offset, boolean hasPrevious, boolean hasNext) {
+    public record Chunk(List<Entry> entries, int offset, int totalMatches,
+                        boolean hasPrevious, boolean hasNext) {
     }
 
     /** Messages appended after a current-session message index. */
@@ -182,7 +183,7 @@ public final class ChatReplayModule extends DMLSModule {
                                                                int offset, int limit) {
         Optional<Path> path = sessionPath(sessionId).filter(Files::exists);
         if (path.isEmpty()) {
-            return CompletableFuture.completedFuture(new Chunk(List.of(), 0, false, false));
+            return CompletableFuture.completedFuture(new Chunk(List.of(), 0, 0, false, false));
         }
         long generation = LOAD_GENERATION.incrementAndGet();
         return CompletableFuture.supplyAsync(() -> readChunk(path.get(), needle, offset, limit, generation));
@@ -229,7 +230,8 @@ public final class ChatReplayModule extends DMLSModule {
     private static synchronized Optional<Chunk> currentTailChunk(String sessionId) {
         if (currentSession == null || !currentSession.id.equals(sessionId)) return Optional.empty();
         int offset = Math.max(0, currentMessageCount - CURRENT_TAIL.size());
-        return Optional.of(new Chunk(List.copyOf(CURRENT_TAIL), offset, offset > 0, false));
+        return Optional.of(new Chunk(List.copyOf(CURRENT_TAIL), offset, currentMessageCount,
+                offset > 0, false));
     }
 
     private static Chunk readChunk(Path path, String needle, int requestedOffset, int limit, long generation) {
@@ -239,7 +241,6 @@ public final class ChatReplayModule extends DMLSModule {
 
         List<Entry> entries = new ArrayList<>(limit);
         int matchIndex = 0;
-        boolean hasNext = false;
         try (BufferedReader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
             reader.readLine(); // Session metadata header.
             String line;
@@ -249,9 +250,6 @@ public final class ChatReplayModule extends DMLSModule {
                 if (decoded.isEmpty() || !matches(decoded.get(), needle)) continue;
                 if (matchIndex >= requestedOffset && entries.size() < limit) {
                     entries.add(decoded.get());
-                } else if (matchIndex >= requestedOffset + limit) {
-                    hasNext = true;
-                    break;
                 }
                 matchIndex++;
             }
@@ -259,7 +257,9 @@ public final class ChatReplayModule extends DMLSModule {
             throw new IllegalStateException("Failed to read chat replay " + path, e);
         }
 
-        return new Chunk(List.copyOf(entries), requestedOffset, requestedOffset > 0, hasNext);
+        boolean hasNext = requestedOffset + entries.size() < matchIndex;
+        return new Chunk(List.copyOf(entries), requestedOffset, matchIndex,
+                requestedOffset > 0, hasNext);
     }
 
     private static Chunk readFinalChunk(Path path, String needle, int limit, long generation) {
@@ -280,7 +280,7 @@ public final class ChatReplayModule extends DMLSModule {
             throw new IllegalStateException("Failed to read chat replay " + path, e);
         }
         int offset = Math.max(0, matchCount - tail.size());
-        return new Chunk(List.copyOf(tail), offset, offset > 0, false);
+        return new Chunk(List.copyOf(tail), offset, matchCount, offset > 0, false);
     }
 
     private static void throwIfLoadCancelled(long generation) {
