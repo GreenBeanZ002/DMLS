@@ -74,11 +74,11 @@ public final class ModerationScreen extends Screen {
     private static final Identifier NOTIFICATION_TEXTURE = Identifier.of(
             DMLS.MOD_ID.toLowerCase(), "textures/gui/icon/notification.png");
     private static final List<MiniMe> MINI_MES = List.of(
-            new MiniMe("Dupey", Identifier.of(DMLS.MOD_ID.toLowerCase(), "textures/gui/mini_me/dupey.png")),
-            new MiniMe("Siaffy", Identifier.of(DMLS.MOD_ID.toLowerCase(), "textures/gui/mini_me/siaffy.png")),
-            new MiniMe("Beany", Identifier.of(DMLS.MOD_ID.toLowerCase(), "textures/gui/mini_me/beany.png")),
-            new MiniMe("Morvy", Identifier.of(DMLS.MOD_ID.toLowerCase(), "textures/gui/mini_me/morvy.png")),
-            new MiniMe("Biggy", Identifier.of(DMLS.MOD_ID.toLowerCase(), "textures/gui/mini_me/biggy.png"))
+            new MiniMe("Dupey", Identifier.of(DMLS.MOD_ID.toLowerCase(), "textures/gui/mini_me/dupey/dupey.png")),
+            new MiniMe("Siaffy", Identifier.of(DMLS.MOD_ID.toLowerCase(), "textures/gui/mini_me/siaffy/siaffy.png")),
+            new MiniMe("Beany", Identifier.of(DMLS.MOD_ID.toLowerCase(), "textures/gui/mini_me/beany/beany.png")),
+            new MiniMe("Morvy", Identifier.of(DMLS.MOD_ID.toLowerCase(), "textures/gui/mini_me/morvy/morvy.png")),
+            new MiniMe("Biggy", Identifier.of(DMLS.MOD_ID.toLowerCase(), "textures/gui/mini_me/biggy/biggy.png"))
     );
     private final Screen parent;
     private final PunishmentLogSource punishmentLogSource;

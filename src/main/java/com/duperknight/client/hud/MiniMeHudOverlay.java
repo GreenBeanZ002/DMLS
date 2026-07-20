@@ -39,7 +39,7 @@ public final class MiniMeHudOverlay {
     private static final int TARGET_ATTEMPTS = 48;
     private static final float AGGRO_APPROACH_SPEED = 42.0F;
     private static final float AGGRO_DISTANCE_FACTOR = 0.72F;
-    private static final int AGGRO_HEALTH = 3;
+    private static final int AGGRO_HEALTH = 5;
     private static final long NORMAL_AGGRO_CHECK_MIN_NANOS = 10_000_000_000L;
     private static final long NORMAL_AGGRO_CHECK_VARIATION_NANOS = 18_000_000_000L;
     private static final float NORMAL_AGGRO_CHANCE = 0.22F;
@@ -50,6 +50,13 @@ public final class MiniMeHudOverlay {
     private static final long ATTACK_LUNGE_NANOS = 180_000_000L;
     private static final float ATTACK_LUNGE_DISTANCE = 4.0F;
     private static final long DAMAGE_FLASH_NANOS = 230_000_000L;
+    private static final float CRITICAL_HIT_CHANCE = 0.25F;
+    private static final int ATTACK_DAMAGE = 1;
+    private static final int CRITICAL_HIT_DAMAGE_MULTIPLIER = 2;
+    private static final int CRITICAL_HIT_PARTICLE_COUNT = 12;
+    private static final long CRITICAL_HIT_PARTICLE_LIFETIME_NANOS = 450_000_000L;
+    private static final Identifier CRITICAL_HIT_TEXTURE =
+            Identifier.of("minecraft", "textures/particle/critical_hit.png");
     private static final long KNOCKBACK_NANOS = 240_000_000L;
     private static final float KNOCKBACK_DISTANCE_FACTOR = 0.26F;
     private static final long DEATH_ANIMATION_NANOS = 900_000_000L;
@@ -73,6 +80,7 @@ public final class MiniMeHudOverlay {
     private static final Random RANDOM = new Random();
     private static final Map<MiniMeDefinition, WalkerState> STATES = new EnumMap<>(MiniMeDefinition.class);
     private static final List<SmokeParticle> SMOKE_PARTICLES = new ArrayList<>();
+    private static final List<CriticalHitParticle> CRITICAL_HIT_PARTICLES = new ArrayList<>();
 
     private static int screenWidth = -1;
     private static int screenHeight = -1;
@@ -179,6 +187,7 @@ public final class MiniMeHudOverlay {
             draw(context, miniMe, state, size, now);
         }
         renderSmoke(context, now);
+        renderCriticalHitParticles(context, now);
     }
 
     private static void spawn(WalkerState state, Bounds bounds, long now) {
@@ -337,8 +346,11 @@ public final class MiniMeHudOverlay {
         WalkerState attacker = STATES.get(attackerDefinition);
         WalkerState victim = STATES.get(victimDefinition);
         attacker.attackStartedAtNanos = now;
-        victim.health--;
+        boolean criticalHit = RANDOM.nextFloat() < CRITICAL_HIT_CHANCE;
+        int damage = ATTACK_DAMAGE * (criticalHit ? CRITICAL_HIT_DAMAGE_MULTIPLIER : 1);
+        victim.health -= damage;
         victim.damageFlashUntilNanos = now + DAMAGE_FLASH_NANOS;
+        if (criticalHit) spawnCriticalHitParticles(victim.x, victim.y, size, now);
         applyKnockback(attacker, victim, bounds, size, now);
         if (victim.health <= 0) {
             kill(victim, size, now);
@@ -443,6 +455,39 @@ public final class MiniMeHudOverlay {
         }
     }
 
+    private static void spawnCriticalHitParticles(float left, float top, int bodySize, long now) {
+        for (int index = 0; index < CRITICAL_HIT_PARTICLE_COUNT; index++) {
+            float x = left + bodySize * (0.12F + RANDOM.nextFloat() * 0.76F);
+            float y = top + bodySize * (0.12F + RANDOM.nextFloat() * 0.76F);
+            float angle = RANDOM.nextFloat() * (float) (Math.PI * 2.0);
+            float speed = 12.0F + RANDOM.nextFloat() * 18.0F;
+            float velocityX = (float) Math.cos(angle) * speed;
+            float velocityY = (float) Math.sin(angle) * speed - 6.0F;
+            int particleSize = 3 + RANDOM.nextInt(3);
+            CRITICAL_HIT_PARTICLES.add(new CriticalHitParticle(
+                    x, y, velocityX, velocityY, particleSize, now));
+        }
+    }
+
+    private static void renderCriticalHitParticles(DrawContext context, long now) {
+        CRITICAL_HIT_PARTICLES.removeIf(particle ->
+                now - particle.spawnedAtNanos >= CRITICAL_HIT_PARTICLE_LIFETIME_NANOS);
+        for (CriticalHitParticle particle : CRITICAL_HIT_PARTICLES) {
+            float ageSeconds = (now - particle.spawnedAtNanos) / 1_000_000_000.0F;
+            float progress = Math.clamp((now - particle.spawnedAtNanos)
+                    / (float) CRITICAL_HIT_PARTICLE_LIFETIME_NANOS, 0.0F, 1.0F);
+            float scale = 1.0F - progress * 0.65F;
+            int x = Math.round(particle.x + particle.velocityX * ageSeconds);
+            int y = Math.round(particle.y + particle.velocityY * ageSeconds
+                    + 18.0F * ageSeconds * ageSeconds);
+            int particleSize = Math.max(1, Math.round(particle.size * scale));
+            context.drawTexturedQuad(CRITICAL_HIT_TEXTURE,
+                    x - particleSize, y - particleSize,
+                    x + particleSize + 1, y + particleSize + 1,
+                    0.0F, 1.0F, 0.0F, 1.0F);
+        }
+    }
+
     private static void endFightWithoutWinner(long now) {
         if (activeFight == null) return;
         for (MiniMeDefinition miniMe : List.of(activeFight.first, activeFight.second)) {
@@ -466,9 +511,12 @@ public final class MiniMeHudOverlay {
     private static void draw(DrawContext context, MiniMeDefinition miniMe, WalkerState state, int size, long now) {
         long walkElapsed = Math.max(0L, now - state.walkStartedAtNanos);
         boolean dying = state.deathStartedAtNanos > 0L;
+        long attackElapsed = now - state.attackStartedAtNanos;
+        boolean attacking = !dying && state.attackStartedAtNanos > 0L
+                && attackElapsed < ATTACK_LUNGE_NANOS;
         int frameIndex = dying ? state.deathFrameIndex
-                : state.walking ? (int) (walkElapsed / WALK_FRAME_NANOS % miniMe.frameCount()) : 0;
-        MiniMeFrame frame = miniMe.frame(frameIndex);
+                : state.walking ? (int) (walkElapsed / WALK_FRAME_NANOS % miniMe.walkingFrameCount()) : 0;
+        MiniMeFrame frame = attacking ? miniMe.hittingFrame() : miniMe.walkingFrame(frameIndex);
         float scale = Math.min(size / (float) frame.width, size / (float) frame.height);
         float widthBounce = 1.0F;
         float heightBounce = 1.0F;
@@ -486,8 +534,7 @@ public final class MiniMeHudOverlay {
         float frameWidth = frame.width * scaleX;
         float frameHeight = frame.height * scaleY;
         float left = state.facingRight ? state.x : state.x + miniMe.anchorWidth(size) - frameWidth;
-        long attackElapsed = now - state.attackStartedAtNanos;
-        if (!dying && state.attackStartedAtNanos > 0L && attackElapsed < ATTACK_LUNGE_NANOS) {
+        if (attacking) {
             float attackProgress = Math.clamp(attackElapsed / (float) ATTACK_LUNGE_NANOS, 0.0F, 1.0F);
             float lunge = (float) Math.sin(Math.PI * attackProgress) * ATTACK_LUNGE_DISTANCE;
             left += state.facingRight ? lunge : -lunge;
@@ -608,6 +655,7 @@ public final class MiniMeHudOverlay {
         }
         activeFight = null;
         SMOKE_PARTICLES.clear();
+        CRITICAL_HIT_PARTICLES.clear();
         scheduleNextAggroCheck(System.nanoTime());
     }
 
@@ -618,41 +666,57 @@ public final class MiniMeHudOverlay {
         MORVY("morvy"),
         BIGGY("biggy");
 
-        private final Identifier[] textures;
-        private final MiniMeFrame[] resolvedFrames;
-        private final boolean[] resolutionAttempted;
+        private final Identifier[] walkingTextures;
+        private final MiniMeFrame[] resolvedWalkingFrames;
+        private final boolean[] walkingResolutionAttempted;
+        private final Identifier hittingTexture;
+        private MiniMeFrame resolvedHittingFrame;
+        private boolean hittingResolutionAttempted;
 
         MiniMeDefinition(String id) {
-            textures = new Identifier[MAX_WALK_FRAMES];
-            resolvedFrames = new MiniMeFrame[MAX_WALK_FRAMES];
-            resolutionAttempted = new boolean[MAX_WALK_FRAMES];
+            walkingTextures = new Identifier[MAX_WALK_FRAMES];
+            resolvedWalkingFrames = new MiniMeFrame[MAX_WALK_FRAMES];
+            walkingResolutionAttempted = new boolean[MAX_WALK_FRAMES];
             for (int frame = 0; frame < MAX_WALK_FRAMES; frame++) {
-                textures[frame] = textureId(id, "%02d".formatted(frame));
+                walkingTextures[frame] = walkingTextureId(id, "%02d".formatted(frame));
             }
+            hittingTexture = hittingTextureId(id);
         }
 
-        private int frameCount() {
-            return textures.length;
+        private int walkingFrameCount() {
+            return walkingTextures.length;
         }
 
-        private MiniMeFrame frame(int index) {
-            if (!resolutionAttempted[index]) {
-                resolutionAttempted[index] = true;
-                resolvedFrames[index] = loadFrame(textures[index]);
+        private MiniMeFrame walkingFrame(int index) {
+            if (!walkingResolutionAttempted[index]) {
+                walkingResolutionAttempted[index] = true;
+                resolvedWalkingFrames[index] = loadFrame(walkingTextures[index]);
             }
-            if (resolvedFrames[index] != null) return resolvedFrames[index];
-            return index == 0 ? new MiniMeFrame(textures[0], textures[0], 800, 800) : frame(0);
+            if (resolvedWalkingFrames[index] != null) return resolvedWalkingFrames[index];
+            return index == 0
+                    ? new MiniMeFrame(walkingTextures[0], walkingTextures[0], 800, 800)
+                    : walkingFrame(0);
+        }
+
+        private MiniMeFrame hittingFrame() {
+            if (!hittingResolutionAttempted) {
+                hittingResolutionAttempted = true;
+                resolvedHittingFrame = loadFrame(hittingTexture);
+            }
+            return resolvedHittingFrame != null ? resolvedHittingFrame : walkingFrame(0);
         }
 
         private void invalidateFrames() {
-            for (int index = 0; index < resolvedFrames.length; index++) {
-                resolvedFrames[index] = null;
-                resolutionAttempted[index] = false;
+            for (int index = 0; index < resolvedWalkingFrames.length; index++) {
+                resolvedWalkingFrames[index] = null;
+                walkingResolutionAttempted[index] = false;
             }
+            resolvedHittingFrame = null;
+            hittingResolutionAttempted = false;
         }
 
         private float anchorWidth(int size) {
-            MiniMeFrame idleFrame = frame(0);
+            MiniMeFrame idleFrame = walkingFrame(0);
             float scale = Math.min(size / (float) idleFrame.width, size / (float) idleFrame.height);
             return idleFrame.width * scale;
         }
@@ -667,10 +731,16 @@ public final class MiniMeHudOverlay {
             };
         }
 
-        private static Identifier textureId(String miniMe, String frame) {
+        private static Identifier walkingTextureId(String miniMe, String frame) {
             return Identifier.of(DMLS.MOD_ID.toLowerCase(),
-                    "textures/gui/mini_me/walking/%s/%s_walking_%s.png"
+                    "textures/gui/mini_me/%s/walking/%s_walking_%s.png"
                             .formatted(miniMe, miniMe, frame));
+        }
+
+        private static Identifier hittingTextureId(String miniMe) {
+            return Identifier.of(DMLS.MOD_ID.toLowerCase(),
+                    "textures/gui/mini_me/%s/hitting/%s_hitting.png"
+                            .formatted(miniMe, miniMe));
         }
 
         private static MiniMeFrame loadFrame(Identifier texture) {
@@ -780,5 +850,9 @@ public final class MiniMeHudOverlay {
 
     private record SmokeParticle(float x, float y, float velocityX, float velocityY,
                                  int size, long spawnedAtNanos, long lifetimeNanos) {
+    }
+
+    private record CriticalHitParticle(float x, float y, float velocityX, float velocityY,
+                                       int size, long spawnedAtNanos) {
     }
 }
