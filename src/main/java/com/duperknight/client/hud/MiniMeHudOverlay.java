@@ -3,19 +3,18 @@ package com.duperknight.client.hud;
 import com.duperknight.DMLS;
 import com.duperknight.client.modules.MiniMeHudPreferences;
 import com.duperknight.client.utils.DMLSConfig;
+import com.mojang.blaze3d.platform.NativeImage;
 import net.fabricmc.fabric.api.resource.v1.ResourceLoader;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.renderer.texture.DynamicTexture;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.packs.PackType;
+import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.client.texture.NativeImage;
-import net.minecraft.client.texture.NativeImageBackedTexture;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.resource.ResourceType;
-import net.minecraft.resource.SynchronousResourceReloader;
-import net.minecraft.util.Identifier;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -56,7 +55,7 @@ public final class MiniMeHudOverlay {
     private static final int CRITICAL_HIT_PARTICLE_COUNT = 12;
     private static final long CRITICAL_HIT_PARTICLE_LIFETIME_NANOS = 450_000_000L;
     private static final Identifier CRITICAL_HIT_TEXTURE =
-            Identifier.of("minecraft", "textures/particle/critical_hit.png");
+            Identifier.fromNamespaceAndPath("minecraft", "textures/particle/critical_hit.png");
     private static final long KNOCKBACK_NANOS = 240_000_000L;
     private static final float KNOCKBACK_DISTANCE_FACTOR = 0.26F;
     private static final long DEATH_ANIMATION_NANOS = 900_000_000L;
@@ -64,18 +63,18 @@ public final class MiniMeHudOverlay {
     private static final int SMOKE_PARTICLE_COUNT = 28;
     private static final long SMOKE_LIFETIME_NANOS = 850_000_000L;
     private static final List<Identifier> SMOKE_TEXTURES = List.of(
-            Identifier.of("minecraft", "textures/particle/big_smoke_0.png"),
-            Identifier.of("minecraft", "textures/particle/big_smoke_1.png"),
-            Identifier.of("minecraft", "textures/particle/big_smoke_2.png"),
-            Identifier.of("minecraft", "textures/particle/big_smoke_3.png"),
-            Identifier.of("minecraft", "textures/particle/big_smoke_4.png"),
-            Identifier.of("minecraft", "textures/particle/big_smoke_5.png"),
-            Identifier.of("minecraft", "textures/particle/big_smoke_6.png"),
-            Identifier.of("minecraft", "textures/particle/big_smoke_7.png"),
-            Identifier.of("minecraft", "textures/particle/big_smoke_8.png"),
-            Identifier.of("minecraft", "textures/particle/big_smoke_9.png"),
-            Identifier.of("minecraft", "textures/particle/big_smoke_10.png"),
-            Identifier.of("minecraft", "textures/particle/big_smoke_11.png")
+            Identifier.fromNamespaceAndPath("minecraft", "textures/particle/big_smoke_0.png"),
+            Identifier.fromNamespaceAndPath("minecraft", "textures/particle/big_smoke_1.png"),
+            Identifier.fromNamespaceAndPath("minecraft", "textures/particle/big_smoke_2.png"),
+            Identifier.fromNamespaceAndPath("minecraft", "textures/particle/big_smoke_3.png"),
+            Identifier.fromNamespaceAndPath("minecraft", "textures/particle/big_smoke_4.png"),
+            Identifier.fromNamespaceAndPath("minecraft", "textures/particle/big_smoke_5.png"),
+            Identifier.fromNamespaceAndPath("minecraft", "textures/particle/big_smoke_6.png"),
+            Identifier.fromNamespaceAndPath("minecraft", "textures/particle/big_smoke_7.png"),
+            Identifier.fromNamespaceAndPath("minecraft", "textures/particle/big_smoke_8.png"),
+            Identifier.fromNamespaceAndPath("minecraft", "textures/particle/big_smoke_9.png"),
+            Identifier.fromNamespaceAndPath("minecraft", "textures/particle/big_smoke_10.png"),
+            Identifier.fromNamespaceAndPath("minecraft", "textures/particle/big_smoke_11.png")
     );
     private static final Random RANDOM = new Random();
     private static final Map<MiniMeDefinition, WalkerState> STATES = new EnumMap<>(MiniMeDefinition.class);
@@ -84,7 +83,7 @@ public final class MiniMeHudOverlay {
 
     private static int screenWidth = -1;
     private static int screenHeight = -1;
-    private static ClientWorld activeWorld;
+    private static ClientLevel activeWorld;
     private static Fight activeFight;
     private static long nextAggroCheckAtNanos;
     private static boolean chaosMode;
@@ -99,11 +98,11 @@ public final class MiniMeHudOverlay {
     }
 
     public static void register() {
-        HudElementRegistry.addLast(Identifier.of(DMLS.MOD_ID.toLowerCase(), "walking_mini_mes"),
+        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(DMLS.MOD_ID.toLowerCase(), "walking_mini_mes"),
                 (context, tickCounter) -> render(context));
-        ResourceLoader.get(ResourceType.CLIENT_RESOURCES).registerReloader(
-                Identifier.of(DMLS.MOD_ID.toLowerCase(), "mini_me_frames"),
-                (SynchronousResourceReloader) resourceManager -> invalidateFrameCache());
+        ResourceLoader.get(PackType.CLIENT_RESOURCES).registerReloadListener(
+                Identifier.fromNamespaceAndPath(DMLS.MOD_ID.toLowerCase(), "mini_me_frames"),
+                (ResourceManagerReloadListener) resourceManager -> invalidateFrameCache());
     }
 
     private static void invalidateFrameCache() {
@@ -112,14 +111,14 @@ public final class MiniMeHudOverlay {
         }
     }
 
-    private static void render(DrawContext context) {
-        MinecraftClient client = MinecraftClient.getInstance();
+    private static void render(GuiGraphicsExtractor context) {
+        Minecraft client = Minecraft.getInstance();
         long now = System.nanoTime();
-        int width = context.getScaledWindowWidth();
-        int height = context.getScaledWindowHeight();
+        int width = context.guiWidth();
+        int height = context.guiHeight();
 
-        if (client.world != activeWorld) {
-            activeWorld = client.world;
+        if (client.level != activeWorld) {
+            activeWorld = client.level;
             resetAll();
         }
 
@@ -132,11 +131,11 @@ public final class MiniMeHudOverlay {
             if (!firstSize) reanchorForResize(previousWidth, previousHeight, width, height, now);
         }
 
-        boolean visibleUnderScreen = client.currentScreen == null
-                || client.currentScreen instanceof ChatScreen
-                || client.currentScreen instanceof HandledScreen<?>;
-        if (client.world == null || client.player == null || !visibleUnderScreen
-                || client.options.hudHidden || width <= 0 || height <= 0) {
+        boolean visibleUnderScreen = client.gui.screen() == null
+                || client.gui.screen() instanceof ChatScreen
+                || client.gui.screen() instanceof AbstractContainerScreen<?>;
+        if (client.level == null || client.player == null || !visibleUnderScreen
+                || client.gui.hud.isHidden() || width <= 0 || height <= 0) {
             return;
         }
 
@@ -435,7 +434,7 @@ public final class MiniMeHudOverlay {
         }
     }
 
-    private static void renderSmoke(DrawContext context, long now) {
+    private static void renderSmoke(GuiGraphicsExtractor context, long now) {
         SMOKE_PARTICLES.removeIf(particle -> now - particle.spawnedAtNanos >= particle.lifetimeNanos);
         for (SmokeParticle particle : SMOKE_PARTICLES) {
             float ageSeconds = (now - particle.spawnedAtNanos) / 1_000_000_000.0F;
@@ -448,7 +447,7 @@ public final class MiniMeHudOverlay {
             int particleSize = Math.max(1, Math.round(particle.size * spread));
             int frame = Math.min(SMOKE_TEXTURES.size() - 1,
                     (int) (progress * SMOKE_TEXTURES.size()));
-            context.drawTexturedQuad(SMOKE_TEXTURES.get(frame),
+            context.blit(SMOKE_TEXTURES.get(frame),
                     x - particleSize, y - particleSize,
                     x + particleSize + 1, y + particleSize + 1,
                     0.0F, 1.0F, 0.0F, 1.0F);
@@ -469,7 +468,7 @@ public final class MiniMeHudOverlay {
         }
     }
 
-    private static void renderCriticalHitParticles(DrawContext context, long now) {
+    private static void renderCriticalHitParticles(GuiGraphicsExtractor context, long now) {
         CRITICAL_HIT_PARTICLES.removeIf(particle ->
                 now - particle.spawnedAtNanos >= CRITICAL_HIT_PARTICLE_LIFETIME_NANOS);
         for (CriticalHitParticle particle : CRITICAL_HIT_PARTICLES) {
@@ -481,7 +480,7 @@ public final class MiniMeHudOverlay {
             int y = Math.round(particle.y + particle.velocityY * ageSeconds
                     + 18.0F * ageSeconds * ageSeconds);
             int particleSize = Math.max(1, Math.round(particle.size * scale));
-            context.drawTexturedQuad(CRITICAL_HIT_TEXTURE,
+            context.blit(CRITICAL_HIT_TEXTURE,
                     x - particleSize, y - particleSize,
                     x + particleSize + 1, y + particleSize + 1,
                     0.0F, 1.0F, 0.0F, 1.0F);
@@ -508,7 +507,7 @@ public final class MiniMeHudOverlay {
         nextAggroCheckAtNanos = now + minimum + nextLong(variation + 1L);
     }
 
-    private static void draw(DrawContext context, MiniMeDefinition miniMe, WalkerState state, int size, long now) {
+    private static void draw(GuiGraphicsExtractor context, MiniMeDefinition miniMe, WalkerState state, int size, long now) {
         long walkElapsed = Math.max(0L, now - state.walkStartedAtNanos);
         boolean dying = state.deathStartedAtNanos > 0L;
         long attackElapsed = now - state.attackStartedAtNanos;
@@ -540,31 +539,31 @@ public final class MiniMeHudOverlay {
             left += state.facingRight ? lunge : -lunge;
         }
         left = Math.clamp(left, 0.0F,
-                Math.max(0.0F, context.getScaledWindowWidth() - frameWidth));
+                Math.max(0.0F, context.guiWidth() - frameWidth));
         float top = Math.clamp(state.y - hop, 0.0F,
-                Math.max(0.0F, context.getScaledWindowHeight() - frameHeight));
+                Math.max(0.0F, context.guiHeight() - frameHeight));
         float u1 = state.facingRight ? 0.0F : 1.0F;
         float u2 = state.facingRight ? 1.0F : 0.0F;
         Identifier texture = dying || now < state.damageFlashUntilNanos
                 ? frame.damageTexture : frame.texture;
-        context.getMatrices().pushMatrix();
+        context.pose().pushMatrix();
         if (dying) {
             float deathProgress = Math.clamp((now - state.deathStartedAtNanos)
                     / (float) DEATH_ANIMATION_NANOS, 0.0F, 1.0F);
             float easedProgress = deathProgress * deathProgress * (3.0F - 2.0F * deathProgress);
             float rotation = (float) Math.toRadians(90.0F * easedProgress);
-            context.getMatrices().translate(left + frameWidth / 2.0F, top + frameHeight);
-            context.getMatrices().rotate(rotation);
-            context.getMatrices().scale(scaleX, scaleY);
-            context.drawTexturedQuad(texture, -frame.width / 2, -frame.height,
+            context.pose().translate(left + frameWidth / 2.0F, top + frameHeight);
+            context.pose().rotate(rotation);
+            context.pose().scale(scaleX, scaleY);
+            context.blit(texture, -frame.width / 2, -frame.height,
                     frame.width / 2, 0, u1, u2, 0.0F, 1.0F);
         } else {
-            context.getMatrices().translate(left, top);
-            context.getMatrices().scale(scaleX, scaleY);
-            context.drawTexturedQuad(texture, 0, 0, frame.width, frame.height,
+            context.pose().translate(left, top);
+            context.pose().scale(scaleX, scaleY);
+            context.blit(texture, 0, 0, frame.width, frame.height,
                     u1, u2, 0.0F, 1.0F);
         }
-        context.getMatrices().popMatrix();
+        context.pose().popMatrix();
     }
 
     private static void reanchorForResize(int previousWidth, int previousHeight,
@@ -732,28 +731,28 @@ public final class MiniMeHudOverlay {
         }
 
         private static Identifier walkingTextureId(String miniMe, String frame) {
-            return Identifier.of(DMLS.MOD_ID.toLowerCase(),
+            return Identifier.fromNamespaceAndPath(DMLS.MOD_ID.toLowerCase(),
                     "textures/gui/mini_me/%s/walking/%s_walking_%s.png"
                             .formatted(miniMe, miniMe, frame));
         }
 
         private static Identifier hittingTextureId(String miniMe) {
-            return Identifier.of(DMLS.MOD_ID.toLowerCase(),
+            return Identifier.fromNamespaceAndPath(DMLS.MOD_ID.toLowerCase(),
                     "textures/gui/mini_me/%s/hitting/%s_hitting.png"
                             .formatted(miniMe, miniMe));
         }
 
         private static MiniMeFrame loadFrame(Identifier texture) {
-            var resource = MinecraftClient.getInstance().getResourceManager().getResource(texture);
+            var resource = Minecraft.getInstance().getResourceManager().getResource(texture);
             if (resource.isEmpty()) return null;
-            try (InputStream stream = resource.get().getInputStream()) {
+            try (InputStream stream = resource.get().open()) {
                 try (NativeImage image = NativeImage.read(stream)) {
-                    NativeImage damageImage = image.applyToCopy(MiniMeHudOverlay::damageTint);
-                    Identifier damageTexture = Identifier.of(DMLS.MOD_ID.toLowerCase(),
+                    NativeImage damageImage = image.mappedCopy(MiniMeHudOverlay::damageTint);
+                    Identifier damageTexture = Identifier.fromNamespaceAndPath(DMLS.MOD_ID.toLowerCase(),
                             "mini_me_damage/" + texture.getPath().replace('/', '_'));
-                    NativeImageBackedTexture backedTexture = new NativeImageBackedTexture(
+                    DynamicTexture backedTexture = new DynamicTexture(
                             () -> "DMLS AdMinis damage texture " + texture, damageImage);
-                    MinecraftClient.getInstance().getTextureManager().registerTexture(damageTexture, backedTexture);
+                    Minecraft.getInstance().getTextureManager().register(damageTexture, backedTexture);
                     return new MiniMeFrame(texture, damageTexture, image.getWidth(), image.getHeight());
                 }
             } catch (IOException exception) {

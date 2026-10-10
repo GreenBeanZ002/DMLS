@@ -10,12 +10,11 @@ import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.Version;
 import net.fabricmc.loader.api.VersionParsingException;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.sound.PositionedSoundInstance;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.sounds.SoundEvents;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -35,7 +34,7 @@ public final class UpdateChecker {
             .build();
     private static final AtomicLong JOIN_GENERATION = new AtomicLong();
 
-    private static volatile Text notice;
+    private static volatile Component notice;
     private static volatile long noticeUntilMillis;
 
     private UpdateChecker() {
@@ -49,20 +48,20 @@ public final class UpdateChecker {
             noticeUntilMillis = 0L;
         });
 
-        HudElementRegistry.addLast(Identifier.of("dmls", "update_notice"), (context, tickCounter) -> {
-            Text currentNotice = notice;
+        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("dmls", "update_notice"), (context, tickCounter) -> {
+            Component currentNotice = notice;
             if (currentNotice == null || System.currentTimeMillis() >= noticeUntilMillis) {
                 return;
             }
 
-            MinecraftClient client = MinecraftClient.getInstance();
-            if (client.world != null && !client.options.hudHidden) {
-                context.drawTextWithShadow(client.textRenderer, currentNotice, 6, 6, NOTICE_COLOR);
+            Minecraft client = Minecraft.getInstance();
+            if (client.level != null && !client.gui.hud.isHidden()) {
+                context.text(client.font, currentNotice, 6, 6, NOTICE_COLOR);
             }
         });
     }
 
-    private static void checkForUpdate(MinecraftClient client) {
+    private static void checkForUpdate(Minecraft client) {
         long generation = JOIN_GENERATION.incrementAndGet();
         notice = null;
         noticeUntilMillis = 0L;
@@ -142,13 +141,13 @@ public final class UpdateChecker {
         return separator >= 0 && separator < version.length() - 1 ? version.substring(separator + 1) : null;
     }
 
-    private static void showNotice(MinecraftClient client, long generation, String latestVersion) {
-        if (generation != JOIN_GENERATION.get() || client.world == null) {
+    private static void showNotice(Minecraft client, long generation, String latestVersion) {
+        if (generation != JOIN_GENERATION.get() || client.level == null) {
             return;
         }
 
-        notice = Text.translatable("dmls.update.available", latestVersion);
+        notice = Component.translatable("dmls.update.available", latestVersion);
         noticeUntilMillis = System.currentTimeMillis() + NOTICE_DURATION_MILLIS;
-        client.getSoundManager().play(PositionedSoundInstance.ui(SoundEvents.BLOCK_NOTE_BLOCK_CHIME, 1.0F));
+        client.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.NOTE_BLOCK_CHIME, 1.0F));
     }
 }

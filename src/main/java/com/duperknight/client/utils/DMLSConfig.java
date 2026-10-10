@@ -7,7 +7,7 @@ import com.duperknight.client.modules.MiniMeHudPreferences;
 import com.duperknight.client.modules.StaffDepartment;
 import com.duperknight.client.modules.StaffRank;
 import com.duperknight.client.moderation.ModerationPreferences;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.loader.api.FabricLoader;
 
 import java.io.IOException;
@@ -555,7 +555,7 @@ public final class DMLSConfig {
     /** Rebuilds the merged server/client command tree after a live access requirement changes. */
     private static void refreshCommandCompletionsIfAvailable() {
         try {
-            ClientCommandManager.refreshCommandCompletions();
+            ClientCommands.refreshCommandCompletions();
         } catch (IllegalStateException ignored) {
             // Normal while disconnected or before the server's command packet arrives.
         }

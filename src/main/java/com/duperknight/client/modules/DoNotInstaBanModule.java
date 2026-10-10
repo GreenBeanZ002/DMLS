@@ -1,5 +1,7 @@
 package com.duperknight.client.modules;
 
+import com.duperknight.client.utils.LegacyColors;
+
 import com.duperknight.client.gui.modules.DoNotInstaBanScreen;
 import com.duperknight.client.accountlink.DiscordLinkSessionValidator;
 import com.duperknight.client.instaban.DoNotInstaBanService;
@@ -14,19 +16,18 @@ import com.duperknight.client.utils.InputValidators;
 import com.duperknight.client.utils.ServerGuard;
 import com.duperknight.mixin.ChatHudAccessor;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.hud.ChatHud;
-import net.minecraft.client.gui.hud.ChatHudLine;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.text.ClickEvent;
-import net.minecraft.text.HoverEvent;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.multiplayer.chat.GuiMessage;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.ChatComponent;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -63,8 +64,8 @@ public final class DoNotInstaBanModule extends DMLSModule {
     }
 
     @Override
-    public Text displayName() {
-        return Text.translatable("dmls.module.do_not_insta_ban.name");
+    public Component displayName() {
+        return Component.translatable("dmls.module.do_not_insta_ban.name");
     }
 
     @Override
@@ -73,10 +74,10 @@ public final class DoNotInstaBanModule extends DMLSModule {
     }
 
     @Override
-    public List<Text> description() {
+    public List<Component> description() {
         return List.of(
-                Text.translatable("dmls.module.do_not_insta_ban.description.1"),
-                Text.translatable("dmls.module.do_not_insta_ban.description.2"));
+                Component.translatable("dmls.module.do_not_insta_ban.description.1"),
+                Component.translatable("dmls.module.do_not_insta_ban.description.2"));
     }
 
     @Override
@@ -90,8 +91,8 @@ public final class DoNotInstaBanModule extends DMLSModule {
     }
 
     @Override
-    public void openScreen(MinecraftClient client, Screen parent) {
-        client.setScreen(new DoNotInstaBanScreen(parent, this));
+    public void openScreen(Minecraft client, Screen parent) {
+        client.gui.setScreen(new DoNotInstaBanScreen(parent, this));
     }
 
     @Override
@@ -103,7 +104,7 @@ public final class DoNotInstaBanModule extends DMLSModule {
         return DMLSConfig.doNotInstaBanEnabled();
     }
 
-    public boolean setEnabled(MinecraftClient client, boolean enabled) {
+    public boolean setEnabled(Minecraft client, boolean enabled) {
         if (enabled && !hasRequiredIntegrations(client)) return false;
         if (!DMLSConfig.setDoNotInstaBanEnabled(enabled)) {
             ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.config.save_failed");
@@ -113,16 +114,16 @@ public final class DoNotInstaBanModule extends DMLSModule {
         return true;
     }
 
-    private void tick(MinecraftClient client) {
+    private void tick(Minecraft client) {
         ticks++;
-        Object currentConnection = client.getNetworkHandler();
+        Object currentConnection = client.getConnection();
         if (connectionIdentity != currentConnection) {
             restorePending(client);
             pending.clear();
             seenBlocks.clear();
             connectionIdentity = currentConnection;
         }
-        if (!enabled() || !isAvailableToDetectedRank() || client.inGameHud == null
+        if (!enabled() || !isAvailableToDetectedRank() || client.gui == null
                 || currentConnection == null || !ServerGuard.check(client).allowed()) {
             if (!pending.isEmpty()) restorePending(client);
             return;
@@ -136,17 +137,17 @@ public final class DoNotInstaBanModule extends DMLSModule {
         detectNewestBlock(client);
     }
 
-    private void detectNewestBlock(MinecraftClient client) {
-        ChatHud chat = client.inGameHud.getChatHud();
-        List<ChatHudLine> messages = ((ChatHudAccessor) chat).dmls$getMessages();
+    private void detectNewestBlock(Minecraft client) {
+        ChatComponent chat = client.gui.hud.getChat();
+        List<GuiMessage> messages = ((ChatHudAccessor) chat).dmls$getMessages();
         int limit = Math.min(messages.size(), 80);
         for (int index = 0; index < limit; index++) {
-            ChatHudLine names;
-            ChatHudLine statuses;
-            ChatHudLine scanning;
+            GuiMessage names;
+            GuiMessage statuses;
+            GuiMessage scanning;
             List<String> greenNames;
             List<String> bannedNames;
-            ChatHudLine current = messages.get(index);
+            GuiMessage current = messages.get(index);
             if (isCompleteScanBlock(current.content().getString())) {
                 names = current;
                 statuses = current;
@@ -156,7 +157,7 @@ public final class DoNotInstaBanModule extends DMLSModule {
             } else {
                 if (index + 1 >= messages.size()) continue;
                 names = current;
-                ChatHudLine next = messages.get(index + 1);
+                GuiMessage next = messages.get(index + 1);
                 if (isCombinedScanHeader(next.content().getString())) {
                     scanning = next;
                     statuses = next;
@@ -171,7 +172,7 @@ public final class DoNotInstaBanModule extends DMLSModule {
                 bannedNames = extractRedTokens(names.content());
             }
 
-            String key = scanning.creationTick() + "|" + statuses.creationTick() + "|" + names.creationTick()
+            String key = scanning.addedTime() + "|" + statuses.addedTime() + "|" + names.addedTime()
                     + "|" + stableBlockIdentity(scanning.content(), greenNames);
             if (!seenBlocks.add(key)) continue;
             trimSeenBlocks();
@@ -188,9 +189,9 @@ public final class DoNotInstaBanModule extends DMLSModule {
         }
     }
 
-    private void startLookup(MinecraftClient client, ChatHudLine scanning, ChatHudLine statuses,
-                             ChatHudLine names, List<String> players) {
-        UUID minecraftUuid = client.getSession().getUuidOrNull();
+    private void startLookup(Minecraft client, GuiMessage scanning, GuiMessage statuses,
+                             GuiMessage names, List<String> players) {
+        UUID minecraftUuid = client.getUser().getProfileId();
         if (minecraftUuid == null) {
             ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.do_not_insta_ban.identity");
             return;
@@ -205,7 +206,7 @@ public final class DoNotInstaBanModule extends DMLSModule {
         executeLookup(client, minecraftUuid, lookup, true);
     }
 
-    private void executeLookup(MinecraftClient client, UUID minecraftUuid, PendingLookup lookup,
+    private void executeLookup(Minecraft client, UUID minecraftUuid, PendingLookup lookup,
                                boolean allowAuthenticationRecheck) {
         service.check(minecraftUuid, lookup.players).whenComplete((outcome, error) -> client.execute(() -> {
             if (!pending.contains(lookup)) return;
@@ -252,7 +253,7 @@ public final class DoNotInstaBanModule extends DMLSModule {
                 || type == InstaBanLookupOutcome.Type.AUTHORIZATION_STALE;
     }
 
-    private void applyOutcome(MinecraftClient client, PendingLookup lookup, InstaBanLookupOutcome outcome) {
+    private void applyOutcome(Minecraft client, PendingLookup lookup, InstaBanLookupOutcome outcome) {
         if (outcome.type() != InstaBanLookupOutcome.Type.SUCCESS || outcome.response() == null) {
             restoreStatus(client, lookup);
             showFailure(client, outcome.type());
@@ -275,7 +276,7 @@ public final class DoNotInstaBanModule extends DMLSModule {
 
         restoreStatus(client, lookup);
         for (InstaBanResult result : results) {
-            Text message = multiResultButton(result);
+            Component message = multiResultButton(result);
             ChatUtils.sendClientMessage(client, message);
             ModerationChatService.captureClientMessage(message);
         }
@@ -284,9 +285,9 @@ public final class DoNotInstaBanModule extends DMLSModule {
         }
     }
 
-    private void applySingleResult(MinecraftClient client, PendingLookup lookup, InstaBanResult result) {
+    private void applySingleResult(Minecraft client, PendingLookup lookup, InstaBanResult result) {
         InstaBanPresentation presentation = InstaBanPresentation.forResult(result);
-        MutableText scanning = InstaBanChatHighlight.tint(lookup.scanning.original, presentation.color());
+        MutableComponent scanning = InstaBanChatHighlight.tint(lookup.scanning.original, presentation.color());
         if (lookup.names == lookup.scanning) {
             scanning.append(" ").append(statusButton(result));
             replace(client, lookup.scanning, scanning);
@@ -294,13 +295,13 @@ public final class DoNotInstaBanModule extends DMLSModule {
             refresh(client);
             return;
         }
-        MutableText names = InstaBanChatHighlight.tint(lookup.names.original, presentation.color());
+        MutableComponent names = InstaBanChatHighlight.tint(lookup.names.original, presentation.color());
         if (lookup.statuses == null) {
             scanning.append(" ").append(statusButton(result));
             replace(client, lookup.scanning, scanning);
             ModerationChatService.replaceRecentText(lookup.scanning.original, scanning);
         } else {
-            MutableText statuses = InstaBanChatHighlight.tint(lookup.statuses.original, presentation.color())
+            MutableComponent statuses = InstaBanChatHighlight.tint(lookup.statuses.original, presentation.color())
                     .append(" ").append(statusButton(result));
             replace(client, lookup.scanning, scanning);
             replace(client, lookup.statuses, statuses);
@@ -312,37 +313,37 @@ public final class DoNotInstaBanModule extends DMLSModule {
         refresh(client);
     }
 
-    private static Text statusButton(InstaBanResult result) {
+    private static Component statusButton(InstaBanResult result) {
         InstaBanPresentation presentation = InstaBanPresentation.forResult(result);
-        MutableText button = Text.literal("[" + presentation.statusLabel() + "]")
-                .formatted(Formatting.BOLD)
-                .styled(style -> style.withHoverEvent(new HoverEvent.ShowText(
-                        Text.literal(hoverText(presentation, result.messageUrl() != null)))));
+        MutableComponent button = Component.literal("[" + presentation.statusLabel() + "]")
+                .withStyle(ChatFormatting.BOLD)
+                .withStyle(style -> style.withHoverEvent(new HoverEvent.ShowText(
+                        Component.literal(hoverText(presentation, result.messageUrl() != null)))));
         if (result.messageUrl() != null) {
-            button.styled(style -> style.withClickEvent(new ClickEvent.OpenUrl(result.messageUrl()))
-                    .withUnderline(true));
+            button.withStyle(style -> style.withClickEvent(new ClickEvent.OpenUrl(result.messageUrl()))
+                    .withUnderlined(true));
         }
         return button;
     }
 
-    private static Text multiResultButton(InstaBanResult result) {
+    private static Component multiResultButton(InstaBanResult result) {
         InstaBanPresentation presentation = InstaBanPresentation.forResult(result);
-        MutableText button = Text.literal("[" + result.ign() + ": " + presentation.statusLabel() + "]")
-                .formatted(Formatting.BOLD)
-                .styled(style -> style.withHoverEvent(new HoverEvent.ShowText(
-                        Text.literal(hoverText(presentation, result.messageUrl() != null)))));
+        MutableComponent button = Component.literal("[" + result.ign() + ": " + presentation.statusLabel() + "]")
+                .withStyle(ChatFormatting.BOLD)
+                .withStyle(style -> style.withHoverEvent(new HoverEvent.ShowText(
+                        Component.literal(hoverText(presentation, result.messageUrl() != null)))));
         if (result.messageUrl() != null) {
-            button.styled(style -> style.withClickEvent(new ClickEvent.OpenUrl(result.messageUrl()))
-                    .withUnderline(true));
+            button.withStyle(style -> style.withClickEvent(new ClickEvent.OpenUrl(result.messageUrl()))
+                    .withUnderlined(true));
         }
-        return InstaBanChatHighlight.tint(Text.literal("§8[§6DMLS§8] ").append(button), presentation.color());
+        return InstaBanChatHighlight.tint(Component.literal("§8[§6DMLS§8] ").append(button), presentation.color());
     }
 
     private static String hoverText(InstaBanPresentation presentation, boolean hasEvidence) {
         return presentation.detail() + (hasEvidence ? "\nClick to open Discord evidence." : "\nNo evidence link is available.");
     }
 
-    private void showFailure(MinecraftClient client, InstaBanLookupOutcome.Type failure) {
+    private void showFailure(Minecraft client, InstaBanLookupOutcome.Type failure) {
         String key = switch (failure) {
             case NOT_LINKED, INVALID_TOKEN -> "dmls.chat.do_not_insta_ban.not_linked";
             case AUTHORIZATION_STALE -> "dmls.chat.do_not_insta_ban.authorization_stale";
@@ -355,24 +356,24 @@ public final class DoNotInstaBanModule extends DMLSModule {
         ChatUtils.sendTranslatedMessage(client, PREFIX, key);
     }
 
-    private void animateSpinners(MinecraftClient client) {
+    private void animateSpinners(Minecraft client) {
         for (PendingLookup lookup : List.copyOf(pending)) updateSpinner(client, lookup);
     }
 
-    private void updateSpinner(MinecraftClient client, PendingLookup lookup) {
+    private void updateSpinner(Minecraft client, PendingLookup lookup) {
         String frame = SPINNER[(int) ((ticks / 2) % SPINNER.length)];
         LineHandle target = lookup.statuses == null ? lookup.scanning : lookup.statuses;
-        Text content = target.original.copy()
-                .append(Text.literal(" " + frame).formatted(Formatting.WHITE));
+        Component content = target.original.copy()
+                .append(Component.literal(" " + frame).withStyle(ChatFormatting.WHITE));
         if (replace(client, target, content)) refresh(client);
     }
 
-    private void restorePending(MinecraftClient client) {
+    private void restorePending(Minecraft client) {
         for (PendingLookup lookup : List.copyOf(pending)) restoreStatus(client, lookup);
         pending.clear();
     }
 
-    private void restorePendingExceptAuthenticationRechecks(MinecraftClient client) {
+    private void restorePendingExceptAuthenticationRechecks(Minecraft client) {
         for (PendingLookup lookup : List.copyOf(pending)) {
             if (lookup.authenticationRecheckInProgress) continue;
             restoreStatus(client, lookup);
@@ -380,54 +381,55 @@ public final class DoNotInstaBanModule extends DMLSModule {
         }
     }
 
-    private void restoreStatus(MinecraftClient client, PendingLookup lookup) {
+    private void restoreStatus(Minecraft client, PendingLookup lookup) {
         LineHandle target = lookup.statuses == null ? lookup.scanning : lookup.statuses;
         if (replace(client, target, target.original)) refresh(client);
     }
 
-    private static boolean replace(MinecraftClient client, LineHandle handle, Text replacement) {
-        if (client.inGameHud == null) return false;
-        List<ChatHudLine> messages = ((ChatHudAccessor) client.inGameHud.getChatHud()).dmls$getMessages();
+    private static boolean replace(Minecraft client, LineHandle handle, Component replacement) {
+        if (client.gui == null) return false;
+        List<GuiMessage> messages = ((ChatHudAccessor) client.gui.hud.getChat()).dmls$getMessages();
         int index = findLine(messages, handle.current);
         if (index < 0) return false;
-        ChatHudLine current = messages.get(index);
-        ChatHudLine updated = new ChatHudLine(current.creationTick(), replacement, current.signature(), current.indicator());
+        GuiMessage current = messages.get(index);
+        GuiMessage updated = new GuiMessage(current.addedTime(), replacement, current.signature(),
+                current.source(), current.tag());
         messages.set(index, updated);
         handle.current = updated;
         return true;
     }
 
-    private static int findLine(List<ChatHudLine> messages, ChatHudLine target) {
+    private static int findLine(List<GuiMessage> messages, GuiMessage target) {
         for (int index = 0; index < messages.size(); index++) {
             if (messages.get(index) == target) return index;
         }
         for (int index = 0; index < messages.size(); index++) {
-            ChatHudLine candidate = messages.get(index);
-            if (candidate.creationTick() == target.creationTick()
+            GuiMessage candidate = messages.get(index);
+            if (candidate.addedTime() == target.addedTime()
                     && java.util.Objects.equals(candidate.signature(), target.signature())
                     && candidate.content().getString().equals(target.content().getString())) return index;
         }
         return -1;
     }
 
-    private static void refresh(MinecraftClient client) {
-        ((ChatHudAccessor) client.inGameHud.getChatHud()).dmls$refresh();
+    private static void refresh(Minecraft client) {
+        ((ChatHudAccessor) client.gui.hud.getChat()).dmls$refresh();
     }
 
-    static List<String> extractGreenTokens(Text text) {
-        return extractColoredTokensFromLogicalLine(text, -1, Formatting.GREEN);
+    static List<String> extractGreenTokens(Component text) {
+        return extractColoredTokensFromLogicalLine(text, -1, ChatFormatting.GREEN);
     }
 
-    static List<String> extractGreenTokensFromLogicalLine(Text text, int targetLine) {
-        return extractColoredTokensFromLogicalLine(text, targetLine, Formatting.GREEN);
+    static List<String> extractGreenTokensFromLogicalLine(Component text, int targetLine) {
+        return extractColoredTokensFromLogicalLine(text, targetLine, ChatFormatting.GREEN);
     }
 
-    static List<String> extractRedTokens(Text text) {
+    static List<String> extractRedTokens(Component text) {
         return extractRedTokensFromLogicalLine(text, -1);
     }
 
-    static List<String> extractRedTokensFromLogicalLine(Text text, int targetLine) {
-        return extractColoredTokensFromLogicalLine(text, targetLine, Formatting.RED);
+    static List<String> extractRedTokensFromLogicalLine(Component text, int targetLine) {
+        return extractColoredTokensFromLogicalLine(text, targetLine, ChatFormatting.RED);
     }
 
     static boolean shouldStartLookup(List<String> greenNames, List<String> bannedNames) {
@@ -435,10 +437,10 @@ public final class DoNotInstaBanModule extends DMLSModule {
     }
 
     private static List<String> extractColoredTokensFromLogicalLine(
-            Text text, int targetLine, Formatting color
+            Component text, int targetLine, ChatFormatting color
     ) {
         List<String> names = new ArrayList<>();
-        Integer expectedColor = color.getColorValue();
+        Integer expectedColor = LegacyColors.rgb(color);
         int[] line = {0};
         text.visit((style, segment) -> {
             String[] pieces = segment.split("\\R", -1);
@@ -455,19 +457,19 @@ public final class DoNotInstaBanModule extends DMLSModule {
     }
 
     private static boolean isColor(Style style, Integer expected) {
-        return expected != null && style.getColor() != null && style.getColor().getRgb() == expected;
+        return expected != null && style.getColor() != null && style.getColor().getValue() == expected;
     }
 
-    private static String normalized(Text text) {
+    private static String normalized(Component text) {
         return normalizedLine(text.getString());
     }
 
     /** Stable across spinner frames and appended result buttons, which preserve the scan header and green names. */
-    static String stableBlockIdentity(Text scanning, List<String> greenNames) {
+    static String stableBlockIdentity(Component scanning, List<String> greenNames) {
         String header = logicalLines(scanning == null ? "" : scanning.getString()).stream()
                 .filter(DoNotInstaBanModule::isScanningLine)
                 .findFirst()
-                .orElseGet(() -> normalized(scanning == null ? Text.empty() : scanning));
+                .orElseGet(() -> normalized(scanning == null ? Component.empty() : scanning));
         return header + "|" + String.join("\u001F", greenNames == null ? List.of() : greenNames);
     }
 
@@ -510,10 +512,10 @@ public final class DoNotInstaBanModule extends DMLSModule {
     }
 
     private static final class LineHandle {
-        private final Text original;
-        private ChatHudLine current;
+        private final Component original;
+        private GuiMessage current;
 
-        private LineHandle(ChatHudLine current) {
+        private LineHandle(GuiMessage current) {
             this.original = current.content();
             this.current = current;
         }
