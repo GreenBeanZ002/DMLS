@@ -409,26 +409,38 @@ public class DMLSClient implements ClientModInitializer {
                                                     return reportSimultaneousResult(client, result) ? 1 : 0;
                                                 }))))
 
+                        .then(moduleLiteral("lightning", EventLightningModule.class)
+                                .executes(context -> {
+                                    MinecraftClient client = context.getSource().getClient();
+                                    client.send(() -> module(EventLightningModule.class).openScreen(client, null));
+                                    return 1;
+                                })
+                                .then(lightningShape("ring", EventLightningModule.Shape.RING, "radius", "8"))
+                                .then(lightningShape("line", EventLightningModule.Shape.LINE, "length", "8"))
+                                .then(lightningShape("plus", EventLightningModule.Shape.PLUS, "length", "4"))
+                                .then(lightningShape("cross", EventLightningModule.Shape.CROSS, "length", "4"))
+                                .then(lightningShape("spiral", EventLightningModule.Shape.SPIRAL, "length", "16")))
+
                         .then(moduleLiteral("playnearby", EventPlayNearEffectModule.class)
-                                        .executes(context -> {
-                                            MinecraftClient client = context.getSource().getClient();
-                                            client.send(() -> module(EventPlayNearEffectModule.class).openScreen(client, null));
-                                            return 1;
-                                        })
-                                        .then(ClientCommandManager.argument("effect", StringArgumentType.word())
-                                                .then(ClientCommandManager.argument("duration", StringArgumentType.word())
-                                                        .then(ClientCommandManager.argument("amplifier", StringArgumentType.word())
-                                                                .then(ClientCommandManager.argument("radius", StringArgumentType.word())
-                                                                        .executes(context -> {
-                                                                            MinecraftClient client = context.getSource().getClient();
-                                                                            EventPlayNearEffectModule.RunResult result = module(EventPlayNearEffectModule.class)
-                                                                                    .run(client,
-                                                                                            StringArgumentType.getString(context, "effect"),
-                                                                                            StringArgumentType.getString(context, "duration"),
-                                                                                            StringArgumentType.getString(context, "amplifier"),
-                                                                                            StringArgumentType.getString(context, "radius"));
-                                                                            return reportPlayNearEffectResult(client, result) ? 1 : 0;
-                                                                        })))))));
+                                .executes(context -> {
+                                    MinecraftClient client = context.getSource().getClient();
+                                    client.send(() -> module(EventPlayNearEffectModule.class).openScreen(client, null));
+                                    return 1;
+                                })
+                                .then(ClientCommandManager.argument("effect", StringArgumentType.word())
+                                        .then(ClientCommandManager.argument("duration", StringArgumentType.word())
+                                                .then(ClientCommandManager.argument("amplifier", StringArgumentType.word())
+                                                        .then(ClientCommandManager.argument("radius", StringArgumentType.word())
+                                                                .executes(context -> {
+                                                                    MinecraftClient client = context.getSource().getClient();
+                                                                    EventPlayNearEffectModule.RunResult result = module(EventPlayNearEffectModule.class)
+                                                                            .run(client,
+                                                                                    StringArgumentType.getString(context, "effect"),
+                                                                                    StringArgumentType.getString(context, "duration"),
+                                                                                    StringArgumentType.getString(context, "amplifier"),
+                                                                                    StringArgumentType.getString(context, "radius"));
+                                                                    return reportPlayNearEffectResult(client, result) ? 1 : 0;
+                                                                })))))));
     }
 
     private static <T extends DMLSModule> T module(Class<T> type) {
@@ -585,6 +597,8 @@ public class DMLSClient implements ClientModInitializer {
                 "/dmls event powertool", Text.translatable("dmls.help.eventpowertool"));
         moduleHelpLine(client, EventSimultaneousCommandModule.class,
                 "/dmls event simultaneous [set <1-5> <command>|run]", Text.translatable("dmls.help.eventsimultaneous"));
+        moduleHelpLine(client, EventLightningModule.class,
+                "/dmls event lightning <ring|line|plus|cross|spiral> <size> [points]", Text.translatable("dmls.help.eventlightningring"));
         moduleHelpLine(client, WarManagerModule.class,
                 "/dmls war", Text.translatable("dmls.help.war_manager"));
 
@@ -712,6 +726,54 @@ public class DMLSClient implements ClientModInitializer {
         };
     }
 
+    /**
+     * Builds {@code <name> <size> [points]} for one lightning shape. Points fall back to
+     * {@code defaultPoints} when the staff member leaves them out.
+     */
+    private LiteralArgumentBuilder<FabricClientCommandSource> lightningShape(
+            String name, EventLightningModule.Shape shape, String sizeArgument, String defaultPoints) {
+        return ClientCommandManager.literal(name)
+                .then(ClientCommandManager.argument(sizeArgument, StringArgumentType.word())
+                        .executes(context -> runLightning(context.getSource().getClient(), shape,
+                                StringArgumentType.getString(context, sizeArgument), defaultPoints))
+                        .then(ClientCommandManager.argument("points", StringArgumentType.word())
+                                .executes(context -> runLightning(context.getSource().getClient(), shape,
+                                        StringArgumentType.getString(context, sizeArgument),
+                                        StringArgumentType.getString(context, "points")))));
+    }
+
+    private int runLightning(MinecraftClient client, EventLightningModule.Shape shape, String size, String points) {
+        EventLightningModule.RunResult result = module(EventLightningModule.class).run(client, shape, size, points);
+        return reportLightningResult(client, shape, result) ? 1 : 0;
+    }
+
+    private boolean reportLightningResult(MinecraftClient client, EventLightningModule.Shape shape,
+                                          EventLightningModule.RunResult result) {
+        return switch (result) {
+            case SENT -> {
+                ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.event_lightning_ring.sent");
+                yield true;
+            }
+            case SIMULATED -> true;
+            case INVALID_RADIUS -> {
+                ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.validation.event_lightning_ring.radius",
+                        EventLightningModule.MIN_RADIUS, EventLightningModule.MAX_RADIUS);
+                yield false;
+            }
+            case INVALID_LENGTH -> {
+                ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.validation.event_lightning_ring.length",
+                        EventLightningModule.MIN_LENGTH, EventLightningModule.MAX_LENGTH);
+                yield false;
+            }
+            case INVALID_POINTS -> {
+                ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.validation.event_lightning_ring.points",
+                        EventLightningModule.MIN_POINTS, shape.maxPoints());
+                yield false;
+            }
+            case RANK_BLOCKED, SERVER_BLOCKED -> false; // module already sent that message
+        };
+    }
+
     private boolean reportPlayNearEffectResult(MinecraftClient client, EventPlayNearEffectModule.RunResult result) {
         return switch (result) {
             case SENT -> {
@@ -760,6 +822,7 @@ public class DMLSClient implements ClientModInitializer {
                 new EventRandomTeleportModule(),
                 new EventSimultaneousCommandModule(),
                 new EventPlayNearEffectModule(),
+                new EventLightningModule(),
                 new GreeterModule(),
                 new GriefScanModule(),
                 new LocationsModule(),
