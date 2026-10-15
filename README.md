@@ -58,7 +58,7 @@ The supported command namespace is `/dmls`:
 
 ## Development
 
-Java 21 is required.
+Java 25 is required.
 
 ```text
 ./gradlew test --rerun-tasks
