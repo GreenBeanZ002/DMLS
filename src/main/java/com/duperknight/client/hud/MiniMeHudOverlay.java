@@ -5,20 +5,30 @@ import com.duperknight.client.modules.MiniMeHudPreferences;
 import com.duperknight.client.utils.DMLSConfig;
 import com.mojang.blaze3d.platform.NativeImage;
 import net.fabricmc.fabric.api.resource.v1.ResourceLoader;
+import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.texture.DynamicTexture;
+import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
+import org.joml.Vector3fc;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -56,6 +66,37 @@ public final class MiniMeHudOverlay {
     private static final long CRITICAL_HIT_PARTICLE_LIFETIME_NANOS = 450_000_000L;
     private static final Identifier CRITICAL_HIT_TEXTURE =
             Identifier.fromNamespaceAndPath("minecraft", "textures/particle/critical_hit.png");
+    private static final float SNOW_MIN_RAIN_LEVEL = 0.25F;
+    private static final long SNOW_AGGRO_CHECK_MIN_NANOS = 4_000_000_000L;
+    private static final long SNOW_AGGRO_CHECK_VARIATION_NANOS = 6_000_000_000L;
+    private static final float SNOW_FIGHT_CHANCE = 0.85F;
+    private static final float SNOW_JOIN_CHANCE = 0.65F;
+    private static final float CHAOS_SNOWBALL_CHANCE = 0.5F;
+    private static final int SNOW_SCAN_COLUMNS = 9;
+    private static final int SNOW_SCAN_ROWS = 5;
+    private static final double SNOW_SCAN_RANGE = 48.0D;
+    private static final long SNOW_SCAN_INTERVAL_NANOS = 500_000_000L;
+    private static final int SNOW_SCAN_ENTER_HITS = 4;
+    private static final int SNOW_SCAN_EXIT_HITS = 1;
+    private static final int SNOWBALL_MIN_THROWS_PER_MINI = 4;
+    private static final int SNOWBALL_MAX_THROWS_PER_MINI = 7;
+    private static final long SNOWBALL_THROW_INTERVAL_NANOS = 900_000_000L;
+    private static final long SNOWBALL_THROW_VARIATION_NANOS = 500_000_000L;
+    private static final long SNOWBALL_FIRST_THROW_DELAY_NANOS = 500_000_000L;
+    private static final long SNOWBALL_HOLD_WINDOW_NANOS = 450_000_000L;
+    private static final long SNOW_FIGHT_MAX_NANOS = 40_000_000_000L;
+    private static final float SNOWBALL_SPEED = 320.0F;
+    private static final long SNOWBALL_MIN_FLIGHT_NANOS = 250_000_000L;
+    private static final long SNOWBALL_MAX_FLIGHT_NANOS = 700_000_000L;
+    private static final long SNOWBALL_FIGHT_END_DELAY_NANOS = SNOWBALL_MAX_FLIGHT_NANOS + 350_000_000L;
+    private static final float SNOWBALL_ARC_FACTOR = 0.15F;
+    private static final float SNOWBALL_MIN_ARC_HEIGHT = 6.0F;
+    private static final float SNOWBALL_MAX_ARC_HEIGHT = 28.0F;
+    private static final int SNOWBALL_SIZE = 8;
+    private static final int SNOWBALL_OUTLINE_COLOR = 0xFFA9C4E4;
+    private static final int SNOWBALL_BODY_COLOR = 0xFFFFFFFF;
+    private static final int SNOW_BURST_PARTICLE_COUNT = 10;
+    private static final long SNOW_BURST_LIFETIME_NANOS = 400_000_000L;
     private static final long KNOCKBACK_NANOS = 240_000_000L;
     private static final float KNOCKBACK_DISTANCE_FACTOR = 0.26F;
     private static final long DEATH_ANIMATION_NANOS = 900_000_000L;
@@ -80,13 +121,20 @@ public final class MiniMeHudOverlay {
     private static final Map<MiniMeDefinition, WalkerState> STATES = new EnumMap<>(MiniMeDefinition.class);
     private static final List<SmokeParticle> SMOKE_PARTICLES = new ArrayList<>();
     private static final List<CriticalHitParticle> CRITICAL_HIT_PARTICLES = new ArrayList<>();
+    private static final List<Snowball> SNOWBALLS = new ArrayList<>();
+    private static final List<SnowBurstParticle> SNOW_BURST_PARTICLES = new ArrayList<>();
 
     private static int screenWidth = -1;
     private static int screenHeight = -1;
     private static ClientLevel activeWorld;
     private static Fight activeFight;
+    private static SnowFight activeSnowFight;
     private static long nextAggroCheckAtNanos;
     private static boolean chaosMode;
+    private static boolean snowing;
+    private static boolean snowballFightsEnabled;
+    private static boolean snowBlocksVisible;
+    private static long nextSnowScanAtNanos;
 
     static {
         for (MiniMeDefinition miniMe : MiniMeDefinition.values()) {
@@ -170,16 +218,32 @@ public final class MiniMeHudOverlay {
             updateKnockback(state, bounds, now);
         }
 
+        snowballFightsEnabled = preferences.snowballFights();
+        boolean snowingNow = false;
+        if (preferences.snowballFights() && enabledMiniMes.size() >= 2) {
+            snowingNow = isSnowingNearPlayer(client) || snowBlocksOnScreen(client, width, height, now);
+        } else {
+            snowBlocksVisible = false;
+        }
+        if (snowingNow != snowing) {
+            snowing = snowingNow;
+            scheduleNextAggroCheck(now);
+        }
+        if (!preferences.snowballFights()) endSnowFight(now);
+
         validateFight(enabledMiniMes, now);
+        validateSnowFight(enabledMiniMes, now);
         maybeStartFight(enabledMiniMes, now);
         updateFight(bounds, size, now);
+        updateSnowFight(size, now);
 
         for (MiniMeDefinition miniMe : enabledMiniMes) {
             WalkerState state = STATES.get(miniMe);
             if (state.respawnAtNanos > 0L
                     && now >= state.deathStartedAtNanos + DEATH_ANIMATION_NANOS) continue;
             boolean dying = state.deathStartedAtNanos > 0L;
-            if (!dying && (activeFight == null || !activeFight.contains(miniMe))) {
+            if (!dying && (activeFight == null || !activeFight.contains(miniMe))
+                    && (activeSnowFight == null || !activeSnowFight.contains(miniMe))) {
                 update(state, bounds, now);
             }
             keepInBounds(state, bounds);
@@ -187,6 +251,65 @@ public final class MiniMeHudOverlay {
         }
         renderSmoke(context, now);
         renderCriticalHitParticles(context, now);
+        renderSnowballs(context, bounds, size, now);
+        renderSnowBurstParticles(context, now);
+    }
+
+    /**
+     * Casts a grid of rays through the camera view and reports whether enough of them land on snow
+     * (snow layers, snow blocks, powder snow). Rescans twice a second; hysteresis stops it flickering.
+     */
+    private static boolean snowBlocksOnScreen(Minecraft client, int width, int height, long now) {
+        if (now < nextSnowScanAtNanos) return snowBlocksVisible;
+        nextSnowScanAtNanos = now + SNOW_SCAN_INTERVAL_NANOS;
+        ClientLevel level = client.level;
+        if (level == null || client.player == null) {
+            snowBlocksVisible = false;
+            return false;
+        }
+
+        Camera camera = client.gameRenderer.mainCamera();
+        Vec3 origin = camera.position();
+        Vector3fc forward = camera.forwardVector();
+        Vector3fc left = camera.leftVector();
+        Vector3fc up = camera.upVector();
+        double tanVertical = Math.tan(Math.toRadians(client.options.fov().get() / 2.0D));
+        double tanHorizontal = tanVertical * width / (double) Math.max(1, height);
+
+        int hits = 0;
+        for (int row = 0; row < SNOW_SCAN_ROWS; row++) {
+            double screenY = 1.0D - (row + 0.5D) / SNOW_SCAN_ROWS * 2.0D;
+            for (int column = 0; column < SNOW_SCAN_COLUMNS; column++) {
+                double screenX = (column + 0.5D) / SNOW_SCAN_COLUMNS * 2.0D - 1.0D;
+                double rayX = forward.x() - left.x() * screenX * tanHorizontal + up.x() * screenY * tanVertical;
+                double rayY = forward.y() - left.y() * screenX * tanHorizontal + up.y() * screenY * tanVertical;
+                double rayZ = forward.z() - left.z() * screenX * tanHorizontal + up.z() * screenY * tanVertical;
+                double length = Math.sqrt(rayX * rayX + rayY * rayY + rayZ * rayZ);
+                if (length < 1.0E-6D) continue;
+                Vec3 end = origin.add(rayX / length * SNOW_SCAN_RANGE,
+                        rayY / length * SNOW_SCAN_RANGE, rayZ / length * SNOW_SCAN_RANGE);
+                BlockHitResult hit = level.clip(new ClipContext(origin, end,
+                        ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, client.player));
+                if (hit.getType() == HitResult.Type.BLOCK
+                        && level.getBlockState(hit.getBlockPos()).is(BlockTags.SNOW)) {
+                    hits++;
+                }
+            }
+        }
+        if (hits >= SNOW_SCAN_ENTER_HITS) snowBlocksVisible = true;
+        else if (hits <= SNOW_SCAN_EXIT_HITS) snowBlocksVisible = false;
+        return snowBlocksVisible;
+    }
+
+    /** True while snow is actually falling around the player (snowy biome, open sky, enough precipitation). */
+    private static boolean isSnowingNearPlayer(Minecraft client) {
+        ClientLevel level = client.level;
+        if (level == null || client.player == null) return false;
+        if (level.getRainLevel(1.0F) < SNOW_MIN_RAIN_LEVEL) return false;
+        BlockPos position = client.player.blockPosition();
+        if (!level.canSeeSky(position)) return false;
+        return level.getBiome(position).value().getPrecipitationAt(position, level.getSeaLevel())
+                == Biome.Precipitation.SNOW;
     }
 
     private static void spawn(WalkerState state, Bounds bounds, long now) {
@@ -266,13 +389,18 @@ public final class MiniMeHudOverlay {
     }
 
     private static void maybeStartFight(List<MiniMeDefinition> enabledMiniMes, long now) {
-        if (activeFight != null || now < nextAggroCheckAtNanos) return;
+        if (activeFight != null || activeSnowFight != null || now < nextAggroCheckAtNanos) return;
         scheduleNextAggroCheck(now);
         List<MiniMeDefinition> candidates = enabledMiniMes.stream()
                 .filter(miniMe -> STATES.get(miniMe).respawnAtNanos == 0L)
                 .toList();
-        float aggroChance = chaosMode ? CHAOS_AGGRO_CHANCE : NORMAL_AGGRO_CHANCE;
+        float aggroChance = chaosMode ? CHAOS_AGGRO_CHANCE : snowing ? SNOW_FIGHT_CHANCE : NORMAL_AGGRO_CHANCE;
         if (candidates.size() < 2 || RANDOM.nextFloat() >= aggroChance) return;
+        // Real snow always means a snowball fight; Chaos Mode also throws them (about half the fights) without snow.
+        if (snowballFightsEnabled && (snowing || (chaosMode && RANDOM.nextFloat() < CHAOS_SNOWBALL_CHANCE))) {
+            startSnowFight(candidates, now);
+            return;
+        }
 
         int firstIndex = RANDOM.nextInt(candidates.size());
         int secondIndex = RANDOM.nextInt(candidates.size() - 1);
@@ -363,6 +491,174 @@ public final class MiniMeHudOverlay {
 
         fight.nextAttacker = victimDefinition;
         fight.nextHitAtNanos = now + HIT_INTERVAL_NANOS;
+    }
+
+    /**
+     * Each available AdMini randomly decides whether to join the snowball fight (at least two always do);
+     * the ones that sit out keep wandering. Joiners throw from wherever they are standing.
+     */
+    private static void startSnowFight(List<MiniMeDefinition> candidates, long now) {
+        List<MiniMeDefinition> joiners = new ArrayList<>();
+        List<MiniMeDefinition> sittingOut = new ArrayList<>();
+        for (MiniMeDefinition miniMe : candidates) {
+            (RANDOM.nextFloat() < SNOW_JOIN_CHANCE ? joiners : sittingOut).add(miniMe);
+        }
+        while (joiners.size() < 2 && !sittingOut.isEmpty()) {
+            joiners.add(sittingOut.remove(RANDOM.nextInt(sittingOut.size())));
+        }
+
+        List<SnowParticipant> participants = new ArrayList<>();
+        for (MiniMeDefinition miniMe : joiners) {
+            WalkerState state = STATES.get(miniMe);
+            state.walking = false;
+            SnowParticipant participant = new SnowParticipant(miniMe);
+            participant.nextThrowAtNanos = now + SNOWBALL_FIRST_THROW_DELAY_NANOS
+                    + nextLong(SNOWBALL_THROW_VARIATION_NANOS + 1L);
+            participants.add(participant);
+        }
+        int throwsPerMini = SNOWBALL_MIN_THROWS_PER_MINI
+                + RANDOM.nextInt(SNOWBALL_MAX_THROWS_PER_MINI - SNOWBALL_MIN_THROWS_PER_MINI + 1);
+        activeSnowFight = new SnowFight(participants, throwsPerMini * joiners.size(),
+                now + SNOW_FIGHT_MAX_NANOS);
+    }
+
+    private static void validateSnowFight(List<MiniMeDefinition> enabledMiniMes, long now) {
+        SnowFight fight = activeSnowFight;
+        if (fight == null) return;
+        fight.participants.removeIf(participant -> !enabledMiniMes.contains(participant.miniMe)
+                || STATES.get(participant.miniMe).respawnAtNanos > 0L);
+        if (fight.participants.size() < 2) endSnowFight(now);
+    }
+
+    private static void updateSnowFight(int size, long now) {
+        SnowFight fight = activeSnowFight;
+        if (fight == null) return;
+        if ((fight.finishAtNanos > 0L && now >= fight.finishAtNanos) || now >= fight.deadlineAtNanos) {
+            endSnowFight(now);
+            return;
+        }
+
+        for (SnowParticipant participant : fight.participants) {
+            WalkerState state = STATES.get(participant.miniMe);
+            state.walking = false;
+            if (state.knockbackEndsAtNanos > now) continue;
+
+            if (participant.target != null && !fight.contains(participant.target)) participant.target = null;
+            if (participant.target == null
+                    && now >= participant.nextThrowAtNanos - SNOWBALL_HOLD_WINDOW_NANOS) {
+                participant.target = pickSnowTarget(fight, participant);
+            }
+            if (participant.target != null) {
+                state.facingRight = STATES.get(participant.target).x >= state.x;
+            }
+            if (fight.throwsRemaining > 0 && participant.target != null
+                    && now >= participant.nextThrowAtNanos) {
+                throwSnowball(fight, participant, size, now);
+            }
+        }
+    }
+
+    private static MiniMeDefinition pickSnowTarget(SnowFight fight, SnowParticipant thrower) {
+        List<MiniMeDefinition> options = new ArrayList<>();
+        for (SnowParticipant participant : fight.participants) {
+            if (participant != thrower) options.add(participant.miniMe);
+        }
+        return options.isEmpty() ? null : options.get(RANDOM.nextInt(options.size()));
+    }
+
+    private static void throwSnowball(SnowFight fight, SnowParticipant participant, int size, long now) {
+        WalkerState thrower = STATES.get(participant.miniMe);
+        thrower.attackStartedAtNanos = now;
+        WalkerState targetState = STATES.get(participant.target);
+        float handX = thrower.x + size * (thrower.facingRight ? 0.8F : 0.2F);
+        float handY = thrower.y + size * 0.45F;
+        float distance = (float) Math.hypot(targetState.x + size * 0.5F - handX,
+                targetState.y + size * 0.45F - handY);
+        long flightNanos = Math.clamp((long) (distance / SNOWBALL_SPEED * 1_000_000_000.0F),
+                SNOWBALL_MIN_FLIGHT_NANOS, SNOWBALL_MAX_FLIGHT_NANOS);
+        float arcHeight = Math.clamp(distance * SNOWBALL_ARC_FACTOR,
+                SNOWBALL_MIN_ARC_HEIGHT, SNOWBALL_MAX_ARC_HEIGHT);
+        SNOWBALLS.add(new Snowball(participant.miniMe, participant.target,
+                handX, handY, now, flightNanos, arcHeight));
+        fight.throwsRemaining--;
+        if (fight.throwsRemaining <= 0) fight.finishAtNanos = now + SNOWBALL_FIGHT_END_DELAY_NANOS;
+        participant.target = null;
+        participant.nextThrowAtNanos = now + SNOWBALL_THROW_INTERVAL_NANOS
+                + nextLong(SNOWBALL_THROW_VARIATION_NANOS + 1L);
+    }
+
+    private static void endSnowFight(long now) {
+        SnowFight fight = activeSnowFight;
+        if (fight == null) return;
+        for (SnowParticipant participant : fight.participants) {
+            WalkerState state = STATES.get(participant.miniMe);
+            if (state.respawnAtNanos == 0L) {
+                state.walking = false;
+                state.nextTargetAtNanos = now + MIN_ARRIVAL_PAUSE_NANOS;
+            }
+        }
+        activeSnowFight = null;
+        scheduleNextAggroCheck(now);
+    }
+
+    /** Flies each snowball in an arc towards its target; a landing snowball bursts and nudges the target. */
+    private static void renderSnowballs(GuiGraphicsExtractor context, Bounds bounds, int size, long now) {
+        for (Iterator<Snowball> iterator = SNOWBALLS.iterator(); iterator.hasNext(); ) {
+            Snowball snowball = iterator.next();
+            WalkerState target = STATES.get(snowball.target);
+            float progress = Math.clamp((now - snowball.spawnedAtNanos)
+                    / (float) snowball.flightNanos, 0.0F, 1.0F);
+            float endX = target.x + size * 0.5F;
+            float endY = target.y + size * 0.45F;
+            if (progress >= 1.0F) {
+                iterator.remove();
+                if (target.initialized && target.respawnAtNanos == 0L) {
+                    spawnSnowBurst(endX, endY, now);
+                    applyKnockback(STATES.get(snowball.thrower), target, bounds, size, now);
+                }
+                continue;
+            }
+            float x = snowball.startX + (endX - snowball.startX) * progress;
+            float y = snowball.startY + (endY - snowball.startY) * progress
+                    - (float) Math.sin(Math.PI * progress) * snowball.arcHeight;
+            drawSnowball(context, Math.round(x) - SNOWBALL_SIZE / 2, Math.round(y) - SNOWBALL_SIZE / 2);
+        }
+    }
+
+    private static void drawSnowball(GuiGraphicsExtractor context, int x, int y) {
+        context.fill(x + 2, y, x + 6, y + 1, SNOWBALL_OUTLINE_COLOR);
+        context.fill(x + 1, y + 1, x + 7, y + 2, SNOWBALL_OUTLINE_COLOR);
+        context.fill(x, y + 2, x + 8, y + 6, SNOWBALL_OUTLINE_COLOR);
+        context.fill(x + 1, y + 6, x + 7, y + 7, SNOWBALL_OUTLINE_COLOR);
+        context.fill(x + 2, y + 7, x + 6, y + 8, SNOWBALL_OUTLINE_COLOR);
+        context.fill(x + 2, y + 1, x + 6, y + 2, SNOWBALL_BODY_COLOR);
+        context.fill(x + 1, y + 2, x + 7, y + 5, SNOWBALL_BODY_COLOR);
+        context.fill(x + 2, y + 5, x + 6, y + 6, SNOWBALL_BODY_COLOR);
+    }
+
+    private static void spawnSnowBurst(float x, float y, long now) {
+        for (int index = 0; index < SNOW_BURST_PARTICLE_COUNT; index++) {
+            float angle = RANDOM.nextFloat() * (float) (Math.PI * 2.0);
+            float speed = 14.0F + RANDOM.nextFloat() * 16.0F;
+            SNOW_BURST_PARTICLES.add(new SnowBurstParticle(x, y,
+                    (float) Math.cos(angle) * speed, (float) Math.sin(angle) * speed - 8.0F,
+                    2 + RANDOM.nextInt(2), now));
+        }
+    }
+
+    private static void renderSnowBurstParticles(GuiGraphicsExtractor context, long now) {
+        SNOW_BURST_PARTICLES.removeIf(particle ->
+                now - particle.spawnedAtNanos >= SNOW_BURST_LIFETIME_NANOS);
+        for (SnowBurstParticle particle : SNOW_BURST_PARTICLES) {
+            float ageSeconds = (now - particle.spawnedAtNanos) / 1_000_000_000.0F;
+            float progress = Math.clamp((now - particle.spawnedAtNanos)
+                    / (float) SNOW_BURST_LIFETIME_NANOS, 0.0F, 1.0F);
+            int x = Math.round(particle.x + particle.velocityX * ageSeconds);
+            int y = Math.round(particle.y + particle.velocityY * ageSeconds
+                    + 40.0F * ageSeconds * ageSeconds);
+            int particleSize = Math.max(1, Math.round(particle.size * (1.0F - progress * 0.6F)));
+            context.fill(x, y, x + particleSize, y + particleSize, SNOWBALL_BODY_COLOR);
+        }
     }
 
     private static void beginCombatWalk(WalkerState state, long animationStartNanos) {
@@ -501,9 +797,11 @@ public final class MiniMeHudOverlay {
     }
 
     private static void scheduleNextAggroCheck(long now) {
-        long minimum = chaosMode ? CHAOS_AGGRO_CHECK_MIN_NANOS : NORMAL_AGGRO_CHECK_MIN_NANOS;
-        long variation = chaosMode
-                ? CHAOS_AGGRO_CHECK_VARIATION_NANOS : NORMAL_AGGRO_CHECK_VARIATION_NANOS;
+        boolean snowFights = snowing && !chaosMode;
+        long minimum = chaosMode ? CHAOS_AGGRO_CHECK_MIN_NANOS
+                : snowFights ? SNOW_AGGRO_CHECK_MIN_NANOS : NORMAL_AGGRO_CHECK_MIN_NANOS;
+        long variation = chaosMode ? CHAOS_AGGRO_CHECK_VARIATION_NANOS
+                : snowFights ? SNOW_AGGRO_CHECK_VARIATION_NANOS : NORMAL_AGGRO_CHECK_VARIATION_NANOS;
         nextAggroCheckAtNanos = now + minimum + nextLong(variation + 1L);
     }
 
@@ -564,11 +862,19 @@ public final class MiniMeHudOverlay {
                     u1, u2, 0.0F, 1.0F);
         }
         context.pose().popMatrix();
+        SnowFight snowFight = activeSnowFight;
+        if (!dying && snowFight != null && snowFight.isHolding(miniMe, now)) {
+            float handX = state.facingRight ? left + frameWidth * 0.8F
+                    : left + frameWidth * 0.2F - SNOWBALL_SIZE;
+            drawSnowball(context, Math.round(handX), Math.round(top + frameHeight * 0.45F));
+        }
     }
 
     private static void reanchorForResize(int previousWidth, int previousHeight,
                                           int width, int height, long now) {
         endFightWithoutWinner(now);
+        endSnowFight(now);
+        SNOWBALLS.clear();
         Bounds previousBounds = bounds(previousWidth, previousHeight, miniMeSize(previousWidth, previousHeight));
         Bounds bounds = bounds(width, height, miniMeSize(width, height));
         for (WalkerState state : STATES.values()) {
@@ -653,8 +959,11 @@ public final class MiniMeHudOverlay {
             state.resetTransientState();
         }
         activeFight = null;
+        activeSnowFight = null;
         SMOKE_PARTICLES.clear();
         CRITICAL_HIT_PARTICLES.clear();
+        SNOWBALLS.clear();
+        SNOW_BURST_PARTICLES.clear();
         scheduleNextAggroCheck(System.nanoTime());
     }
 
@@ -663,7 +972,10 @@ public final class MiniMeHudOverlay {
         SIAFFY("siaffy"),
         BEANY("beany"),
         MORVY("morvy"),
-        BIGGY("biggy");
+        BIGGY("biggy"),
+        SERPY("serpy"),
+        DOGGY("doggy"),
+        CONFY("confy");
 
         private final Identifier[] walkingTextures;
         private final MiniMeFrame[] resolvedWalkingFrames;
@@ -727,6 +1039,9 @@ public final class MiniMeHudOverlay {
                 case BEANY -> preferences.beanyHud();
                 case MORVY -> preferences.morvyHud();
                 case BIGGY -> preferences.biggyHud();
+                case SERPY -> preferences.serpyHud();
+                case DOGGY -> preferences.doggyHud();
+                case CONFY -> preferences.confyHud();
             };
         }
 
@@ -841,6 +1156,47 @@ public final class MiniMeHudOverlay {
         }
     }
 
+    private static final class SnowFight {
+        private final List<SnowParticipant> participants;
+        private final long deadlineAtNanos;
+        private int throwsRemaining;
+        private long finishAtNanos;
+
+        private SnowFight(List<SnowParticipant> participants, int throwsRemaining, long deadlineAtNanos) {
+            this.participants = participants;
+            this.throwsRemaining = throwsRemaining;
+            this.deadlineAtNanos = deadlineAtNanos;
+        }
+
+        private boolean contains(MiniMeDefinition miniMe) {
+            for (SnowParticipant participant : participants) {
+                if (participant.miniMe == miniMe) return true;
+            }
+            return false;
+        }
+
+        /** A participant shows its snowball for the last moments before each throw. */
+        private boolean isHolding(MiniMeDefinition miniMe, long now) {
+            if (throwsRemaining <= 0) return false;
+            for (SnowParticipant participant : participants) {
+                if (participant.miniMe == miniMe) {
+                    return now >= participant.nextThrowAtNanos - SNOWBALL_HOLD_WINDOW_NANOS;
+                }
+            }
+            return false;
+        }
+    }
+
+    private static final class SnowParticipant {
+        private final MiniMeDefinition miniMe;
+        private long nextThrowAtNanos;
+        private MiniMeDefinition target;
+
+        private SnowParticipant(MiniMeDefinition miniMe) {
+            this.miniMe = miniMe;
+        }
+    }
+
     private record Bounds(float minX, float minY, float maxX, float maxY) {
     }
 
@@ -853,5 +1209,14 @@ public final class MiniMeHudOverlay {
 
     private record CriticalHitParticle(float x, float y, float velocityX, float velocityY,
                                        int size, long spawnedAtNanos) {
+    }
+
+    private record Snowball(MiniMeDefinition thrower, MiniMeDefinition target,
+                            float startX, float startY, long spawnedAtNanos,
+                            long flightNanos, float arcHeight) {
+    }
+
+    private record SnowBurstParticle(float x, float y, float velocityX, float velocityY,
+                                     int size, long spawnedAtNanos) {
     }
 }

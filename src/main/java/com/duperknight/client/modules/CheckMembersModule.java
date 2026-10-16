@@ -132,7 +132,7 @@ public final class CheckMembersModule extends DMLSModule {
             if (!handle.descriptor().dryRunCaptured()) {
                 ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.check_members.checking", land);
             }
-            activeQuery = new MenuCommandQuery("la info " + land, land, MENU_TIMEOUT_TICKS, PLAYER_LIST_SLOT);
+            activeQuery = new MenuCommandQuery("lands info land " + land, land, MENU_TIMEOUT_TICKS, PLAYER_LIST_SLOT);
             initialDispatch = activeQuery.start(client, handle::dispatchCommand);
             if (initialDispatch == CommandDispatch.BLOCKED) {
                 handle.cancel(client, OperationCancelReason.DISPATCH_BLOCKED);
@@ -150,7 +150,7 @@ public final class CheckMembersModule extends DMLSModule {
                 case WAITING -> { return; }
                 case TIMED_OUT -> {
                     ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.menu_query.timeout",
-                            "/la info " + land);
+                            "/lands info land " + land);
                     finish(client);
                     return;
                 }
@@ -159,7 +159,7 @@ public final class CheckMembersModule extends DMLSModule {
                     return;
                 }
                 case SIMULATED -> {
-                    ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.menu_query.simulated", "/la info " + land);
+                    ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.menu_query.simulated", "/lands info land " + land);
                     finish(client);
                     return;
                 }
@@ -171,7 +171,7 @@ public final class CheckMembersModule extends DMLSModule {
             Scan scan = tickResult.result().flatMap(result -> result.tooltip(PLAYER_LIST_SLOT))
                     .map(MembersMenuParser::parse).orElseGet(() -> MembersMenuParser.parse(List.of()));
             if (scan.status() == MembersMenuParser.ParseStatus.MALFORMED) {
-                ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.menu_query.malformed", "/la info " + land);
+                ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.menu_query.malformed", "/lands info land " + land);
                 finish(client);
                 return;
             }

@@ -805,13 +805,13 @@ public final class WarManagerModule extends DMLSModule {
                     case TRANSFER_CAPITAL -> {
                         Claim claim = war.claim(side);
                         again = sendAdvance(client,
-                                "n setcapital " + claim.transferredCapital + " confirm", Phase.RETRY_LEAVE);
+                                "nations member setcapital " + claim.transferredCapital + " confirm", Phase.RETRY_LEAVE);
                     }
                     case RETRY_LEAVE -> sendLeave(client);
                     case DELETE_NATION -> {
                         Claim claim = war.claim(side);
                         claim.membership = Membership.DELETED;
-                        again = sendAdvance(client, "n delete confirm",
+                        again = sendAdvance(client, "nations delete confirm",
                                 side == Side.ATTACKER ? Phase.EDIT_DEFENDER : Phase.START_WAR);
                     }
                     case START_WAR -> startWar(client);
@@ -849,8 +849,8 @@ public final class WarManagerModule extends DMLSModule {
 
         private void sendLeave(Minecraft client) {
             if (!handle.canDispatchAutomatedCommand()) return;
-            if (!dispatch(client, "n leave confirm")) {
-                pause(war, handle, client, "Could not send /n leave confirm.");
+            if (!dispatch(client, "lands nation leave confirm")) {
+                pause(war, handle, client, "Could not send /lands nation leave confirm.");
                 return;
             }
             awaitingLeave = true;
@@ -1170,7 +1170,7 @@ public final class WarManagerModule extends DMLSModule {
                 return;
             }
             if (claim.membership == Membership.DELETED && !nationAlreadyRecreated(claim.originalNation)) {
-                commands = List.of("la edit " + claim.name, "n create");
+                commands = List.of("nations create " + claim.name);
                 commandIndex = 0;
                 creatingNation = true;
                 driveCreateCommands(client);
@@ -1193,8 +1193,8 @@ public final class WarManagerModule extends DMLSModule {
 
         private void prepareJoinCommands(String capital) {
             Claim claim = war.claim(side);
-            commands = List.of("la edit " + capital, "n trust " + claim.name,
-                    "la edit " + claim.name, "n accept");
+            commands = List.of("lands edit " + capital, "nations trust " + claim.name,
+                    "lands edit " + claim.name, "lands nation accept " + claim.originalNation);
             commandIndex = 0;
         }
 
@@ -1219,7 +1219,7 @@ public final class WarManagerModule extends DMLSModule {
                     pause(war, handle, client, "Nation recreation command dispatch was blocked.");
                     return;
                 }
-                if (command.equals("n create")) {
+                if (command.startsWith("nations create")) {
                     awaitingDialog = true;
                     waitTicks = 0;
                     return;

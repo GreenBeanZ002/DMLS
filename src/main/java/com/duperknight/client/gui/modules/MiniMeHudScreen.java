@@ -25,14 +25,18 @@ public final class MiniMeHudScreen extends DMLSMenuScreen {
 
     @Override
     protected void init() {
-        configureScrollableContent(module, scaled(190));
+        configureScrollableContent(module, scaled(285));
         MiniMeHudPreferences preferences = DMLSConfig.miniMeHudPreferences();
         addToggle(0, "dmls.module.mini_me_hud.dupey", preferences.dupeyHud(), MiniMeHudPreferences::withDupeyHud);
         addToggle(30, "dmls.module.mini_me_hud.siaffy", preferences.siaffyHud(), MiniMeHudPreferences::withSiaffyHud);
         addToggle(60, "dmls.module.mini_me_hud.beany", preferences.beanyHud(), MiniMeHudPreferences::withBeanyHud);
         addToggle(90, "dmls.module.mini_me_hud.morvy", preferences.morvyHud(), MiniMeHudPreferences::withMorvyHud);
         addToggle(120, "dmls.module.mini_me_hud.biggy", preferences.biggyHud(), MiniMeHudPreferences::withBiggyHud);
-        addToggle(160, "dmls.module.mini_me_hud.chaos_mode", preferences.chaosMode(), MiniMeHudPreferences::withChaosMode);
+        addToggle(150, "dmls.module.mini_me_hud.serpy", preferences.serpyHud(), MiniMeHudPreferences::withSerpyHud);
+        addToggle(180, "dmls.module.mini_me_hud.doggy", preferences.doggyHud(), MiniMeHudPreferences::withDoggyHud);
+        addToggle(210, "dmls.module.mini_me_hud.confy", preferences.confyHud(), MiniMeHudPreferences::withConfyHud);
+        addToggle(240, "dmls.module.mini_me_hud.chaos_mode", preferences.chaosMode(), MiniMeHudPreferences::withChaosMode);
+        addToggle(270, "dmls.module.mini_me_hud.snowball_fights", preferences.snowballFights(), MiniMeHudPreferences::withSnowballFights);
         addRenderableWidget(Button.builder(CommonComponents.GUI_BACK, button -> onClose())
                 .bounds(width / 2 - scaled(75), footerButtonY(), scaled(150), STANDARD_BUTTON_HEIGHT).build());
     }
@@ -64,6 +68,10 @@ public final class MiniMeHudScreen extends DMLSMenuScreen {
             case "dmls.module.mini_me_hud.beany" -> preferences.beanyHud();
             case "dmls.module.mini_me_hud.morvy" -> preferences.morvyHud();
             case "dmls.module.mini_me_hud.biggy" -> preferences.biggyHud();
+            case "dmls.module.mini_me_hud.serpy" -> preferences.serpyHud();
+            case "dmls.module.mini_me_hud.doggy" -> preferences.doggyHud();
+            case "dmls.module.mini_me_hud.confy" -> preferences.confyHud();
+            case "dmls.module.mini_me_hud.snowball_fights" -> preferences.snowballFights();
             default -> preferences.chaosMode();
         };
     }
@@ -73,7 +81,7 @@ public final class MiniMeHudScreen extends DMLSMenuScreen {
         renderMenuBackground(context);
         renderModuleHeader(context, module);
         beginContentScissor(context);
-        int statusY = contentY(scaled(185));
+        int statusY = contentY(scaled(275));
         if (!saveStatus.getString().isEmpty() && isContentVisible(statusY, font.lineHeight)) {
             context.centeredText(font, saveStatus, width / 2, statusY, 0xFFFF5555);
         }

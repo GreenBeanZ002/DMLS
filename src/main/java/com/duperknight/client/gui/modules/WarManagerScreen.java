@@ -258,9 +258,9 @@ public final class WarManagerScreen extends DMLSMenuScreen {
                 CLOCK.format(Instant.ofEpochMilli(projectedStart)),
                 CLOCK.format(Instant.ofEpochMilli(projectedEnd))));
         preview.add(Component.translatable("dmls.review.war.home", home.coordinates()));
-        preview.add(Component.literal("/la admin land " + draft.attacker() + " setflag peaceful false false"));
-        preview.add(Component.literal("/la admin land " + draft.defender() + " setflag peaceful false false"));
-        preview.add(Component.literal("/la edit … → /n leave confirm (both claims)"));
+        preview.add(Component.literal("/lands admin land " + draft.attacker() + " setflag peaceful false false"));
+        preview.add(Component.literal("/lands admin land " + draft.defender() + " setflag peaceful false false"));
+        preview.add(Component.literal("/la edit … → /lands nation leave confirm (both claims)"));
         preview.add(Component.literal("/war admin start " + draft.attacker() + " " + draft.defender()
                 + " 0 " + CompactDurationFormatter.formatMinutes(draft.countdownMinutes())));
         preview.add(Component.literal("At war start: /gamerule, /broadcastraw, /tp, /mm spawn, /back"));
@@ -292,7 +292,7 @@ public final class WarManagerScreen extends DMLSMenuScreen {
         WarView war = result.war();
         List<Component> preview = new ArrayList<>();
         preview.add(Component.translatable("dmls.review.war.cancel_claims", war.attacker(), war.defender()));
-        preview.add(Component.literal("/war admin end " + war.attacker()));
+        preview.add(Component.literal("/lands admin war end " + war.attacker()));
         preview.add(Component.translatable("dmls.review.war.cancel_timer"));
         preview.add(Component.translatable("dmls.review.war.cancel_purge"));
         preview.add(Component.translatable("dmls.review.war.cancel_restore"));
@@ -428,7 +428,7 @@ public final class WarManagerScreen extends DMLSMenuScreen {
             setClaimSuggestions(attacker, request, List.of());
             return;
         }
-        String command = "la info " + input;
+        String command = "lands info land " + input;
         ClientSuggestionProvider source = minecraft.getConnection().getSuggestionsProvider();
         ParseResults<ClientSuggestionProvider> parse =
                 minecraft.getConnection().getCommands().parse(command, source);

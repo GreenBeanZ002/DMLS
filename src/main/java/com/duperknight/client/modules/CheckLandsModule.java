@@ -190,7 +190,7 @@ public final class CheckLandsModule extends DMLSModule {
             this.handle = handle;
             if (handle.descriptor().dryRunCaptured()) {
                 String firstPlayer = players.getFirst();
-                initialDispatch = handle.dispatchCommand(client, "la player " + firstPlayer);
+                initialDispatch = handle.dispatchCommand(client, "lands info player " + firstPlayer);
                 if (initialDispatch == CommandDispatch.BLOCKED) {
                     handle.cancel(client, OperationCancelReason.DISPATCH_BLOCKED);
                     return;
@@ -246,7 +246,7 @@ public final class CheckLandsModule extends DMLSModule {
             }
             resetPlayerState();
             ChatUtils.sendTranslatedMessage(client, PREFIX, "dmls.chat.check_lands.checking", ign);
-            activeQuery = new MenuCommandQuery("la player " + ign, "Player " + ign,
+            activeQuery = new MenuCommandQuery("lands info player " + ign, "Player " + ign,
                     MENU_TIMEOUT_TICKS, LAND_LIST_SLOT);
             stage = Stage.WAITING_TO_SEND_LANDS;
             trySendLandListCommand(client);
@@ -278,13 +278,13 @@ public final class CheckLandsModule extends DMLSModule {
 
         private void waitForLands(Minecraft client) {
             MenuCommandQuery.TickResult tick = activeQuery.tick(client);
-            if (!handleTerminalQueryStatus(client, tick, "/la player " + ign)) return;
+            if (!handleTerminalQueryStatus(client, tick, "/lands info player " + ign)) return;
             if (tick.status() != MenuCommandQuery.Status.READY) return;
 
             LandList parsed = tick.result().flatMap(result -> result.tooltip(LAND_LIST_SLOT))
                     .map(LandsMenuParser::parseLands).orElseGet(() -> LandsMenuParser.parseLands(List.of()));
             if (parsed.status() == LandsMenuParser.ParseStatus.MALFORMED) {
-                malformed(client, "/la player " + ign);
+                malformed(client, "/lands info player " + ign);
                 return;
             }
             if (parsed.lands().isEmpty()) {
@@ -307,7 +307,7 @@ public final class CheckLandsModule extends DMLSModule {
                 finishPlayer(client);
                 return;
             }
-            activeQuery = new MenuCommandQuery("la info " + currentClaim, currentClaim,
+            activeQuery = new MenuCommandQuery("lands info land " + currentClaim, currentClaim,
                     MENU_TIMEOUT_TICKS, PLAYER_LIST_SLOT);
             CommandDispatch dispatch = activeQuery.start(client, handle::dispatchCommand);
             if (dispatch == CommandDispatch.BLOCKED) {
@@ -319,14 +319,14 @@ public final class CheckLandsModule extends DMLSModule {
 
         private void waitForInfo(Minecraft client) {
             MenuCommandQuery.TickResult tick = activeQuery.tick(client);
-            if (!handleTerminalQueryStatus(client, tick, "/la info " + currentClaim)) return;
+            if (!handleTerminalQueryStatus(client, tick, "/lands info land " + currentClaim)) return;
             if (tick.status() != MenuCommandQuery.Status.READY) return;
 
             RankScan scan = tick.result().flatMap(result -> result.tooltip(PLAYER_LIST_SLOT))
                     .map(tooltip -> LandsMenuParser.parsePlayerRank(tooltip, ign))
                     .orElseGet(() -> LandsMenuParser.parsePlayerRank(List.of(), ign));
             if (scan.status() == LandsMenuParser.ParseStatus.MALFORMED) {
-                malformed(client, "/la info " + currentClaim);
+                malformed(client, "/lands info land " + currentClaim);
                 return;
             }
             RankAssignment rank = scan.assignment();
@@ -438,7 +438,7 @@ public final class CheckLandsModule extends DMLSModule {
 
         private MutableComponent clickableClaim(String claim) {
             return Component.literal("§6" + claim).withStyle(style -> style
-                    .withClickEvent(new ClickEvent.RunCommand("/la info " + claim))
+                    .withClickEvent(new ClickEvent.RunCommand("/lands info land " + claim))
                     .withHoverEvent(new HoverEvent.ShowText(
                             Component.translatable("dmls.chat.check_lands.hover_info", claim))));
         }

@@ -55,7 +55,11 @@ public final class DMLSConfig {
     private static final String MINI_ME_BEANY_HUD_KEY = "miniMe.beanyHud";
     private static final String MINI_ME_MORVY_HUD_KEY = "miniMe.morvyHud";
     private static final String MINI_ME_BIGGY_HUD_KEY = "miniMe.biggyHud";
+    private static final String MINI_ME_SERPY_HUD_KEY = "miniMe.serpyHUD";
+    private static final String MINI_ME_DOGGY_HUD_KEY = "miniMe.doggyHud";
+    private static final String MINI_ME_CONFY_HUD_KEY = "miniMe.confyHud";
     private static final String MINI_ME_CHAOS_MODE_KEY = "miniMe.chaosMode";
+    private static final String MINI_ME_SNOWBALL_FIGHTS_KEY = "miniMe.snowballFights";
     private static final StaffRank DEFAULT_RANK = StaffRank.NONE;
 
     private static boolean loaded;
@@ -76,6 +80,7 @@ public final class DMLSConfig {
     private static ModerationPreferences moderationPreferences = ModerationPreferences.defaults();
     private static final Map<String, Boolean> moderationRuleOverrides = new HashMap<>();
     private static MiniMeHudPreferences miniMeHudPreferences = MiniMeHudPreferences.defaults();
+
     // Deliberately not persisted: the game always starts live, so a forgotten
     // dry run can never suppress real commands in a later session.
     private static boolean dryRun;
@@ -368,7 +373,8 @@ public final class DMLSConfig {
 
         return switch (normalized) {
             case "MOD" -> Optional.of(StaffRank.MODERATOR);
-            case "SRMOD", "SR_MOD", "SENIORMOD", "SENIOR_MOD" -> Optional.of(StaffRank.SENIOR_MODERATOR);
+            case "SRMOD", "SR_MOD", "SENIORMOD", "SENIOR_MOD" ->
+                    Optional.of(StaffRank.SENIOR_MODERATOR);
             default -> Optional.empty();
         };
     }
@@ -395,12 +401,14 @@ public final class DMLSConfig {
         staffRank = parseRank(properties.getProperty(RANK_KEY, "")).orElse(DEFAULT_RANK);
         persistedStaffRank = staffRank;
         storedStaffRankPresent = properties.containsKey(RANK_KEY) && staffRank.isStaff();
+
         departmentRanks.put(StaffDepartment.BANS, parseDepartmentRank(
                 properties.getProperty(BANS_RANK_KEY, ""), StaffDepartment.BANS));
         departmentRanks.put(StaffDepartment.EVENTS, parseDepartmentRank(
                 properties.getProperty(EVENTS_RANK_KEY, ""), StaffDepartment.EVENTS));
         departmentRanks.put(StaffDepartment.WAR, parseDepartmentRank(
                 properties.getProperty(WAR_RANK_KEY, ""), StaffDepartment.WAR));
+
         alertsEnabled = Boolean.parseBoolean(properties.getProperty(ALERTS_KEY, "true"));
         tradeChatMuted = Boolean.parseBoolean(properties.getProperty(TRADE_CHAT_MUTED_KEY, "false"));
         serverMessagesMuted = Boolean.parseBoolean(properties.getProperty(SERVER_MESSAGES_MUTED_KEY, "false"));
@@ -408,41 +416,75 @@ public final class DMLSConfig {
                 properties.getProperty(STAFF_COMMAND_FEEDBACK_MUTED_KEY, "false"));
         greeterEnabled = Boolean.parseBoolean(properties.getProperty(GREETER_ENABLED_KEY, "true"));
         greeterMessages = loadGreeterMessages(properties);
-        doNotInstaBanEnabled = Boolean.parseBoolean(properties.getProperty(DO_NOT_INSTA_BAN_ENABLED_KEY, "false"));
+
+        doNotInstaBanEnabled = Boolean.parseBoolean(
+                properties.getProperty(DO_NOT_INSTA_BAN_ENABLED_KEY, "false"));
         doNotInstaBanExplicitlyConfigured = Boolean.parseBoolean(
                 properties.getProperty(DO_NOT_INSTA_BAN_CONFIGURED_KEY, "false"));
+
         headerBehavior = HeaderBehavior.parse(properties.getProperty(HEADER_BEHAVIOR_KEY));
+
         ModerationPreferences defaults = ModerationPreferences.defaults();
         moderationPreferences = new ModerationPreferences(
-                Boolean.parseBoolean(properties.getProperty(MOD_LOCAL_KEY, Boolean.toString(defaults.includeLocal()))),
-                Boolean.parseBoolean(properties.getProperty(MOD_TRADE_KEY, Boolean.toString(defaults.includeTrade()))),
-                Boolean.parseBoolean(properties.getProperty(MOD_RP_KEY, Boolean.toString(defaults.includeRp()))),
-                Boolean.parseBoolean(properties.getProperty(MOD_STAFF_KEY, Boolean.toString(defaults.includeStaff()))),
-                Boolean.parseBoolean(properties.getProperty(MOD_ADMIN_KEY, Boolean.toString(defaults.includeAdmin()))),
-                Boolean.parseBoolean(properties.getProperty(MOD_SERVER_KEY, Boolean.toString(defaults.includeServer()))),
-                Boolean.parseBoolean(properties.getProperty(MOD_TIMESTAMPS_KEY, Boolean.toString(defaults.showTimestamps()))),
-                Boolean.parseBoolean(properties.getProperty(MOD_HIGHLIGHTS_KEY, Boolean.toString(defaults.highlightAlerts())))
+                Boolean.parseBoolean(properties.getProperty(
+                        MOD_LOCAL_KEY, Boolean.toString(defaults.includeLocal()))),
+                Boolean.parseBoolean(properties.getProperty(
+                        MOD_TRADE_KEY, Boolean.toString(defaults.includeTrade()))),
+                Boolean.parseBoolean(properties.getProperty(
+                        MOD_RP_KEY, Boolean.toString(defaults.includeRp()))),
+                Boolean.parseBoolean(properties.getProperty(
+                        MOD_STAFF_KEY, Boolean.toString(defaults.includeStaff()))),
+                Boolean.parseBoolean(properties.getProperty(
+                        MOD_ADMIN_KEY, Boolean.toString(defaults.includeAdmin()))),
+                Boolean.parseBoolean(properties.getProperty(
+                        MOD_SERVER_KEY, Boolean.toString(defaults.includeServer()))),
+                Boolean.parseBoolean(properties.getProperty(
+                        MOD_TIMESTAMPS_KEY, Boolean.toString(defaults.showTimestamps()))),
+                Boolean.parseBoolean(properties.getProperty(
+                        MOD_HIGHLIGHTS_KEY, Boolean.toString(defaults.highlightAlerts())))
         );
+
         moderationRuleOverrides.clear();
         for (String key : properties.stringPropertyNames()) {
             if (!key.startsWith(MOD_RULE_PREFIX) || !key.endsWith(MOD_RULE_SUFFIX)) continue;
-            String ruleId = key.substring(MOD_RULE_PREFIX.length(), key.length() - MOD_RULE_SUFFIX.length());
+
+            String ruleId = key.substring(
+                    MOD_RULE_PREFIX.length(), key.length() - MOD_RULE_SUFFIX.length());
             String value = properties.getProperty(key, "").trim();
-            if (ruleId.isEmpty() || !(value.equalsIgnoreCase("true") || value.equalsIgnoreCase("false"))) {
+
+            if (ruleId.isEmpty()
+                    || !(value.equalsIgnoreCase("true") || value.equalsIgnoreCase("false"))) {
                 DMLS.LOGGER.warn("Ignoring invalid automatic moderation preference {}={}", key, value);
                 continue;
             }
+
             moderationRuleOverrides.put(ruleId, Boolean.parseBoolean(value));
         }
+
         MiniMeHudPreferences miniMeDefaults = MiniMeHudPreferences.defaults();
         miniMeHudPreferences = new MiniMeHudPreferences(
-                Boolean.parseBoolean(properties.getProperty(MINI_ME_DUPEY_HUD_KEY, Boolean.toString(miniMeDefaults.dupeyHud()))),
-                Boolean.parseBoolean(properties.getProperty(MINI_ME_SIAFFY_HUD_KEY, Boolean.toString(miniMeDefaults.siaffyHud()))),
-                Boolean.parseBoolean(properties.getProperty(MINI_ME_BEANY_HUD_KEY, Boolean.toString(miniMeDefaults.beanyHud()))),
-                Boolean.parseBoolean(properties.getProperty(MINI_ME_MORVY_HUD_KEY, Boolean.toString(miniMeDefaults.morvyHud()))),
-                Boolean.parseBoolean(properties.getProperty(MINI_ME_BIGGY_HUD_KEY, Boolean.toString(miniMeDefaults.biggyHud()))),
-                Boolean.parseBoolean(properties.getProperty(MINI_ME_CHAOS_MODE_KEY, Boolean.toString(miniMeDefaults.chaosMode())))
+                Boolean.parseBoolean(properties.getProperty(
+                        MINI_ME_DUPEY_HUD_KEY, Boolean.toString(miniMeDefaults.dupeyHud()))),
+                Boolean.parseBoolean(properties.getProperty(
+                        MINI_ME_SIAFFY_HUD_KEY, Boolean.toString(miniMeDefaults.siaffyHud()))),
+                Boolean.parseBoolean(properties.getProperty(
+                        MINI_ME_BEANY_HUD_KEY, Boolean.toString(miniMeDefaults.beanyHud()))),
+                Boolean.parseBoolean(properties.getProperty(
+                        MINI_ME_MORVY_HUD_KEY, Boolean.toString(miniMeDefaults.morvyHud()))),
+                Boolean.parseBoolean(properties.getProperty(
+                        MINI_ME_BIGGY_HUD_KEY, Boolean.toString(miniMeDefaults.biggyHud()))),
+                Boolean.parseBoolean(properties.getProperty(
+                        MINI_ME_SERPY_HUD_KEY, Boolean.toString(miniMeDefaults.serpyHud()))),
+                Boolean.parseBoolean(properties.getProperty(
+                        MINI_ME_DOGGY_HUD_KEY, Boolean.toString(miniMeDefaults.doggyHud()))),
+                Boolean.parseBoolean(properties.getProperty(
+                        MINI_ME_CONFY_HUD_KEY, Boolean.toString(miniMeDefaults.confyHud()))),
+                Boolean.parseBoolean(properties.getProperty(
+                        MINI_ME_CHAOS_MODE_KEY, Boolean.toString(miniMeDefaults.chaosMode()))),
+                Boolean.parseBoolean(properties.getProperty(
+                        MINI_ME_SNOWBALL_FIGHTS_KEY, Boolean.toString(miniMeDefaults.snowballFights())))
         );
+
         if (properties.containsKey(ALLOWED_SERVERS_KEY)) {
             allowedServers = withMandatoryAllowedServers(java.util.Arrays.asList(
                     properties.getProperty(ALLOWED_SERVERS_KEY, "").split(",")));
@@ -454,6 +496,7 @@ public final class DMLSConfig {
     private static boolean save() {
         Properties properties = propertiesSnapshot();
         Path configPath = configPath();
+
         try {
             AtomicProperties.store(configPath, properties, "DMLS settings");
             return true;
@@ -465,23 +508,29 @@ public final class DMLSConfig {
 
     static Properties propertiesSnapshot() {
         Properties properties = new Properties();
+
         properties.setProperty(RANK_KEY, persistedStaffRank.name());
         properties.setProperty(BANS_RANK_KEY, departmentRanks.get(StaffDepartment.BANS).name());
         properties.setProperty(EVENTS_RANK_KEY, departmentRanks.get(StaffDepartment.EVENTS).name());
         properties.setProperty(WAR_RANK_KEY, departmentRanks.get(StaffDepartment.WAR).name());
+
         properties.setProperty(ALERTS_KEY, Boolean.toString(alertsEnabled));
         properties.setProperty(TRADE_CHAT_MUTED_KEY, Boolean.toString(tradeChatMuted));
         properties.setProperty(SERVER_MESSAGES_MUTED_KEY, Boolean.toString(serverMessagesMuted));
         properties.setProperty(STAFF_COMMAND_FEEDBACK_MUTED_KEY, Boolean.toString(staffCommandFeedbackMuted));
+
         properties.setProperty(GREETER_ENABLED_KEY, Boolean.toString(greeterEnabled));
         for (int index = 0; index < greeterMessages.size(); index++) {
             properties.setProperty(GREETER_MESSAGE_PREFIX + index, greeterMessages.get(index));
         }
+
         properties.setProperty(DO_NOT_INSTA_BAN_ENABLED_KEY, Boolean.toString(doNotInstaBanEnabled));
         properties.setProperty(DO_NOT_INSTA_BAN_CONFIGURED_KEY,
                 Boolean.toString(doNotInstaBanExplicitlyConfigured));
+
         properties.setProperty(ALLOWED_SERVERS_KEY, String.join(",", allowedServers));
         properties.setProperty(HEADER_BEHAVIOR_KEY, headerBehavior.name());
+
         properties.setProperty(MOD_LOCAL_KEY, Boolean.toString(moderationPreferences.includeLocal()));
         properties.setProperty(MOD_TRADE_KEY, Boolean.toString(moderationPreferences.includeTrade()));
         properties.setProperty(MOD_RP_KEY, Boolean.toString(moderationPreferences.includeRp()));
@@ -490,14 +539,31 @@ public final class DMLSConfig {
         properties.setProperty(MOD_SERVER_KEY, Boolean.toString(moderationPreferences.includeServer()));
         properties.setProperty(MOD_TIMESTAMPS_KEY, Boolean.toString(moderationPreferences.showTimestamps()));
         properties.setProperty(MOD_HIGHLIGHTS_KEY, Boolean.toString(moderationPreferences.highlightAlerts()));
+
         moderationRuleOverrides.forEach((ruleId, enabled) -> properties.setProperty(
                 MOD_RULE_PREFIX + ruleId + MOD_RULE_SUFFIX, Boolean.toString(enabled)));
-        properties.setProperty(MINI_ME_DUPEY_HUD_KEY, Boolean.toString(miniMeHudPreferences.dupeyHud()));
-        properties.setProperty(MINI_ME_SIAFFY_HUD_KEY, Boolean.toString(miniMeHudPreferences.siaffyHud()));
-        properties.setProperty(MINI_ME_BEANY_HUD_KEY, Boolean.toString(miniMeHudPreferences.beanyHud()));
-        properties.setProperty(MINI_ME_MORVY_HUD_KEY, Boolean.toString(miniMeHudPreferences.morvyHud()));
-        properties.setProperty(MINI_ME_BIGGY_HUD_KEY, Boolean.toString(miniMeHudPreferences.biggyHud()));
-        properties.setProperty(MINI_ME_CHAOS_MODE_KEY, Boolean.toString(miniMeHudPreferences.chaosMode()));
+
+        properties.setProperty(MINI_ME_DUPEY_HUD_KEY,
+                Boolean.toString(miniMeHudPreferences.dupeyHud()));
+        properties.setProperty(MINI_ME_SIAFFY_HUD_KEY,
+                Boolean.toString(miniMeHudPreferences.siaffyHud()));
+        properties.setProperty(MINI_ME_BEANY_HUD_KEY,
+                Boolean.toString(miniMeHudPreferences.beanyHud()));
+        properties.setProperty(MINI_ME_MORVY_HUD_KEY,
+                Boolean.toString(miniMeHudPreferences.morvyHud()));
+        properties.setProperty(MINI_ME_BIGGY_HUD_KEY,
+                Boolean.toString(miniMeHudPreferences.biggyHud()));
+        properties.setProperty(MINI_ME_SERPY_HUD_KEY,
+                Boolean.toString(miniMeHudPreferences.serpyHud()));
+        properties.setProperty(MINI_ME_DOGGY_HUD_KEY,
+                Boolean.toString(miniMeHudPreferences.doggyHud()));
+        properties.setProperty(MINI_ME_CONFY_HUD_KEY,
+                Boolean.toString(miniMeHudPreferences.confyHud()));
+        properties.setProperty(MINI_ME_CHAOS_MODE_KEY,
+                Boolean.toString(miniMeHudPreferences.chaosMode()));
+        properties.setProperty(MINI_ME_SNOWBALL_FIGHTS_KEY,
+                Boolean.toString(miniMeHudPreferences.snowballFights()));
+
         return properties;
     }
 
@@ -507,6 +573,7 @@ public final class DMLSConfig {
 
     private static DepartmentRank parseDepartmentRank(String input, StaffDepartment department) {
         String normalized = input.trim().toUpperCase(Locale.ROOT).replace(' ', '_').replace('-', '_');
+
         try {
             DepartmentRank rank = DepartmentRank.valueOf(normalized);
             return rank.belongsTo(department) ? rank : DepartmentRank.NOT_ASSIGNED;
@@ -545,7 +612,8 @@ public final class DMLSConfig {
 
     private static List<String> withMandatoryAllowedServers(List<String> servers) {
         List<String> configured = servers == null ? List.of() : servers;
-        return java.util.stream.Stream.concat(ServerGuard.DEFAULT_ALLOWED_SERVERS.stream(), configured.stream())
+        return java.util.stream.Stream.concat(
+                        ServerGuard.DEFAULT_ALLOWED_SERVERS.stream(), configured.stream())
                 .map(ServerGuard::normalizeRule)
                 .flatMap(Optional::stream)
                 .distinct()

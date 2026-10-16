@@ -1,3 +1,4 @@
+
 {
   "key.category.dmls.dmls": "Duper's Mod for Lazy Staff",
   "key.dmls.open_menu": "Open DMLS Menu",
@@ -179,7 +180,12 @@
   "dmls.module.mini_me_hud.beany": "Show Beany",
   "dmls.module.mini_me_hud.morvy": "Show Morvy",
   "dmls.module.mini_me_hud.biggy": "Show Biggy",
+  "dmls.module.mini_me_hud.serpy" : "Show Serpy",
+  "dmls.module.mini_me_hud.doggy": "Show Doggy",
+  "dmls.module.mini_me_hud.confy": "Show CONfy",
   "dmls.module.mini_me_hud.chaos_mode": "Chaos Mode",
+  "dmls.module.mini_me_hud.snowball_fights": "Snowball Fights",
+
   "dmls.module.xray.name": "Xray Rollback",
   "dmls.module.xray.description.1": "Roll back a confirmed xrayer: ores and tunnels (30d),",
   "dmls.module.xray.description.2": "containers (7d), then a balance check.",
@@ -488,7 +494,7 @@
 ,"dmls.chat.check_lands.admin": "§c§lAdmin§r§7: "
 ,"dmls.chat.check_lands.member_unknown": "§e§lMember/Unknown§r§7: "
 ,"dmls.chat.common.none": "None"
-,"dmls.chat.check_lands.hover_info": "§7Click to run §6/la info %s"
+,"dmls.chat.check_lands.hover_info": "§7Click to run §6/lands info land %s"
 ,"dmls.chat.check_members.hover_lands": "§7Click to run §6/checklands %s"
 ,"dmls.chat.xray.step.deepslate": "Deepslate ores (30d)"
 ,"dmls.chat.xray.step.stone": "Stone ores (30d)"

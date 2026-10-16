@@ -85,7 +85,10 @@ public final class ModerationScreen extends Screen {
             new MiniMe("Siaffy", Identifier.fromNamespaceAndPath(DMLS.MOD_ID.toLowerCase(), "textures/gui/mini_me/siaffy/siaffy.png")),
             new MiniMe("Beany", Identifier.fromNamespaceAndPath(DMLS.MOD_ID.toLowerCase(), "textures/gui/mini_me/beany/beany.png")),
             new MiniMe("Morvy", Identifier.fromNamespaceAndPath(DMLS.MOD_ID.toLowerCase(), "textures/gui/mini_me/morvy/morvy.png")),
-            new MiniMe("Biggy", Identifier.fromNamespaceAndPath(DMLS.MOD_ID.toLowerCase(), "textures/gui/mini_me/biggy/biggy.png"))
+            new MiniMe("Biggy", Identifier.fromNamespaceAndPath(DMLS.MOD_ID.toLowerCase(), "textures/gui/mini_me/biggy/biggy.png")),
+            new MiniMe("Serpy", Identifier.fromNamespaceAndPath(DMLS.MOD_ID.toLowerCase(), "textures/gui/mini_me/serpy/serpy.png")),
+            new MiniMe("Doggy", Identifier.fromNamespaceAndPath(DMLS.MOD_ID.toLowerCase(), "textures/gui/mini_me/doggy/doggy.png")),
+            new MiniMe("CONfy", Identifier.fromNamespaceAndPath(DMLS.MOD_ID.toLowerCase(), "textures/gui/mini_me/confy/confy.png"))
     );
     private final Screen parent;
     private final PunishmentLogSource punishmentLogSource;
