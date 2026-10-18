@@ -60,6 +60,7 @@ public final class DMLSConfig {
     private static final String MINI_ME_CONFY_HUD_KEY = "miniMe.confyHud";
     private static final String MINI_ME_CHAOS_MODE_KEY = "miniMe.chaosMode";
     private static final String MINI_ME_SNOWBALL_FIGHTS_KEY = "miniMe.snowballFights";
+    private static final String NODE_NETWORK_BACKGROUND_KEY = "backgrounds.nodeNetwork";
     private static final StaffRank DEFAULT_RANK = StaffRank.NONE;
 
     private static boolean loaded;
@@ -80,6 +81,7 @@ public final class DMLSConfig {
     private static ModerationPreferences moderationPreferences = ModerationPreferences.defaults();
     private static final Map<String, Boolean> moderationRuleOverrides = new HashMap<>();
     private static MiniMeHudPreferences miniMeHudPreferences = MiniMeHudPreferences.defaults();
+    private static boolean nodeNetworkBackground = true;
 
     // Deliberately not persisted: the game always starts live, so a forgotten
     // dry run can never suppress real commands in a later session.
@@ -319,6 +321,20 @@ public final class DMLSConfig {
         return false;
     }
 
+    public static boolean nodeNetworkBackground() {
+        ensureLoaded();
+        return nodeNetworkBackground;
+    }
+
+    public static boolean setNodeNetworkBackground(boolean enabled) {
+        ensureLoaded();
+        boolean previous = nodeNetworkBackground;
+        nodeNetworkBackground = enabled;
+        if (save()) return true;
+        nodeNetworkBackground = previous;
+        return false;
+    }
+
     /** While enabled, DMLS previews each action without sending it. Not persisted. */
     public static boolean dryRun() {
         return dryRun;
@@ -485,6 +501,9 @@ public final class DMLSConfig {
                         MINI_ME_SNOWBALL_FIGHTS_KEY, Boolean.toString(miniMeDefaults.snowballFights())))
         );
 
+        nodeNetworkBackground = Boolean.parseBoolean(
+                properties.getProperty(NODE_NETWORK_BACKGROUND_KEY, "true"));
+
         if (properties.containsKey(ALLOWED_SERVERS_KEY)) {
             allowedServers = withMandatoryAllowedServers(java.util.Arrays.asList(
                     properties.getProperty(ALLOWED_SERVERS_KEY, "").split(",")));
@@ -563,6 +582,8 @@ public final class DMLSConfig {
                 Boolean.toString(miniMeHudPreferences.chaosMode()));
         properties.setProperty(MINI_ME_SNOWBALL_FIGHTS_KEY,
                 Boolean.toString(miniMeHudPreferences.snowballFights()));
+
+        properties.setProperty(NODE_NETWORK_BACKGROUND_KEY, Boolean.toString(nodeNetworkBackground));
 
         return properties;
     }

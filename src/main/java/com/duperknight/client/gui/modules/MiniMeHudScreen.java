@@ -15,6 +15,7 @@ import net.minecraft.network.chat.Component;
 
 /** Settings screen for AdMinis shown on the in-game HUD. */
 public final class MiniMeHudScreen extends DMLSMenuScreen {
+    // Bottom edge of the last toggle (offset 270). The button height isn't scaled, so add it unscaled.
     private final MiniMeHudModule module;
     private Component saveStatus = Component.empty();
 
@@ -25,7 +26,7 @@ public final class MiniMeHudScreen extends DMLSMenuScreen {
 
     @Override
     protected void init() {
-        configureScrollableContent(module, scaled(285));
+        configureScrollableContent(module, lastToggleBottom() + scaled(40));
         MiniMeHudPreferences preferences = DMLSConfig.miniMeHudPreferences();
         addToggle(0, "dmls.module.mini_me_hud.dupey", preferences.dupeyHud(), MiniMeHudPreferences::withDupeyHud);
         addToggle(30, "dmls.module.mini_me_hud.siaffy", preferences.siaffyHud(), MiniMeHudPreferences::withSiaffyHud);
@@ -39,6 +40,11 @@ public final class MiniMeHudScreen extends DMLSMenuScreen {
         addToggle(270, "dmls.module.mini_me_hud.snowball_fights", preferences.snowballFights(), MiniMeHudPreferences::withSnowballFights);
         addRenderableWidget(Button.builder(CommonComponents.GUI_BACK, button -> onClose())
                 .bounds(width / 2 - scaled(75), footerButtonY(), scaled(150), STANDARD_BUTTON_HEIGHT).build());
+    }
+
+    // Bottom edge of the last toggle (offset 270). Button height isn't scaled, so it's added as-is.
+    private int lastToggleBottom() {
+        return scaled(270) + STANDARD_BUTTON_HEIGHT;
     }
 
     private void addToggle(int offset, String labelKey, boolean initialValue,
@@ -81,7 +87,7 @@ public final class MiniMeHudScreen extends DMLSMenuScreen {
         renderMenuBackground(context);
         renderModuleHeader(context, module);
         beginContentScissor(context);
-        int statusY = contentY(scaled(275));
+        int statusY = contentY(lastToggleBottom() + scaled(10));
         if (!saveStatus.getString().isEmpty() && isContentVisible(statusY, font.lineHeight)) {
             context.centeredText(font, saveStatus, width / 2, statusY, 0xFFFF5555);
         }

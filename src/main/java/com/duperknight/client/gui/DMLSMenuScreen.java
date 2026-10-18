@@ -11,6 +11,7 @@ import com.duperknight.client.modules.DMLSModule;
 import com.duperknight.client.utils.DMLSConfig;
 import com.duperknight.client.utils.HeaderBehavior;
 import com.duperknight.client.utils.ServerGuard;
+import com.duperknight.client.gui.widgets.NodeNetworkBackground;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -31,6 +32,7 @@ import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
+
 
 /** Shared in-game menu chrome used by every DMLS screen. */
 public abstract class DMLSMenuScreen extends Screen {
@@ -97,8 +99,21 @@ public abstract class DMLSMenuScreen extends Screen {
         if (accountWidget != null) {
             accountWidget.setY(Math.max(0, (headerHeight - DiscordAccountWidget.HEIGHT) / 2));
         }
-        context.fill(0, 0, width, headerHeight, 0x20000000);
 
+        int footerTop = height - FOOTER_TOP_OFFSET;
+        int contentShade = menuContentShade();
+
+        // Tints first...
+        context.fill(0, 0, width, headerHeight, 0x20000000);
+        if ((contentShade >>> 24) != 0) {
+            context.fill(0, headerHeight, width, footerTop, contentShade);
+        }
+        context.fill(0, footerTop, width, height, 0x20000000);
+
+        // ...then the node network, so the tints can't bury it.
+        NodeNetworkBackground.render(context);
+
+        // Logo on top of the network.
         float compactProgress = easedHeaderCompactProgress();
         int expandedLogoWidth = Math.clamp(width - scaled(32), scaled(160), scaled(205));
         int compactLogoWidth = Math.min(expandedLogoWidth, scaled(160));
@@ -113,13 +128,6 @@ public abstract class DMLSMenuScreen extends Screen {
         context.blit(RenderPipelines.GUI_TEXTURED, LOGO, logoX, logoY, 0.0F, 0.0F,
                 logoWidth, logoHeight, LOGO_TEXTURE_WIDTH, LOGO_TEXTURE_HEIGHT,
                 LOGO_TEXTURE_WIDTH, LOGO_TEXTURE_HEIGHT);
-
-        int footerTop = height - FOOTER_TOP_OFFSET;
-        int contentShade = menuContentShade();
-        if ((contentShade >>> 24) != 0) {
-            context.fill(0, headerHeight, width, footerTop, contentShade);
-        }
-        context.fill(0, footerTop, width, height, 0x20000000);
 
         // Use the same two-layer translucent separators as vanilla in-world lists.
         if (renderSharedHeaderSeparator()) {
@@ -147,6 +155,7 @@ public abstract class DMLSMenuScreen extends Screen {
         int footerTop = height - FOOTER_TOP_OFFSET;
         context.fill(0, 0, width, footerTop, menuContentShade());
         context.fill(0, footerTop, width, height, 0x20000000);
+        NodeNetworkBackground.render(context);
         context.blit(RenderPipelines.GUI_TEXTURED, FOOTER_SEPARATOR, 0, footerTop,
                 0.0F, 0.0F, width, 2, 32, 2);
     }
@@ -735,7 +744,7 @@ public abstract class DMLSMenuScreen extends Screen {
     }
 
     public static void renderVanillaScrollbar(GuiGraphicsExtractor context, int x, int y, int height,
-                                               int thumbY, int thumbHeight) {
+                                              int thumbY, int thumbHeight) {
         context.blitSprite(RenderPipelines.GUI_TEXTURED, SCROLLER_BACKGROUND,
                 x, y, SCROLLBAR_WIDTH, height);
         context.blitSprite(RenderPipelines.GUI_TEXTURED, SCROLLER,

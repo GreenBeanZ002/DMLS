@@ -813,6 +813,7 @@ public class DMLSClient implements ClientModInitializer {
         private static final List<DMLSModule> ALL = List.of(
                 new ActivityWaveModule(),
                 new AwayModule(),
+                new BackgroundsModule(),
                 new ChatAlertsModule(),
                 new ChatReplayModule(),
                 new ChatSpamMuteModule(),
