@@ -372,6 +372,12 @@ public class DMLSClient implements ClientModInitializer {
                                     client.schedule(() -> module(EventPowerToolModule.class).openScreen(client, null));
                                     return 1;
                                 }))
+                        .then(moduleLiteral("containerexport", EventsContainerExportModule.class)
+                                .executes(context -> {
+                                    Minecraft client = context.getSource().getClient();
+                                    client.schedule(() -> module(EventsContainerExportModule.class).openScreen(client, null));
+                                    return 1;
+                                }))
 
                         .then(moduleLiteral("simultaneous", EventSimultaneousCommandModule.class)
                                 .executes(context -> {
@@ -594,6 +600,8 @@ public class DMLSClient implements ClientModInitializer {
                 "/dmls event randomtp", Component.translatable("dmls.help.eventrandomteleport"));
         moduleHelpLine(client, EventPowerToolModule.class,
                 "/dmls event powertool", Component.translatable("dmls.help.eventpowertool"));
+        moduleHelpLine(client, EventsContainerExportModule.class,
+                "/dmls event containerexport", Component.translatable("dmls.help.eventcontainerexport"));
         moduleHelpLine(client, EventSimultaneousCommandModule.class,
                 "/dmls event simultaneous [set <1-5> <command>|run]", Component.translatable("dmls.help.eventsimultaneous"));
         moduleHelpLine(client, EventLightningModule.class,
@@ -822,6 +830,7 @@ public class DMLSClient implements ClientModInitializer {
                 new EventSimultaneousCommandModule(),
                 new EventPlayNearEffectModule(),
                 new EventLightningModule(),
+                new EventsContainerExportModule(),
                 new GreeterModule(),
                 new GriefScanModule(),
                 new LocationsModule(),
