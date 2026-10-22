@@ -962,5 +962,19 @@
   "dmls.validation.container_export.empty_hand": "Empty your main hand first. If a container refuses to open, a held block could be placed on top of it.",
   "dmls.chat.container_export.busy": "Another DMLS operation is already running.",
   "dmls.chat.container_export.server_blocked": "Exporting is blocked on this server.",
-  "dmls.chat.container_export.failed": "The export could not be started."
+  "dmls.chat.container_export.failed": "The export could not be started.",
+  "key.categories.dmls.container_export": "DMLS Container Export",
+  "key.dmls.container_export.corner1": "Container export: set corner 1",
+  "key.dmls.container_export.corner2": "Container export: set corner 2",
+  "dmls.container_export.status.corner": "Corner %s set to %s, %s, %s",
+  "dmls.container_export.status.area.no_corners": "Set both corners first.",
+  "dmls.container_export.status.area.added": "Added %s containers (%s selected).",
+  "dmls.container_export.status.area.partial": "Added %s containers (%s selected). %3$s chunks in the area are not loaded, so move closer and run it again.",
+  "dmls.container_export.status.area.capped": "Selection capped at 500 containers (%2$s selected).",
+  "dmls.container_export.button.corner1": "Set Corner 1",
+  "dmls.container_export.button.corner2": "Set Corner 2",
+  "dmls.container_export.button.add_area": "Add Area",
+  "dmls.container_export.button.clear_corners": "Clear Corners",
+  "dmls.container_export.button.corner1.set": "Corner 1: %s, %s, %s",
+  "dmls.container_export.button.corner2.set": "Corner 2: %s, %s, %s"
 }

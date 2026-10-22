@@ -1,6 +1,7 @@
 package com.duperknight.client;
 
 import com.duperknight.DMLS;
+import com.duperknight.client.commands.RankScanCommand;
 import com.duperknight.client.accountlink.DiscordLinkSessionValidator;
 import com.duperknight.client.gui.DMLSHomeScreen;
 import com.duperknight.client.gui.modules.RulebookScreen;
@@ -40,6 +41,7 @@ import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.resources.Identifier;
+import net.minecraft.core.BlockPos;
 import java.util.List;
 
 public class DMLSClient implements ClientModInitializer {
@@ -80,6 +82,8 @@ public class DMLSClient implements ClientModInitializer {
                                     "dmls.chat.rank.current", DMLSConfig.staffRank().displayName());
                             return 1;
                         }))
+                .then(ClientCommands.literal("scanrank")
+                        .executes(context -> RankScanCommand.run(context.getSource().getClient())))
                 .then(staffLiteral("help")
                         .executes(context -> sendHelp(context.getSource().getClient())))
                 .then(staffLiteral("modview")
@@ -377,7 +381,22 @@ public class DMLSClient implements ClientModInitializer {
                                     Minecraft client = context.getSource().getClient();
                                     client.schedule(() -> module(EventsContainerExportModule.class).openScreen(client, null));
                                     return 1;
+                                })
+                                .then(containerExportCorner("pos1", true))
+                                .then(containerExportCorner("pos2", false))
+                                .then(ClientCommands.literal("add").executes(context -> {
+                                    Minecraft client = context.getSource().getClient();
+                                    EventsContainerExportModule exporter = module(EventsContainerExportModule.class);
+                                    exporter.addAreaToSelection(client);
+                                    ChatUtils.sendClientMessage(client, PREFIX + exporter.lastStatus().getString());
+                                    return exporter.lastStatusIsError() ? 0 : 1;
                                 }))
+                                .then(ClientCommands.literal("clearcorners").executes(context -> {
+                                    Minecraft client = context.getSource().getClient();
+                                    module(EventsContainerExportModule.class).clearCorners();
+                                    ChatUtils.sendClientMessage(client, PREFIX + "§7Corners cleared.");
+                                    return 1;
+                                })))
 
                         .then(moduleLiteral("simultaneous", EventSimultaneousCommandModule.class)
                                 .executes(context -> {
@@ -601,7 +620,8 @@ public class DMLSClient implements ClientModInitializer {
         moduleHelpLine(client, EventPowerToolModule.class,
                 "/dmls event powertool", Component.translatable("dmls.help.eventpowertool"));
         moduleHelpLine(client, EventsContainerExportModule.class,
-                "/dmls event containerexport", Component.translatable("dmls.help.eventcontainerexport"));
+                "/dmls event containerexport [pos1|pos2 [x y z]|add|clearcorners]",
+                Component.translatable("dmls.help.eventcontainerexport"));
         moduleHelpLine(client, EventSimultaneousCommandModule.class,
                 "/dmls event simultaneous [set <1-5> <command>|run]", Component.translatable("dmls.help.eventsimultaneous"));
         moduleHelpLine(client, EventLightningModule.class,
@@ -747,6 +767,30 @@ public class DMLSClient implements ClientModInitializer {
                                 .executes(context -> runLightning(context.getSource().getClient(), shape,
                                         StringArgumentType.getString(context, sizeArgument),
                                         StringArgumentType.getString(context, "points")))));
+    }
+    private LiteralArgumentBuilder<FabricClientCommandSource> containerExportCorner(String name, boolean first) {
+        return ClientCommands.literal(name)
+                .executes(context -> {
+                    Minecraft client = context.getSource().getClient();
+                    if (client.player == null) return 0;
+                    return setContainerExportCorner(client, first, client.player.blockPosition());
+                })
+                .then(ClientCommands.argument("x", IntegerArgumentType.integer())
+                        .then(ClientCommands.argument("y", IntegerArgumentType.integer())
+                                .then(ClientCommands.argument("z", IntegerArgumentType.integer())
+                                        .executes(context -> setContainerExportCorner(
+                                                context.getSource().getClient(), first,
+                                                new BlockPos(
+                                                        IntegerArgumentType.getInteger(context, "x"),
+                                                        IntegerArgumentType.getInteger(context, "y"),
+                                                        IntegerArgumentType.getInteger(context, "z")))))));
+    }
+
+    private int setContainerExportCorner(Minecraft client, boolean first, BlockPos pos) {
+        EventsContainerExportModule exporter = module(EventsContainerExportModule.class);
+        exporter.setCorner(first, pos);
+        ChatUtils.sendClientMessage(client, PREFIX + exporter.lastStatus().getString());
+        return 1;
     }
 
     private int runLightning(Minecraft client, EventLightningModule.Shape shape, String size, String points) {

@@ -1,5 +1,6 @@
 package com.duperknight.client.utils;
 
+
 import java.util.regex.Pattern;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;

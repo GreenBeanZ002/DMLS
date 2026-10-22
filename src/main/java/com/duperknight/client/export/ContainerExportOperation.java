@@ -42,12 +42,18 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.function.LongSupplier;
 
 /**
  * Opens each selected container in turn (teleporting next to far ones, like Reimbursement Helper),
- * reads its contents, and writes everything to one JSON file under {@code dmls-exports}.
+ * reads its contents, and writes one JSON file under {@code dmls-exports} in this layout:
+ *
+ * <pre>
+ * { "minecraft:overworld": { "memories": { "x,y,z": {
+ *     "items": [ { "id": "...", "count": 1, "components": { ... } } ],
+ *     "container": "minecraft:barrel",
+ *     "loadedTimestamp": 0, "worldTimestamp": 0, "realTimestamp": "..." } } } }
+ * </pre>
  */
 public final class ContainerExportOperation implements ManagedOperation {
     private static final int OPEN_TIMEOUT_TICKS = 20 * 5;
@@ -56,7 +62,8 @@ public final class ContainerExportOperation implements ManagedOperation {
     private static final int RETURN_WAIT_TICKS = 12;
     private static final double INTERACTION_DISTANCE_SQUARED = 16.0;
     private static final DateTimeFormatter FILE_STAMP = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
+    // Default Gson escaping on purpose: it matches the reference file (e.g. "=" written as \u003d).
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     public interface Listener {
         void progress(int done, int total, String status);
@@ -67,10 +74,9 @@ public final class ContainerExportOperation implements ManagedOperation {
     private enum State { NEXT, TELEPORT_WAIT, OPEN_WAIT, RETURN_COMMAND, RETURN_WAIT, TERMINAL }
 
     private final List<ContainerTarget> targets;
+    private final LongSupplier loadedTicks;
     private final Listener listener;
-    private final JsonArray containers = new JsonArray();
-    private final JsonArray skippedJson = new JsonArray();
-    private final Map<String, Integer> totals = new TreeMap<>();
+    private final JsonObject memories = new JsonObject();
     private final List<String> notes = new ArrayList<>();
 
     private OperationHandle handle;
@@ -89,8 +95,9 @@ public final class ContainerExportOperation implements ManagedOperation {
     private double originZ;
     private String originDimension = "";
 
-    public ContainerExportOperation(List<ContainerTarget> targets, Listener listener) {
+    public ContainerExportOperation(List<ContainerTarget> targets, LongSupplier loadedTicks, Listener listener) {
         this.targets = List.copyOf(targets);
+        this.loadedTicks = loadedTicks;
         this.listener = listener;
     }
 
@@ -235,7 +242,7 @@ public final class ContainerExportOperation implements ManagedOperation {
         if (client.gui.screen() instanceof AbstractContainerScreen<?> screen) {
             screenTicks++;
             if (screenTicks < SYNC_TICKS) return; // let the server's contents packet arrive
-            readContainer(target, screen.getTitle().getString(), screen.getMenu());
+            readContainer(target, screen.getMenu());
             ScreenUtils.closeHandledScreen(client);
             index++;
             transition(State.NEXT);
@@ -260,52 +267,48 @@ public final class ContainerExportOperation implements ManagedOperation {
 
     // ---- reading and output ---------------------------------------------------------------
 
-    private void readContainer(ContainerTarget target, String title, AbstractContainerMenu menu) {
+    private void readContainer(ContainerTarget target, AbstractContainerMenu menu) {
         BlockPos pos = target.position();
         int containerSlots = Math.max(0, menu.slots.size() - 36);
-        JsonObject entry = new JsonObject();
-        entry.addProperty("x", pos.getX());
-        entry.addProperty("y", pos.getY());
-        entry.addProperty("z", pos.getZ());
-        entry.addProperty("dimension", target.dimension());
-        entry.addProperty("title", title);
-        entry.addProperty("slots", containerSlots);
 
         JsonArray items = new JsonArray();
-        int usedSlots = 0;
         int containerItems = 0;
         for (int slotIndex = 0; slotIndex < containerSlots; slotIndex++) {
             ItemStack stack = menu.getSlot(slotIndex).getItem();
             if (stack.isEmpty()) continue;
-            String id = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
-            JsonObject item = new JsonObject();
-            item.addProperty("slot", slotIndex);
-            item.addProperty("id", id);
-            item.addProperty("count", stack.getCount());
-            item.addProperty("name", stack.getHoverName().getString());
-            JsonElement data = encodeStack(stack);
-            if (data != null) item.add("stack", data);
-            items.add(item);
-            usedSlots++;
+            items.add(stackJson(stack));
             containerItems += stack.getCount();
-            totals.merge(id, stack.getCount(), Integer::sum);
         }
-        entry.addProperty("usedSlots", usedSlots);
-        entry.addProperty("itemCount", containerItems);
+
+        JsonObject entry = new JsonObject();
         entry.add("items", items);
-        containers.add(entry);
+        entry.addProperty("container",
+                BuiltInRegistries.BLOCK.getKey(client.level.getBlockState(pos).getBlock()).toString());
+        entry.addProperty("loadedTimestamp", loadedTicks.getAsLong());
+        entry.addProperty("worldTimestamp", client.level.getGameTime());
+        entry.addProperty("realTimestamp", Instant.now().toString());
+        memories.add(pos.getX() + "," + pos.getY() + "," + pos.getZ(), entry);
+
         exported++;
         itemCount += containerItems;
     }
 
-    /** Full item data (components, enchantments, lore...) using the game's own item codec. */
-    private JsonElement encodeStack(ItemStack stack) {
+    /**
+     * One stack as {@code {"id": ..., "count": ..., "components": {...}}} using the game's own item
+     * codec; {@code components} only appears when the stack has any. Falls back to id and count.
+     */
+    private JsonElement stackJson(ItemStack stack) {
         try {
             var ops = client.level.registryAccess().createSerializationContext(JsonOps.INSTANCE);
-            return ItemStack.CODEC.encodeStart(ops, stack).result().orElse(null);
+            JsonElement encoded = ItemStack.CODEC.encodeStart(ops, stack).result().orElse(null);
+            if (encoded != null) return encoded;
         } catch (RuntimeException exception) {
-            return null;
+            // fall through to the plain form
         }
+        JsonObject plain = new JsonObject();
+        plain.addProperty("id", BuiltInRegistries.ITEM.getKey(stack.getItem()).toString());
+        plain.addProperty("count", stack.getCount());
+        return plain;
     }
 
     private ContainerExportResult buildResult() {
@@ -315,18 +318,10 @@ public final class ContainerExportOperation implements ManagedOperation {
             return new ContainerExportResult(ContainerExportResult.Kind.FAILED, "", 0, skipped, 0, notes, message);
         }
         try {
+            JsonObject dimension = new JsonObject();
+            dimension.add("memories", memories);
             JsonObject root = new JsonObject();
-            root.addProperty("exportedAt", Instant.now().toString());
-            root.addProperty("minecraftVersion", FabricLoader.getInstance().getModContainer("minecraft")
-                    .map(container -> container.getMetadata().getVersion().getFriendlyString()).orElse("unknown"));
-            root.addProperty("dimension", originDimension);
-            root.addProperty("containerCount", exported);
-            root.addProperty("itemCount", itemCount);
-            root.add("containers", containers);
-            JsonObject totalsJson = new JsonObject();
-            totals.forEach(totalsJson::addProperty);
-            root.add("totals", totalsJson);
-            if (skippedJson.size() > 0) root.add("skipped", skippedJson);
+            root.add(originDimension, dimension);
 
             Path gameDir = FabricLoader.getInstance().getGameDir();
             Path directory = gameDir.resolve("dmls-exports");
@@ -366,14 +361,6 @@ public final class ContainerExportOperation implements ManagedOperation {
     private void skip(ContainerTarget target, String reason) {
         skipped++;
         notes.add(target.displayCoordinates() + ": " + reason);
-        BlockPos pos = target.position();
-        JsonObject entry = new JsonObject();
-        entry.addProperty("x", pos.getX());
-        entry.addProperty("y", pos.getY());
-        entry.addProperty("z", pos.getZ());
-        entry.addProperty("dimension", target.dimension());
-        entry.addProperty("reason", reason);
-        skippedJson.add(entry);
         index++;
         transition(State.NEXT);
         publish("Skipped a container (" + reason + ")");
