@@ -5,14 +5,12 @@ import com.duperknight.client.accountlink.DiscordAccountProfileStore;
 import com.duperknight.client.accountlink.DiscordAvatarCache;
 import com.duperknight.client.accountlink.DiscordLinkService;
 import com.duperknight.client.accountlink.DiscordLinkTokenStore;
-import com.duperknight.client.gui.widgets.BouncingLogoBackground; // NEW
-import com.duperknight.client.gui.widgets.DiscordAccountWidget;
-import com.duperknight.client.gui.widgets.DropdownWidget;
+import com.duperknight.client.gui.widgets.*;
 import com.duperknight.client.modules.DMLSModule;
 import com.duperknight.client.utils.DMLSConfig;
 import com.duperknight.client.utils.HeaderBehavior;
 import com.duperknight.client.utils.ServerGuard;
-import com.duperknight.client.gui.widgets.NodeNetworkBackground;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -85,13 +83,23 @@ public abstract class DMLSMenuScreen extends Screen {
     private DiscordAccountWidget accountWidget;
     private Identifier accountAvatarTexture;
 
+    // NEW: last known mouse position, so backgrounds can react to the cursor without every
+    // subclass having to pass mouseX/mouseY into renderMenuBackground. Starts off-screen.
+    private int lastMouseX = -10_000;
+    private int lastMouseY = -10_000;
+
     protected DMLSMenuScreen(Component title, Screen parent) {
         super(title);
         this.parent = parent;
         headerCompactProgress = 1.0F;
     }
 
+    /** Keeps existing call sites working; uses the mouse position from the previous frame. */
     protected void renderMenuBackground(GuiGraphicsExtractor context) {
+        renderMenuBackground(context, lastMouseX, lastMouseY);
+    }
+
+    protected void renderMenuBackground(GuiGraphicsExtractor context, int mouseX, int mouseY) {
         // Screen.renderBackground has already applied the vanilla blurred in-world background.
         initializeDiscordAccount();
         updateHeaderAnimation();
@@ -114,9 +122,14 @@ public abstract class DMLSMenuScreen extends Screen {
         // ...then the node network, so the tints can't bury it.
         NodeNetworkBackground.render(context);
 
-        // NEW: bouncing logo, above the network but below the header logo and widgets.
+        // Bouncing logo, above the network but below the header logo and widgets.
         if (DMLSConfig.bouncingLogoBackground()) {
             BouncingLogoBackground.render(context, width, height);
+        }
+
+        // NEW: fleeing dots, same layer as the other animated backgrounds.
+        if (DMLSConfig.fleeingDotsBackground()) {
+            FleeingDotsBackground.render(context, width, height, mouseX, mouseY);
         }
 
         // Logo on top of the network.
@@ -162,9 +175,12 @@ public abstract class DMLSMenuScreen extends Screen {
         context.fill(0, 0, width, footerTop, menuContentShade());
         context.fill(0, footerTop, width, height, 0x20000000);
         NodeNetworkBackground.render(context);
-        // NEW
         if (DMLSConfig.bouncingLogoBackground()) {
             BouncingLogoBackground.render(context, width, height);
+        }
+        // NEW
+        if (DMLSConfig.fleeingDotsBackground()) {
+            FleeingDotsBackground.render(context, width, height, lastMouseX, lastMouseY);
         }
         context.blit(RenderPipelines.GUI_TEXTURED, FOOTER_SEPARATOR, 0, footerTop,
                 0.0F, 0.0F, width, 2, 32, 2);
@@ -421,6 +437,9 @@ public abstract class DMLSMenuScreen extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        // NEW: remember the cursor so the next frame's background can react to it.
+        lastMouseX = mouseX;
+        lastMouseY = mouseY;
         refreshCommandControls();
         // Screen renders all drawable children together. Hide scrolling children for that pass, then
         // render them separately through the viewport scissor so partial widgets are cut smoothly.

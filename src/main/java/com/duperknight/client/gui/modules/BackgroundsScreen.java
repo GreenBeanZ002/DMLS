@@ -8,6 +8,9 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
+import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
+
 /** Toggles for the animated DMLS menu backgrounds. */
 public final class BackgroundsScreen extends DMLSMenuScreen {
     private final BackgroundsModule module;
@@ -23,37 +26,33 @@ public final class BackgroundsScreen extends DMLSMenuScreen {
         int formWidth = Math.min(scaled(360), width - scaled(48));
         int formX = (width - formWidth) / 2;
 
+        int rowStep = STANDARD_BUTTON_HEIGHT + scaled(6);
         int nodeY = scaled(14);
-        int logoY = nodeY + STANDARD_BUTTON_HEIGHT + scaled(6); // NEW
+        int logoY = nodeY + rowStep;
+        int dotsY = logoY + rowStep;
 
-        addScrollableChild(Button.builder(nodeNetworkLabel(), button -> {
-                    DMLSConfig.setNodeNetworkBackground(!DMLSConfig.nodeNetworkBackground());
-                    button.setMessage(nodeNetworkLabel());
-                })
-                .bounds(formX, contentY(nodeY), formWidth, STANDARD_BUTTON_HEIGHT).build(), nodeY);
+        addToggle(formX, formWidth, nodeY, "dmls.backgrounds.node_network",
+                DMLSConfig::nodeNetworkBackground, DMLSConfig::setNodeNetworkBackground);
 
-        // NEW
-        addScrollableChild(Button.builder(bouncingLogoLabel(), button -> {
-                    DMLSConfig.setBouncingLogoBackground(!DMLSConfig.bouncingLogoBackground());
-                    button.setMessage(bouncingLogoLabel());
-                })
-                .bounds(formX, contentY(logoY), formWidth, STANDARD_BUTTON_HEIGHT).build(), logoY);
+        addToggle(formX, formWidth, logoY, "dmls.backgrounds.bouncing_logo",
+                DMLSConfig::bouncingLogoBackground, DMLSConfig::setBouncingLogoBackground);
+
+        addToggle(formX, formWidth, dotsY, "dmls.backgrounds.fleeing_dots",
+                DMLSConfig::fleeingDotsBackground, DMLSConfig::setFleeingDotsBackground);
 
         addRenderableWidget(Button.builder(Component.translatable("dmls.backgrounds.button.back"),
                         button -> minecraft.gui.setScreen(parent))
                 .bounds(width / 2 - scaled(75), footerButtonY(), scaled(150), STANDARD_BUTTON_HEIGHT).build());
     }
 
-    private static Component nodeNetworkLabel() {
-        return onOffLabel("dmls.backgrounds.node_network", DMLSConfig.nodeNetworkBackground());
+    private void addToggle(int x, int w, int y, String key, BooleanSupplier getter, Consumer<Boolean> setter) {
+        addScrollableChild(Button.builder(onOffLabel(key, getter.getAsBoolean()), button -> {
+                    setter.accept(!getter.getAsBoolean());
+                    button.setMessage(onOffLabel(key, getter.getAsBoolean()));
+                })
+                .bounds(x, contentY(y), w, STANDARD_BUTTON_HEIGHT).build(), y);
     }
 
-    // NEW
-    private static Component bouncingLogoLabel() {
-        return onOffLabel("dmls.backgrounds.bouncing_logo", DMLSConfig.bouncingLogoBackground());
-    }
-
-    // NEW
     private static Component onOffLabel(String key, boolean enabled) {
         return Component.translatable(key,
                 Component.translatable(enabled ? "dmls.option.on" : "dmls.option.off"));

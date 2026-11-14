@@ -64,7 +64,8 @@ public final class DMLSConfig {
     private static final String MINI_ME_SNOWBALL_FIGHTS_KEY = "miniMe.snowballFights";
     private static final String MINI_ME_CUSTOM_ENABLED_KEY = "miniMe.customEnabled";
     private static final String NODE_NETWORK_BACKGROUND_KEY = "backgrounds.nodeNetwork";
-    private static final String BOUNCING_LOGO_BACKGROUND_KEY = "backgrounds.bouncingLogo"; // NEW
+    private static final String BOUNCING_LOGO_BACKGROUND_KEY = "backgrounds.bouncingLogo";
+    private static final String FLEEING_DOTS_BACKGROUND_KEY = "backgrounds.fleeingDots"; // NEW
     private static final StaffRank DEFAULT_RANK = StaffRank.NONE;
 
     private static boolean loaded;
@@ -84,7 +85,8 @@ public final class DMLSConfig {
     private static final Map<String, Boolean> moderationRuleOverrides = new HashMap<>();
     private static MiniMeHudPreferences miniMeHudPreferences = MiniMeHudPreferences.defaults();
     private static boolean nodeNetworkBackground = true;
-    private static boolean bouncingLogoBackground = true; // NEW
+    private static boolean bouncingLogoBackground = true;
+    private static boolean fleeingDotsBackground = false; // NEW
 
     // Deliberately not persisted: the game always starts live, so a forgotten
     // dry run can never suppress real commands in a later session.
@@ -309,19 +311,33 @@ public final class DMLSConfig {
         return false;
     }
 
-    // NEW
     public static boolean bouncingLogoBackground() {
         ensureLoaded();
         return bouncingLogoBackground;
     }
 
-    // NEW
     public static boolean setBouncingLogoBackground(boolean enabled) {
         ensureLoaded();
         boolean previous = bouncingLogoBackground;
         bouncingLogoBackground = enabled;
         if (save()) return true;
         bouncingLogoBackground = previous;
+        return false;
+    }
+
+    // NEW
+    public static boolean fleeingDotsBackground() {
+        ensureLoaded();
+        return fleeingDotsBackground;
+    }
+
+    // NEW
+    public static boolean setFleeingDotsBackground(boolean enabled) {
+        ensureLoaded();
+        boolean previous = fleeingDotsBackground;
+        fleeingDotsBackground = enabled;
+        if (save()) return true;
+        fleeingDotsBackground = previous;
         return false;
     }
 
@@ -490,8 +506,10 @@ public final class DMLSConfig {
 
         nodeNetworkBackground = Boolean.parseBoolean(
                 properties.getProperty(NODE_NETWORK_BACKGROUND_KEY, "true"));
-        bouncingLogoBackground = Boolean.parseBoolean( // NEW
+        bouncingLogoBackground = Boolean.parseBoolean(
                 properties.getProperty(BOUNCING_LOGO_BACKGROUND_KEY, "true"));
+        fleeingDotsBackground = Boolean.parseBoolean( // NEW
+                properties.getProperty(FLEEING_DOTS_BACKGROUND_KEY, "false"));
 
         if (properties.containsKey(ALLOWED_SERVERS_KEY)) {
             allowedServers = withMandatoryAllowedServers(java.util.Arrays.asList(
@@ -571,7 +589,8 @@ public final class DMLSConfig {
                 String.join(",", new TreeSet<>(miniMeHudPreferences.customEnabled())));
 
         properties.setProperty(NODE_NETWORK_BACKGROUND_KEY, Boolean.toString(nodeNetworkBackground));
-        properties.setProperty(BOUNCING_LOGO_BACKGROUND_KEY, Boolean.toString(bouncingLogoBackground)); // NEW
+        properties.setProperty(BOUNCING_LOGO_BACKGROUND_KEY, Boolean.toString(bouncingLogoBackground));
+        properties.setProperty(FLEEING_DOTS_BACKGROUND_KEY, Boolean.toString(fleeingDotsBackground)); // NEW
 
         return properties;
     }

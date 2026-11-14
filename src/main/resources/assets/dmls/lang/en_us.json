@@ -935,6 +935,7 @@
   "dmls.module.backgrounds.description.1": "Turn the animated DMLS menu backgrounds on or off.",
   "dmls.backgrounds.node_network": "Node Network Background: %s",
   "dmls.backgrounds.bouncing_logo": "Bouncing Logo Background: %s",
+  "dmls.backgrounds.fleeing_dots": "Fleeing Dots: %s",
   "dmls.backgrounds.button.back": "Back",
 
   "dmls.container_export.name": "Container Export",
