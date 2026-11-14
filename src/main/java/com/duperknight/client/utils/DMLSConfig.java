@@ -55,6 +55,7 @@ public final class DMLSConfig {
     private static final String MINI_ME_DUPEY_HUD_KEY = "miniMe.dupeyHud";
     private static final String MINI_ME_SIAFFY_HUD_KEY = "miniMe.siaffyHud";
     private static final String MINI_ME_BEANY_HUD_KEY = "miniMe.beanyHud";
+    private static final String MINI_ME_BUBBLEY_HUD_KEY = "miniMe.bubbleyHud";
     private static final String MINI_ME_MORVY_HUD_KEY = "miniMe.morvyHud";
     private static final String MINI_ME_BIGGY_HUD_KEY = "miniMe.biggyHud";
     private static final String MINI_ME_SERPY_HUD_KEY = "miniMe.serpyHUD";
@@ -488,6 +489,8 @@ public final class DMLSConfig {
                 Boolean.parseBoolean(properties.getProperty(
                         MINI_ME_BEANY_HUD_KEY, Boolean.toString(miniMeDefaults.beanyHud()))),
                 Boolean.parseBoolean(properties.getProperty(
+                        MINI_ME_BUBBLEY_HUD_KEY, Boolean.toString(miniMeDefaults.bubbleyHud()))),
+                Boolean.parseBoolean(properties.getProperty(
                         MINI_ME_MORVY_HUD_KEY, Boolean.toString(miniMeDefaults.morvyHud()))),
                 Boolean.parseBoolean(properties.getProperty(
                         MINI_ME_BIGGY_HUD_KEY, Boolean.toString(miniMeDefaults.biggyHud()))),
@@ -571,6 +574,8 @@ public final class DMLSConfig {
                 Boolean.toString(miniMeHudPreferences.siaffyHud()));
         properties.setProperty(MINI_ME_BEANY_HUD_KEY,
                 Boolean.toString(miniMeHudPreferences.beanyHud()));
+        properties.setProperty(MINI_ME_BUBBLEY_HUD_KEY,
+                Boolean.toString(miniMeHudPreferences.bubbleyHud()));
         properties.setProperty(MINI_ME_MORVY_HUD_KEY,
                 Boolean.toString(miniMeHudPreferences.morvyHud()));
         properties.setProperty(MINI_ME_BIGGY_HUD_KEY,

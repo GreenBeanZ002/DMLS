@@ -8,6 +8,7 @@ public record MiniMeHudPreferences(
         boolean dupeyHud,
         boolean siaffyHud,
         boolean beanyHud,
+        boolean bubbleyHud,
         boolean morvyHud,
         boolean biggyHud,
         boolean serpyHud,
@@ -23,47 +24,64 @@ public record MiniMeHudPreferences(
     }
 
     public static MiniMeHudPreferences defaults() {
-        return new MiniMeHudPreferences(false, false, false, false, false, false, false, false, false, true, Set.of());
+        return new MiniMeHudPreferences(
+                false, // dupeyHud
+                false, // siaffyHud
+                false, // beanyHud
+                false, // bubbleyHud
+                false, // morvyHud
+                false, // biggyHud
+                false, // serpyHud
+                false, // doggyHud
+                false, // confyHud
+                true,  // chaosMode
+                false, // snowballFights
+                Set.of()
+        );
     }
 
     public MiniMeHudPreferences withDupeyHud(boolean enabled) {
-        return new MiniMeHudPreferences(enabled, siaffyHud, beanyHud, morvyHud, biggyHud, serpyHud, doggyHud, confyHud, chaosMode, snowballFights, customEnabled);
+        return new MiniMeHudPreferences(enabled, siaffyHud, beanyHud, bubbleyHud, morvyHud, biggyHud, serpyHud, doggyHud, confyHud, chaosMode, snowballFights, customEnabled);
     }
 
     public MiniMeHudPreferences withSiaffyHud(boolean enabled) {
-        return new MiniMeHudPreferences(dupeyHud, enabled, beanyHud, morvyHud, biggyHud, serpyHud, doggyHud, confyHud, chaosMode, snowballFights, customEnabled);
+        return new MiniMeHudPreferences(dupeyHud, enabled, beanyHud, bubbleyHud, morvyHud, biggyHud, serpyHud, doggyHud, confyHud, chaosMode, snowballFights, customEnabled);
     }
 
     public MiniMeHudPreferences withBeanyHud(boolean enabled) {
-        return new MiniMeHudPreferences(dupeyHud, siaffyHud, enabled, morvyHud, biggyHud, serpyHud, doggyHud, confyHud, chaosMode, snowballFights, customEnabled);
+        return new MiniMeHudPreferences(dupeyHud, siaffyHud, enabled, bubbleyHud, morvyHud, biggyHud, serpyHud, doggyHud, confyHud, chaosMode, snowballFights, customEnabled);
+    }
+
+    public MiniMeHudPreferences withBubbleyHud(boolean enabled) {
+        return new MiniMeHudPreferences(dupeyHud, siaffyHud, beanyHud, enabled, morvyHud, biggyHud, serpyHud, doggyHud, confyHud, chaosMode, snowballFights, customEnabled);
     }
 
     public MiniMeHudPreferences withMorvyHud(boolean enabled) {
-        return new MiniMeHudPreferences(dupeyHud, siaffyHud, beanyHud, enabled, biggyHud, serpyHud, doggyHud, confyHud, chaosMode, snowballFights, customEnabled);
+        return new MiniMeHudPreferences(dupeyHud, siaffyHud, beanyHud, bubbleyHud, enabled, biggyHud, serpyHud, doggyHud, confyHud, chaosMode, snowballFights, customEnabled);
     }
 
     public MiniMeHudPreferences withBiggyHud(boolean enabled) {
-        return new MiniMeHudPreferences(dupeyHud, siaffyHud, beanyHud, morvyHud, enabled, serpyHud, doggyHud, confyHud, chaosMode, snowballFights, customEnabled);
+        return new MiniMeHudPreferences(dupeyHud, siaffyHud, beanyHud, bubbleyHud, morvyHud, enabled, serpyHud, doggyHud, confyHud, chaosMode, snowballFights, customEnabled);
     }
 
     public MiniMeHudPreferences withSerpyHud(boolean enabled) {
-        return new MiniMeHudPreferences(dupeyHud, siaffyHud, beanyHud, morvyHud, biggyHud, enabled, doggyHud, confyHud, chaosMode, snowballFights, customEnabled);
+        return new MiniMeHudPreferences(dupeyHud, siaffyHud, beanyHud, bubbleyHud, morvyHud, biggyHud, enabled, doggyHud, confyHud, chaosMode, snowballFights, customEnabled);
     }
 
     public MiniMeHudPreferences withDoggyHud(boolean enabled) {
-        return new MiniMeHudPreferences(dupeyHud, siaffyHud, beanyHud, morvyHud, biggyHud, serpyHud, enabled, confyHud, chaosMode, snowballFights, customEnabled);
+        return new MiniMeHudPreferences(dupeyHud, siaffyHud, beanyHud, bubbleyHud, morvyHud, biggyHud, serpyHud, enabled, confyHud, chaosMode, snowballFights, customEnabled);
     }
 
     public MiniMeHudPreferences withConfyHud(boolean enabled) {
-        return new MiniMeHudPreferences(dupeyHud, siaffyHud, beanyHud, morvyHud, biggyHud, serpyHud, doggyHud, enabled, chaosMode, snowballFights, customEnabled);
+        return new MiniMeHudPreferences(dupeyHud, siaffyHud, beanyHud, bubbleyHud, morvyHud, biggyHud, serpyHud, doggyHud, enabled, chaosMode, snowballFights, customEnabled);
     }
 
     public MiniMeHudPreferences withChaosMode(boolean enabled) {
-        return new MiniMeHudPreferences(dupeyHud, siaffyHud, beanyHud, morvyHud, biggyHud, serpyHud, doggyHud, confyHud, enabled, snowballFights, customEnabled);
+        return new MiniMeHudPreferences(dupeyHud, siaffyHud, beanyHud, bubbleyHud, morvyHud, biggyHud, serpyHud, doggyHud, confyHud, enabled, snowballFights, customEnabled);
     }
 
     public MiniMeHudPreferences withSnowballFights(boolean enabled) {
-        return new MiniMeHudPreferences(dupeyHud, siaffyHud, beanyHud, morvyHud, biggyHud, serpyHud, doggyHud, confyHud, chaosMode, enabled, customEnabled);
+        return new MiniMeHudPreferences(dupeyHud, siaffyHud, beanyHud, bubbleyHud, morvyHud, biggyHud, serpyHud, doggyHud, confyHud, chaosMode, enabled, customEnabled);
     }
 
     public boolean customHud(String id) {
@@ -77,6 +95,6 @@ public record MiniMeHudPreferences(
         } else {
             next.remove(id);
         }
-        return new MiniMeHudPreferences(dupeyHud, siaffyHud, beanyHud, morvyHud, biggyHud, serpyHud, doggyHud, confyHud, chaosMode, snowballFights, next);
+        return new MiniMeHudPreferences(dupeyHud, siaffyHud, beanyHud, bubbleyHud, morvyHud, biggyHud, serpyHud, doggyHud, confyHud, chaosMode, snowballFights, next);
     }
 }

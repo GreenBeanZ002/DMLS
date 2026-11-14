@@ -1062,6 +1062,7 @@ public final class MiniMeHudOverlay {
         DUPEY("dupey"),
         SIAFFY("siaffy"),
         BEANY("beany"),
+        BUBBLEY("bubbley"),
         MORVY("morvy"),
         BIGGY("biggy"),
         SERPY("serpy"),
@@ -1128,6 +1129,7 @@ public final class MiniMeHudOverlay {
                 case DUPEY -> preferences.dupeyHud();
                 case SIAFFY -> preferences.siaffyHud();
                 case BEANY -> preferences.beanyHud();
+                case BUBBLEY -> preferences.bubbleyHud();
                 case MORVY -> preferences.morvyHud();
                 case BIGGY -> preferences.biggyHud();
                 case SERPY -> preferences.serpyHud();

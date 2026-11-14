@@ -121,6 +121,7 @@ public final class MiniMeHudScreen extends DMLSMenuScreen {
             mini("dupey", MiniMeHudPreferences::dupeyHud, MiniMeHudPreferences::withDupeyHud),
             mini("siaffy", MiniMeHudPreferences::siaffyHud, MiniMeHudPreferences::withSiaffyHud),
             mini("beany", MiniMeHudPreferences::beanyHud, MiniMeHudPreferences::withBeanyHud),
+            mini("bubbley", MiniMeHudPreferences::bubbleyHud, MiniMeHudPreferences::withBubbleyHud),
             mini("morvy", MiniMeHudPreferences::morvyHud, MiniMeHudPreferences::withMorvyHud),
             mini("biggy", MiniMeHudPreferences::biggyHud, MiniMeHudPreferences::withBiggyHud),
             mini("serpy", MiniMeHudPreferences::serpyHud, MiniMeHudPreferences::withSerpyHud),
