@@ -1067,7 +1067,8 @@ public final class MiniMeHudOverlay {
         BIGGY("biggy"),
         SERPY("serpy"),
         DOGGY("doggy"),
-        CONFY("confy");
+        CONFY("confy"),
+        GANDY("gandy");
 
         private final Identifier[] walkingTextures;
         private final MiniMeFrame[] resolvedWalkingFrames;
@@ -1135,6 +1136,7 @@ public final class MiniMeHudOverlay {
                 case SERPY -> preferences.serpyHud();
                 case DOGGY -> preferences.doggyHud();
                 case CONFY -> preferences.confyHud();
+                case GANDY -> preferences.gandyHud();
             };
         }
 

@@ -14,6 +14,7 @@ public record MiniMeHudPreferences(
         boolean serpyHud,
         boolean doggyHud,
         boolean confyHud,
+        boolean gandyHud,
         boolean chaosMode,
         boolean snowballFights,
         Set<String> customEnabled
@@ -34,6 +35,7 @@ public record MiniMeHudPreferences(
                 false, // serpyHud
                 false, // doggyHud
                 false, // confyHud
+                false, // gandyHud
                 true,  // chaosMode
                 false, // snowballFights
                 Set.of()
@@ -41,47 +43,51 @@ public record MiniMeHudPreferences(
     }
 
     public MiniMeHudPreferences withDupeyHud(boolean enabled) {
-        return new MiniMeHudPreferences(enabled, siaffyHud, beanyHud, bubbleyHud, morvyHud, biggyHud, serpyHud, doggyHud, confyHud, chaosMode, snowballFights, customEnabled);
+        return new MiniMeHudPreferences(enabled, siaffyHud, beanyHud, bubbleyHud, morvyHud, biggyHud, serpyHud, doggyHud, confyHud, gandyHud, chaosMode, snowballFights, customEnabled);
     }
 
     public MiniMeHudPreferences withSiaffyHud(boolean enabled) {
-        return new MiniMeHudPreferences(dupeyHud, enabled, beanyHud, bubbleyHud, morvyHud, biggyHud, serpyHud, doggyHud, confyHud, chaosMode, snowballFights, customEnabled);
+        return new MiniMeHudPreferences(dupeyHud, enabled, beanyHud, bubbleyHud, morvyHud, biggyHud, serpyHud, doggyHud, confyHud, gandyHud, chaosMode, snowballFights, customEnabled);
     }
 
     public MiniMeHudPreferences withBeanyHud(boolean enabled) {
-        return new MiniMeHudPreferences(dupeyHud, siaffyHud, enabled, bubbleyHud, morvyHud, biggyHud, serpyHud, doggyHud, confyHud, chaosMode, snowballFights, customEnabled);
+        return new MiniMeHudPreferences(dupeyHud, siaffyHud, enabled, bubbleyHud, morvyHud, biggyHud, serpyHud, doggyHud, confyHud, gandyHud, chaosMode, snowballFights, customEnabled);
     }
 
     public MiniMeHudPreferences withBubbleyHud(boolean enabled) {
-        return new MiniMeHudPreferences(dupeyHud, siaffyHud, beanyHud, enabled, morvyHud, biggyHud, serpyHud, doggyHud, confyHud, chaosMode, snowballFights, customEnabled);
+        return new MiniMeHudPreferences(dupeyHud, siaffyHud, beanyHud, enabled, morvyHud, biggyHud, serpyHud, doggyHud, confyHud, gandyHud, chaosMode, snowballFights, customEnabled);
     }
 
     public MiniMeHudPreferences withMorvyHud(boolean enabled) {
-        return new MiniMeHudPreferences(dupeyHud, siaffyHud, beanyHud, bubbleyHud, enabled, biggyHud, serpyHud, doggyHud, confyHud, chaosMode, snowballFights, customEnabled);
+        return new MiniMeHudPreferences(dupeyHud, siaffyHud, beanyHud, bubbleyHud, enabled, biggyHud, serpyHud, doggyHud, confyHud, gandyHud, chaosMode, snowballFights, customEnabled);
     }
 
     public MiniMeHudPreferences withBiggyHud(boolean enabled) {
-        return new MiniMeHudPreferences(dupeyHud, siaffyHud, beanyHud, bubbleyHud, morvyHud, enabled, serpyHud, doggyHud, confyHud, chaosMode, snowballFights, customEnabled);
+        return new MiniMeHudPreferences(dupeyHud, siaffyHud, beanyHud, bubbleyHud, morvyHud, enabled, serpyHud, doggyHud, confyHud, gandyHud, chaosMode, snowballFights, customEnabled);
     }
 
     public MiniMeHudPreferences withSerpyHud(boolean enabled) {
-        return new MiniMeHudPreferences(dupeyHud, siaffyHud, beanyHud, bubbleyHud, morvyHud, biggyHud, enabled, doggyHud, confyHud, chaosMode, snowballFights, customEnabled);
+        return new MiniMeHudPreferences(dupeyHud, siaffyHud, beanyHud, bubbleyHud, morvyHud, biggyHud, enabled, doggyHud, confyHud, gandyHud, chaosMode, snowballFights, customEnabled);
     }
 
     public MiniMeHudPreferences withDoggyHud(boolean enabled) {
-        return new MiniMeHudPreferences(dupeyHud, siaffyHud, beanyHud, bubbleyHud, morvyHud, biggyHud, serpyHud, enabled, confyHud, chaosMode, snowballFights, customEnabled);
+        return new MiniMeHudPreferences(dupeyHud, siaffyHud, beanyHud, bubbleyHud, morvyHud, biggyHud, serpyHud, enabled, confyHud, gandyHud, chaosMode, snowballFights, customEnabled);
     }
 
     public MiniMeHudPreferences withConfyHud(boolean enabled) {
-        return new MiniMeHudPreferences(dupeyHud, siaffyHud, beanyHud, bubbleyHud, morvyHud, biggyHud, serpyHud, doggyHud, enabled, chaosMode, snowballFights, customEnabled);
+        return new MiniMeHudPreferences(dupeyHud, siaffyHud, beanyHud, bubbleyHud, morvyHud, biggyHud, serpyHud, doggyHud, enabled, gandyHud, chaosMode, snowballFights, customEnabled);
+    }
+
+    public MiniMeHudPreferences withGandyHud(boolean enabled) {
+        return new MiniMeHudPreferences(dupeyHud, siaffyHud, beanyHud, bubbleyHud, morvyHud, biggyHud, serpyHud, doggyHud, confyHud, enabled, chaosMode, snowballFights, customEnabled);
     }
 
     public MiniMeHudPreferences withChaosMode(boolean enabled) {
-        return new MiniMeHudPreferences(dupeyHud, siaffyHud, beanyHud, bubbleyHud, morvyHud, biggyHud, serpyHud, doggyHud, confyHud, enabled, snowballFights, customEnabled);
+        return new MiniMeHudPreferences(dupeyHud, siaffyHud, beanyHud, bubbleyHud, morvyHud, biggyHud, serpyHud, doggyHud, confyHud, gandyHud, enabled, snowballFights, customEnabled);
     }
 
     public MiniMeHudPreferences withSnowballFights(boolean enabled) {
-        return new MiniMeHudPreferences(dupeyHud, siaffyHud, beanyHud, bubbleyHud, morvyHud, biggyHud, serpyHud, doggyHud, confyHud, chaosMode, enabled, customEnabled);
+        return new MiniMeHudPreferences(dupeyHud, siaffyHud, beanyHud, bubbleyHud, morvyHud, biggyHud, serpyHud, doggyHud, confyHud, gandyHud, chaosMode, enabled, customEnabled);
     }
 
     public boolean customHud(String id) {
@@ -95,6 +101,6 @@ public record MiniMeHudPreferences(
         } else {
             next.remove(id);
         }
-        return new MiniMeHudPreferences(dupeyHud, siaffyHud, beanyHud, bubbleyHud, morvyHud, biggyHud, serpyHud, doggyHud, confyHud, chaosMode, snowballFights, next);
+        return new MiniMeHudPreferences(dupeyHud, siaffyHud, beanyHud, bubbleyHud, morvyHud, biggyHud, serpyHud, doggyHud, confyHud, gandyHud, chaosMode, snowballFights, next);
     }
 }

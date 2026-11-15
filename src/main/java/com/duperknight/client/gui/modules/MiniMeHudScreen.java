@@ -126,7 +126,8 @@ public final class MiniMeHudScreen extends DMLSMenuScreen {
             mini("biggy", MiniMeHudPreferences::biggyHud, MiniMeHudPreferences::withBiggyHud),
             mini("serpy", MiniMeHudPreferences::serpyHud, MiniMeHudPreferences::withSerpyHud),
             mini("doggy", MiniMeHudPreferences::doggyHud, MiniMeHudPreferences::withDoggyHud),
-            mini("confy", MiniMeHudPreferences::confyHud, MiniMeHudPreferences::withConfyHud));
+            mini("confy", MiniMeHudPreferences::confyHud, MiniMeHudPreferences::withConfyHud),
+            mini("gandy", MiniMeHudPreferences::gandyHud, MiniMeHudPreferences::withGandyHud));
 
     private static final List<Card> OPTIONS = List.of(
             option("chaos_mode", MiniMeHudPreferences::chaosMode, MiniMeHudPreferences::withChaosMode),

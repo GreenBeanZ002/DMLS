@@ -61,6 +61,7 @@ public final class DMLSConfig {
     private static final String MINI_ME_SERPY_HUD_KEY = "miniMe.serpyHUD";
     private static final String MINI_ME_DOGGY_HUD_KEY = "miniMe.doggyHud";
     private static final String MINI_ME_CONFY_HUD_KEY = "miniMe.confyHud";
+    private static final String MINI_ME_GANDY_HUD_KEY = "miniMe.gandyHud";
     private static final String MINI_ME_CHAOS_MODE_KEY = "miniMe.chaosMode";
     private static final String MINI_ME_SNOWBALL_FIGHTS_KEY = "miniMe.snowballFights";
     private static final String MINI_ME_CUSTOM_ENABLED_KEY = "miniMe.customEnabled";
@@ -501,6 +502,8 @@ public final class DMLSConfig {
                 Boolean.parseBoolean(properties.getProperty(
                         MINI_ME_CONFY_HUD_KEY, Boolean.toString(miniMeDefaults.confyHud()))),
                 Boolean.parseBoolean(properties.getProperty(
+                        MINI_ME_GANDY_HUD_KEY, Boolean.toString(miniMeDefaults.gandyHud()))),
+                Boolean.parseBoolean(properties.getProperty(
                         MINI_ME_CHAOS_MODE_KEY, Boolean.toString(miniMeDefaults.chaosMode()))),
                 Boolean.parseBoolean(properties.getProperty(
                         MINI_ME_SNOWBALL_FIGHTS_KEY, Boolean.toString(miniMeDefaults.snowballFights()))),
@@ -586,6 +589,8 @@ public final class DMLSConfig {
                 Boolean.toString(miniMeHudPreferences.doggyHud()));
         properties.setProperty(MINI_ME_CONFY_HUD_KEY,
                 Boolean.toString(miniMeHudPreferences.confyHud()));
+        properties.setProperty(MINI_ME_GANDY_HUD_KEY,
+                Boolean.toString(miniMeHudPreferences.gandyHud()));
         properties.setProperty(MINI_ME_CHAOS_MODE_KEY,
                 Boolean.toString(miniMeHudPreferences.chaosMode()));
         properties.setProperty(MINI_ME_SNOWBALL_FIGHTS_KEY,
