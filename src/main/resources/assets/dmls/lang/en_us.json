@@ -3,7 +3,6 @@
   "key.dmls.open_menu": "Open DMLS Menu",
   "key.dmls.open_rulebook": "Open Rulebook",
   "key.dmls.open_moderation": "Open Moderation View",
-
   "dmls.title.home": "Duper's Mod for Lazy Staff",
   "dmls.title.options": "Mod Options",
   "dmls.title.allowed_servers": "Allowed Servers",
@@ -48,7 +47,6 @@
   "dmls.button.save": "Save",
   "dmls.button.delete": "Delete",
   "dmls.button.export": "Export",
-
   "dmls.option.on": "On",
   "dmls.option.off": "Off",
   "dmls.option.staff_rank": "Staff Rank",
@@ -92,7 +90,6 @@
   "dmls.field.server_address": "Server address",
   "dmls.validation.server_address": "Enter a valid host[:port] or *.host[:port] rule. URLs, paths and whitespace are not allowed.",
   "dmls.validation.server_duplicate": "That server rule is already allowed.",
-
   "dmls.staff_rank.none": "STAFF RANK NOT DETECTED",
   "dmls.staff_rank.helper": "HELPER",
   "dmls.staff_rank.moderator": "MODERATOR",
@@ -119,7 +116,6 @@
   "dmls.chat.staff.required": "§7You must have a recognized Stoneworks staff rank to use this module.",
   "dmls.chat.department_rank.required": "§7This requires %s§r§7 in %s§r§7, but your configured department rank is %s§r§7.",
   "dmls.chat.department.required": "§7This requires an assigned rank in the %s§r§7 department.",
-
   "dmls.feedback.open": "Send Feedback...",
   "dmls.feedback.screen.title": "Send Feedback",
   "dmls.feedback.title": "Title",
@@ -137,7 +133,6 @@
   "dmls.feedback.submitting_hint": "Submitting feedback...",
   "dmls.feedback.success": "Feedback submitted successfully. Reference: %s",
   "dmls.feedback.screenshot.drop_hint": "Drag an image (PNG, JPEG, or WebP) onto this window to attach it.",
-
   "dmls.help.eventlightningring": "Summons lightning in a ring, line, plus, cross or spiral.",
   "dmls.help.checklands": "Checks which lands the given players are in and their rank in each. Multiple names are checked one after another.",
   "dmls.help.checkmembers": "Lists all members of a land grouped by rank. Click a name to run /checklands on them.",
@@ -174,7 +169,6 @@
   "dmls.help.cancel": "Cancels the active response-tracked operation without sending further commands.",
   "dmls.help.greeter": "Shows or changes the persisted first-join greeting prompt toggle.",
   "dmls.help.modview": "Opens the live moderation workspace.",
-
   "dmls.validation.server_blocked": "Connect to an allowed server before submitting.",
   "dmls.field.player_ign": "Player IGN",
   "dmls.field.player_igns": "Player IGN(s)",
@@ -228,7 +222,6 @@
   "dmls.chat.menu_query.simulated": "Simulated %s; no menu data was fabricated.",
   "dmls.chat.menu_query.malformed": "The menu for %s was missing or malformed; nothing was inferred.",
   "dmls.chat.menu_query.timeout": "Timed out waiting for the menu opened by %s.",
-
   "dmls.rulebook.find_hint": "Press Ctrl+F (Command+F on macOS) to search the rulebook.",
   "dmls.rulebook.select_rule_tooltip": "Select a punishable rule to make a ban log.",
   "dmls.rulebook.make_log_disabled": "Make ban log",
@@ -336,7 +329,6 @@
   "dmls.moderation.copied_ign": "IGN copied.",
   "dmls.moderation.copied_uuid": "UUID copied.",
   "dmls.moderation.copied_message": "Message copied.",
-
   "dmls.module.chat_alerts.name": "Chat Alerts",
   "dmls.module.chat_alerts.description": "Receive an alert when a configured word appears in chat.",
   "dmls.module.chat_alerts.toggle": "Chat Alerts",
@@ -352,18 +344,16 @@
   "dmls.chat.alerts.reload_failed": "§cCould not reload the alert wordlist; keeping §6%s§c previously loaded words.",
   "dmls.chat.alerts.flagged": "Flagged word §c%s§7 detected:",
   "dmls.chat.alerts.quote": "§8> §f%s",
-
   "dmls.module.chat_spam.name": "Chat Spam Mute",
   "dmls.module.chat_spam.description": "Hide trade chat and server messages on this client.",
   "dmls.module.chat_spam.trade_chat_toggle": "Trade Chat Muted",
   "dmls.module.chat_spam.server_messages_toggle": "Server Messages Muted",
   "dmls.module.chat_spam.server_summon_messages_toggle": "Server Summon Messages Muted",
   "dmls.module.chat_spam.staff_command_feedback_toggle": "Staff Command Feedback Muted",
-
   "dmls.module.mini_me_hud.name": "AdMinis HUD",
   "dmls.module.mini_me_hud.description.1": "Choose which AdMinis wander around your in-game HUD.",
   "dmls.module.mini_me_hud.description.2": "Chaos Mode makes fights happen constantly.",
-  "dmls.module.mini_me_hud.delete.title" : "Delete Mini",
+  "dmls.module.mini_me_hud.delete.title": "Delete Mini",
   "dmls.module.mini_me_hud.delete.message": "Delete \"%s\" and all of its images? This can't be undone.",
   "dmls.module.mini_me_hud.dupey": "Show Dupey",
   "dmls.module.mini_me_hud.siaffy": "Show Siaffy",
@@ -375,11 +365,29 @@
   "dmls.module.mini_me_hud.doggy": "Show Doggy",
   "dmls.module.mini_me_hud.confy": "Show CONfy",
   "dmls.module.mini_me_hud.gandy": "Show Gandy",
-
+  "dmls.module.mini_me_hud.edit.title": "Edit Mini",
+  "dmls.module.mini_me_hud.edit.idle": "Idle",
+  "dmls.module.mini_me_hud.edit.walking": "Walking",
+  "dmls.module.mini_me_hud.edit.hitting": "Hitting",
+  "dmls.module.mini_me_hud.edit.preview": "Preview",
+  "dmls.module.mini_me_hud.screen.title": "AdMinis HUD",
+  "dmls.module.mini_me_hud.screen.settings": "Settings",
+  "dmls.module.mini_me_hud.screen.save_failed": "Could not save settings.",
+  "dmls.module.mini_me_hud.settings.title": "AdMinis HUD Settings",
+  "dmls.module.mini_me_hud.card.on": "ON",
+  "dmls.module.mini_me_hud.card.off": "OFF",
+  "dmls.module.mini_me_hud.empty": "Empty",
+  "dmls.module.mini_me_hud.edit": "Edit",
+  "dmls.module.mini_me_hud.add": "New Mini",
+  "dmls.module.mini_me_hud.all": "All",
+  "dmls.module.mini_me_hud.edit.name": "Name",
+  "dmls.module.mini_me_hud.edit.pick_idle": "Choose the idle image",
+  "dmls.module.mini_me_hud.edit.pick_frame": "Choose a PNG image",
+  "dmls.module.mini_me_hud.edit.pick_frames": "Choose PNG images (select several for multiple frames)",
+  "dmls.module.mini_me_hud.edit.import_failed": "That image couldn't be used (PNG only, max 2048x2048).",
+  "dmls.module.mini_me_hud.subtitle.toggle": "Mini toggled",
   "dmls.module.mini_me_hud.chaos_mode": "Chaos Mode",
   "dmls.module.mini_me_hud.snowball_fights": "Snowball Fights",
-
-
   "dmls.module.away.name": "Away Responder",
   "dmls.module.away.description": "Replies to private messages while you're away.",
   "dmls.field.brb_duration": "BRB duration",
@@ -401,7 +409,6 @@
   "dmls.chat.away.status.brb": "BRB: %s remaining.",
   "dmls.chat.away.status.dnd": "DND is on.",
   "dmls.chat.away.replied": "Replied to %s.",
-
   "dmls.module.chat_replay.name": "Chat Replay",
   "dmls.module.chat_replay.description": "Scroll through the full session chat and filter it by player or text.",
   "dmls.field.filter": "Filter",
@@ -412,7 +419,6 @@
   "dmls.screen.chat_replay.exporting": "Exporting...",
   "dmls.screen.chat_replay.exported": "Exported to %s",
   "dmls.screen.chat_replay.export_failed": "Export failed.",
-
   "dmls.module.greeter.name": "New Player Greeter",
   "dmls.module.greeter.description": "Spot first-join broadcasts and welcome new players with one click.",
   "dmls.module.greeter.toggle": "First-join prompts",
@@ -427,7 +433,6 @@
   "dmls.chat.greeter.button.hover": "Sends a public welcome message for %s.",
   "dmls.chat.greeter.enabled": "First-join prompts enabled.",
   "dmls.chat.greeter.disabled": "First-join prompts disabled.",
-
   "dmls.module.locations.name": "Locations",
   "dmls.module.locations.description": "Save named locations like grief sites and teleport back with one click.",
   "dmls.chat.locations.invalid_name": "Enter a name with at most %s characters.",
@@ -448,9 +453,7 @@
   "dmls.chat.locations.wrong_world": "%s belongs to dimension %s, not the current dimension %s.",
   "dmls.validation.locations.teleport_blocked": "Teleport was blocked; check chat for the server or dimension mismatch.",
   "dmls.validation.locations.action_blocked": "The location change failed; prior saved data remains active.",
-
   "dmls.chat.say.available": "§7Available replies: §6%s§7.",
-
   "dmls.module.check_alts.name": "Check Alts",
   "dmls.module.check_alts.description.1": "Run /alts and then /history on every found account.",
   "dmls.module.check_alts.description.2": "Ends with a punishment summary per account.",
@@ -497,7 +500,6 @@
   "dmls.chat.check_alts.never_joined": "§ehas not joined before",
   "dmls.chat.check_alts.skipped": "§8Skipped because of the account limit: %s",
   "dmls.chat.check_members.invalid_land": "Land names must be 1–64 characters and contain no control characters.",
-
   "dmls.module.uuid.name": "UUID Lookup",
   "dmls.module.uuid.description.1": "Look up as many as 10 Minecraft UUIDs using Mojang's API.",
   "dmls.module.uuid.description.2": "Separate usernames with commas or spaces; results can be copied.",
@@ -520,7 +522,6 @@
   "dmls.chat.uuid.malformed_response": "Mojang returned a malformed profile response. No result was trusted.",
   "dmls.chat.uuid.timeout": "The Mojang UUID lookup timed out. Please try again.",
   "dmls.chat.uuid.network_error": "The Mojang UUID lookup failed because of a network error.",
-
   "dmls.module.xray.name": "Xray Rollback",
   "dmls.module.xray.description.1": "Roll back a confirmed xrayer: ores and tunnels (30d),",
   "dmls.module.xray.description.2": "containers (7d), then a balance check.",
@@ -549,7 +550,6 @@
   "dmls.chat.xray.preview": "Staged xray rollback for §6%s§7. Exact commands follow:",
   "dmls.screen.xray.review_title": "Review Xray Rollback",
   "dmls.screen.xray.review_target": "Target: %s",
-
   "dmls.module.containers.name": "Container Scan",
   "dmls.module.containers.description.1": "Scan container activity around you with CoreProtect",
   "dmls.module.containers.description.2": "and summarize who took and added what.",
@@ -602,7 +602,6 @@
   "dmls.chat.griefs.pages.capped": "Confirmed %s of %s pages; the 1,000-page safety cap was reached.",
   "dmls.chat.griefs.no_results": "No block activity found.",
   "dmls.chat.griefs.no_response": "No CoreProtect response, stopping.",
-
   "dmls.module.co_builder.name": "CoreProtect Builder",
   "dmls.module.co_builder.description.1": "Compose CoreProtect lookups, rollbacks and restores",
   "dmls.module.co_builder.description.2": "from a form instead of memorized syntax.",
@@ -636,7 +635,6 @@
   "dmls.chat.co.cancelled": "The %s operation was cancelled (%s); no further command was sent.",
   "dmls.screen.co.review_title": "Review CoreProtect Change",
   "dmls.screen.co.review_warning": "This %s mutates CoreProtect data. Review the exact command:",
-
   "dmls.module.prefix.name": "Prefix Creation",
   "dmls.module.prefix.description.1": "Create a formatted prefix, set its player limit",
   "dmls.module.prefix.description.2": "and manager in one go.",
@@ -666,7 +664,6 @@
   "dmls.chat.prefix.timed_out.before": "Stopped prefix creation for §6%s§7 because a command response timed out; its requested text was ",
   "dmls.chat.prefix.timed_out.after": "§7, requested limit §6%s§7 and manager §6%s§7. No further prefix commands were sent.",
   "dmls.chat.prefix.cancelled": "Prefix sequence cancelled because the connection or allowed server changed.",
-
   "dmls.module.donor_pet.name": "Donor Pets",
   "dmls.module.donor_pet.description": "Give a donor the permission for their elite mount pet.",
   "dmls.field.pet": "Pet",
@@ -679,7 +676,6 @@
   "dmls.chat.donor_pet.rejected": "The server rejected the pet permission for %s / %s (%s).",
   "dmls.chat.donor_pet.simulated": "Simulated the pet permission for %s / %s (%s); nothing was sent.",
   "dmls.chat.donor_pet.cancelled": "Pet permission for %s / %s was cancelled; its result is unverified.",
-
   "dmls.module.promo_wave.name": "Promo Wave",
   "dmls.module.promo_wave.description.1": "Promote a whole wave of staff to a rank in one command.",
   "dmls.module.promo_wave.description.2": "Separate names with commas or spaces.",
@@ -710,7 +706,6 @@
   "dmls.chat.promo.partial": "Stopped with %s/%s players complete; next command was for %s while changing %s.",
   "dmls.screen.promo.review_title": "Review Promotion Wave",
   "dmls.screen.promo.review_summary": "%s players will be promoted to %s using these exact commands:",
-
   "dmls.module.demo_wave.name": "Demo Wave",
   "dmls.module.demo_wave.description.1": "Remove a staff rank from a whole wave at once,",
   "dmls.module.demo_wave.description.2": "for seasonal staff cleanup.",
@@ -739,7 +734,6 @@
   "dmls.chat.demo.partial": "Stopped with %s/%s players complete; next command was for %s while changing %s.",
   "dmls.screen.demo.review_title": "Review Demotion Wave",
   "dmls.screen.demo.review_summary": "%s players will be removed from %s using these exact commands:",
-
   "dmls.module.activity.name": "Activity Wave",
   "dmls.module.activity.description": "Check the recent activity of a whole staff wave at once.",
   "dmls.button.check_activity": "Check Activity",
@@ -757,13 +751,11 @@
   "dmls.chat.activity.simulated": "%s: simulated /activity command; no activity data was fabricated",
   "dmls.chat.activity.cancelled": "Activity wave cancelled; partial results are shown above.",
   "dmls.chat.activity.nothing": "No activity wave is active.",
-
   "dmls.module.reimbursement.name": "Reimbursement Helper",
   "dmls.module.reimbursement.description.1": "Build item and money reimbursements with capacity checks,",
   "dmls.module.reimbursement.description.2": "safe command pacing, routing, and a copyable staff log.",
   "dmls.reimbursement.tab.entries": "Reimbursement",
   "dmls.reimbursement.tab.config": "Log",
-
   "dmls.module.war_manager.name": "War Manager",
   "dmls.module.war_manager.description.1": "Schedules one-hour wars and shared purge windows.",
   "dmls.module.war_manager.description.2": "Restores Lands nation membership when each war ends.",
@@ -820,7 +812,6 @@
   "dmls.validation.war.cancel_unavailable": "This war can no longer be ended early.",
   "dmls.validation.war.cancel_scheduled": "This scheduled war could not be cancelled.",
   "dmls.validation.war.dismiss": "This completed war could not be removed.",
-
   "dmls.module.event_protect.name": "Event Protect",
   "dmls.module.event_protect.description": "Broadcast a protection message for protected events",
   "dmls.module.event_protect.event_name": "Event Name",
@@ -832,7 +823,6 @@
   "dmls.module.event_protect.broadcast": "Broadcast",
   "dmls.validation.event_protect.name": "Enter 1-64 characters without formatting codes or line breaks.",
   "dmls.validation.event_protect.land": "Enter a land claim using 1-64 characters without formatting codes or line breaks.",
-
   "dmls.module.event_random_teleport.name": "Event Random Teleport",
   "dmls.module.event_random_teleport.description": "Teleport to a random online player.",
   "dmls.module.event_random_teleport.teleport": "Teleport to Random Player",
@@ -848,7 +838,6 @@
   "dmls.chat.random_teleport.no_players": "No other players online to teleport to.",
   "dmls.chat.random_teleport.simulated_with_vanish": "Dry run: would enable vanish, then teleport to §6%s§7; nothing was sent.",
   "dmls.chat.random_teleport.simulated": "Dry run: would leave vanish unchanged and teleport to §6%s§7. Nothing was sent.",
-
   "dmls.module.event_powertool.name": "Event PowerTool",
   "dmls.module.event_powertool.description": "Save named /powertool commands and load them onto your held item.",
   "dmls.module.event_powertool.name_field": "Name",
@@ -869,7 +858,6 @@
   "dmls.chat.powertool.save_failed": "Could not save the powertool; the previous data is still active.",
   "dmls.button.event_powertool.clear": "Clear PowerTool",
   "dmls.chat.powertool.cleared": "Sent the request to clear the held item's PowerTool; check the server response.",
-
   "dmls.module.event_simultaneous.name": "Event Simultaneous Commands",
   "dmls.module.event_simultaneous.description": "Build a list of 2 to 5 commands and run them one after another.",
   "dmls.module.event_simultaneous.command_field": "Command %s",
@@ -894,7 +882,6 @@
   "dmls.module.event_simultaneous.repeat_count_field": "Repeat count",
   "dmls.module.event_simultaneous.repeat_count_placeholder": "Times to run (%s-%s)",
   "dmls.validation.event_simultaneous.repeat_count": "Repeat count must be between %s and %s",
-
   "dmls.module.event_lightning_ring.name": "Lightning",
   "dmls.module.event_lightning_ring.description": "Summons lightning in a ring, line, plus, cross or spiral around you.",
   "dmls.module.event_lightning_ring.shape": "Shape",
@@ -917,7 +904,6 @@
   "dmls.validation.event_lightning_ring.radius": "Radius must be between %d and %d.",
   "dmls.validation.event_lightning_ring.length": "Length must be between %d and %d.",
   "dmls.validation.event_lightning_ring.points": "Bolt count must be between %d and %d.",
-
   "dmls.module.event_play_near_effect.name": "Event Play Near Effect",
   "dmls.module.event_play_near_effect.description": "Apply a status effect to every player within a radius of you.",
   "dmls.module.event_play_near_effect.effect_field": "Effect",
@@ -940,7 +926,6 @@
   "dmls.backgrounds.bouncing_logo": "Bouncing Logo Background: %s",
   "dmls.backgrounds.fleeing_dots": "Fleeing Dots: %s",
   "dmls.backgrounds.button.back": "Back",
-
   "dmls.container_export.name": "Container Export",
   "dmls.container_export.description.pick": "Pick barrels, chests or other containers in the world, then export everything inside them to a JSON file.",
   "dmls.container_export.description.process": "Opens each one in turn (teleporting next to far ones), so keep your main hand empty. Files are saved in the dmls-exports folder.",

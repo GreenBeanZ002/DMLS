@@ -1,6 +1,7 @@
 package com.duperknight.client.hud;
 
 import com.duperknight.DMLS;
+import com.duperknight.client.modules.CustomMinis;
 import com.duperknight.client.modules.MiniMeHudPreferences;
 import com.duperknight.client.utils.DMLSConfig;
 import com.mojang.blaze3d.platform.NativeImage;
@@ -27,11 +28,12 @@ import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.stream.Stream;
 
 /** Renders optional animated AdMinis that wander entirely inside the in-game HUD. */
 public final class MiniMeHudOverlay {
@@ -131,7 +133,13 @@ public final class MiniMeHudOverlay {
             Identifier.fromNamespaceAndPath("minecraft", "textures/particle/big_smoke_11.png")
     );
     private static final Random RANDOM = new Random();
-    private static final Map<MiniMeDefinition, WalkerState> STATES = new EnumMap<>(MiniMeDefinition.class);
+    /** Customs appear at runtime, so a walker state is created on first lookup. */
+    private static final Map<MiniMeDefinition, WalkerState> STATES = new HashMap<>() {
+        @Override
+        public WalkerState get(Object key) {
+            return computeIfAbsent((MiniMeDefinition) key, k -> new WalkerState());
+        }
+    };
     private static final List<SmokeParticle> SMOKE_PARTICLES = new ArrayList<>();
     private static final List<CriticalHitParticle> CRITICAL_HIT_PARTICLES = new ArrayList<>();
     private static final List<Snowball> SNOWBALLS = new ArrayList<>();
@@ -149,12 +157,6 @@ public final class MiniMeHudOverlay {
     private static boolean snowBlocksVisible;
     private static long nextSnowScanAtNanos;
 
-    static {
-        for (MiniMeDefinition miniMe : MiniMeDefinition.values()) {
-            STATES.put(miniMe, new WalkerState());
-        }
-    }
-
     private MiniMeHudOverlay() {
     }
 
@@ -167,9 +169,18 @@ public final class MiniMeHudOverlay {
     }
 
     private static void invalidateFrameCache() {
-        for (MiniMeDefinition miniMe : MiniMeDefinition.values()) {
+        for (MiniMeDefinition miniMe : MiniMeDefinition.BUILT_INS) {
             miniMe.invalidateFrames();
         }
+    }
+
+    /** The 10 built-ins plus every custom mini that has at least one image. */
+    private static List<MiniMeDefinition> allDefinitions() {
+        List<MiniMeDefinition> list = new ArrayList<>(MiniMeDefinition.BUILT_INS);
+        for (CustomMinis.CustomMini mini : CustomMinis.all()) {
+            if (mini.usable()) list.add(MiniMeDefinition.custom(mini.id()));
+        }
+        return list;
     }
 
     private static void render(GuiGraphicsExtractor context) {
@@ -209,7 +220,7 @@ public final class MiniMeHudOverlay {
         }
         List<MiniMeDefinition> enabledMiniMes = new ArrayList<>();
 
-        for (MiniMeDefinition miniMe : MiniMeDefinition.values()) {
+        for (MiniMeDefinition miniMe : allDefinitions()) {
             WalkerState state = STATES.get(miniMe);
             if (!miniMe.enabled(preferences)) {
                 state.initialized = false;
@@ -904,6 +915,7 @@ public final class MiniMeHudOverlay {
         int frameIndex = dying ? state.deathFrameIndex
                 : state.walking ? (int) (walkElapsed / WALK_FRAME_NANOS % miniMe.walkingFrameCount()) : 0;
         MiniMeFrame frame = attacking ? miniMe.hittingFrame() : miniMe.walkingFrame(frameIndex);
+        if (frame.texture == null) return; // custom mini was deleted or emptied mid-frame
         float scale = Math.min(size / (float) frame.width, size / (float) frame.height);
         float widthBounce = 1.0F;
         float heightBounce = 1.0F;
@@ -1058,18 +1070,21 @@ public final class MiniMeHudOverlay {
         scheduleNextAggroCheck(System.nanoTime());
     }
 
-    private enum MiniMeDefinition {
-        DUPEY("dupey"),
-        SIAFFY("siaffy"),
-        BEANY("beany"),
-        BUBBLEY("bubbley"),
-        MORVY("morvy"),
-        BIGGY("biggy"),
-        SERPY("serpy"),
-        DOGGY("doggy"),
-        CONFY("confy"),
-        GANDY("gandy");
+    /** A built-in mini (fixed list) or a custom mini (one cached instance per id). */
+    private static final class MiniMeDefinition {
+        private static final List<MiniMeDefinition> BUILT_INS = Stream.of(
+                        "dupey", "siaffy", "beany", "bubbley", "morvy",
+                        "biggy", "serpy", "doggy", "confy", "gandy")
+                .map(id -> new MiniMeDefinition(id, false)).toList();
+        private static final Map<String, MiniMeDefinition> CUSTOMS = new HashMap<>();
 
+        /** One instance per id, so == comparisons in Fight / SnowFight keep working. */
+        static MiniMeDefinition custom(String id) {
+            return CUSTOMS.computeIfAbsent(id, key -> new MiniMeDefinition(key, true));
+        }
+
+        private final String id;
+        private final boolean custom;
         private final Identifier[] walkingTextures;
         private final MiniMeFrame[] resolvedWalkingFrames;
         private final boolean[] walkingResolutionAttempted;
@@ -1077,21 +1092,33 @@ public final class MiniMeHudOverlay {
         private MiniMeFrame resolvedHittingFrame;
         private boolean hittingResolutionAttempted;
 
-        MiniMeDefinition(String id) {
+        private MiniMeDefinition(String id, boolean custom) {
+            this.id = id;
+            this.custom = custom;
             walkingTextures = new Identifier[MAX_WALK_FRAMES];
             resolvedWalkingFrames = new MiniMeFrame[MAX_WALK_FRAMES];
             walkingResolutionAttempted = new boolean[MAX_WALK_FRAMES];
-            for (int frame = 0; frame < MAX_WALK_FRAMES; frame++) {
-                walkingTextures[frame] = walkingTextureId(id, "%02d".formatted(frame));
+            if (custom) {
+                // custom textures come from CustomMinis, not from the resource-pack paths
+                hittingTexture = null;
+            } else {
+                for (int frame = 0; frame < MAX_WALK_FRAMES; frame++) {
+                    walkingTextures[frame] = walkingTextureId(id, "%02d".formatted(frame));
+                }
+                hittingTexture = hittingTextureId(id);
             }
-            hittingTexture = hittingTextureId(id);
         }
 
         private int walkingFrameCount() {
+            if (custom) {
+                CustomMinis.CustomMini mini = CustomMinis.find(id);
+                return mini == null ? 1 : Math.max(1, mini.walking().size());
+            }
             return walkingTextures.length;
         }
 
         private MiniMeFrame walkingFrame(int index) {
+            if (custom) return customWalkingFrame(index);
             if (!walkingResolutionAttempted[index]) {
                 walkingResolutionAttempted[index] = true;
                 resolvedWalkingFrames[index] = loadFrame(walkingTextures[index]);
@@ -1103,6 +1130,13 @@ public final class MiniMeHudOverlay {
         }
 
         private MiniMeFrame hittingFrame() {
+            if (custom) {
+                CustomMinis.CustomMini mini = CustomMinis.find(id);
+                if (mini != null && !mini.hitting().isEmpty()) {
+                    return customFrame(mini.hitting().get(0));
+                }
+                return walkingFrame(0);
+            }
             if (!hittingResolutionAttempted) {
                 hittingResolutionAttempted = true;
                 resolvedHittingFrame = loadFrame(hittingTexture);
@@ -1110,7 +1144,27 @@ public final class MiniMeHudOverlay {
             return resolvedHittingFrame != null ? resolvedHittingFrame : walkingFrame(0);
         }
 
+        private MiniMeFrame customWalkingFrame(int index) {
+            CustomMinis.CustomMini mini = CustomMinis.find(id);
+            if (mini == null) return new MiniMeFrame(null, null, 64, 64);
+            List<CustomMinis.Sprite> walking = mini.walking();
+            CustomMinis.Sprite sprite = walking.isEmpty()
+                    ? mini.idleSprite()
+                    : walking.get(Math.floorMod(index, walking.size()));
+            return customFrame(sprite);
+        }
+
+        private static MiniMeFrame customFrame(CustomMinis.Sprite sprite) {
+            Identifier texture = sprite == null ? null : sprite.texture();
+            int[] size = texture == null ? null : CustomMinis.sizeOf(texture);
+            int w = size == null || size[0] <= 0 ? 64 : size[0];
+            int h = size == null || size[1] <= 0 ? 64 : size[1];
+            // customs are already dynamic textures, so no red damage-tint copy
+            return new MiniMeFrame(texture, texture, w, h);
+        }
+
         private void invalidateFrames() {
+            if (custom) return; // customs are resolved fresh every call, so edits show up immediately
             for (int index = 0; index < resolvedWalkingFrames.length; index++) {
                 resolvedWalkingFrames[index] = null;
                 walkingResolutionAttempted[index] = false;
@@ -1126,17 +1180,19 @@ public final class MiniMeHudOverlay {
         }
 
         private boolean enabled(MiniMeHudPreferences preferences) {
-            return switch (this) {
-                case DUPEY -> preferences.dupeyHud();
-                case SIAFFY -> preferences.siaffyHud();
-                case BEANY -> preferences.beanyHud();
-                case BUBBLEY -> preferences.bubbleyHud();
-                case MORVY -> preferences.morvyHud();
-                case BIGGY -> preferences.biggyHud();
-                case SERPY -> preferences.serpyHud();
-                case DOGGY -> preferences.doggyHud();
-                case CONFY -> preferences.confyHud();
-                case GANDY -> preferences.gandyHud();
+            if (custom) return preferences.customHud(id);
+            return switch (id) {
+                case "dupey" -> preferences.dupeyHud();
+                case "siaffy" -> preferences.siaffyHud();
+                case "beany" -> preferences.beanyHud();
+                case "bubbley" -> preferences.bubbleyHud();
+                case "morvy" -> preferences.morvyHud();
+                case "biggy" -> preferences.biggyHud();
+                case "serpy" -> preferences.serpyHud();
+                case "doggy" -> preferences.doggyHud();
+                case "confy" -> preferences.confyHud();
+                case "gandy" -> preferences.gandyHud();
+                default -> false;
             };
         }
 
